@@ -1,11 +1,11 @@
 import { Application, extend } from "@pixi/react";
-import { Graphics } from "pixi.js";
+import { Graphics, Text } from "pixi.js";
 import "pixi.js/unsafe-eval";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../../utils/drawGame";
+import { useRef } from "react";
 import { GameGraphics } from "./GameGraphics";
 import type { Game } from "@tetris-trainer/game";
 
-extend({ Graphics });
+extend({ Graphics, Text });
 
 interface GameCanvasProps {
 	readonly game: Game;
@@ -13,9 +13,13 @@ interface GameCanvasProps {
 }
 
 export function GameCanvas({ game, onGameOver }: GameCanvasProps) {
+	const containerRef = useRef<HTMLDivElement>(null);
+
 	return (
-		<Application width={CANVAS_WIDTH} height={CANVAS_HEIGHT} backgroundAlpha={0}>
-			<GameGraphics game={game} onGameOver={onGameOver} />
-		</Application>
+		<div ref={containerRef} className="absolute inset-0">
+			<Application resizeTo={containerRef} backgroundAlpha={0}>
+				<GameGraphics game={game} onGameOver={onGameOver} />
+			</Application>
+		</div>
 	);
 }

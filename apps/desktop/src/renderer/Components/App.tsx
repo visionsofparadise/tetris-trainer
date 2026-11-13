@@ -13,7 +13,7 @@ export function App() {
 	const handleExit = useCallback(() => setScreen("menu"), []);
 
 	return (
-		<main className="flex min-h-dvh items-center justify-center p-6">
+		<main className="flex h-dvh items-center justify-center p-6">
 			{screen === "menu" ? (
 				<Menu onStart={handleStart} context={context} />
 			) : (

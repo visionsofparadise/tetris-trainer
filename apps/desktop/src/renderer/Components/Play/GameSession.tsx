@@ -20,8 +20,8 @@ export function GameSession({ onRestart, onExit, context }: GameSessionProps) {
 	useGameKeyboard(game, onRestart, onExit, context);
 
 	return (
-		<div className="flex flex-col items-center gap-4">
-			<div className="relative">
+		<div className="flex size-full flex-col items-center gap-4">
+			<div className="relative w-full flex-1">
 				<GameCanvas game={game} onGameOver={handleGameOver} />
 				{isOver && <GameOver stats={game.stats} onRestart={onRestart} onExit={onExit} />}
 			</div>
