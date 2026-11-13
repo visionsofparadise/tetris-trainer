@@ -1,10 +1,12 @@
-# Monorepo Starter
+# Tetris Trainer
 
-Monorepo Starter is a template for a TypeScript monorepo built on npm workspaces and Turborepo. It holds one empty library package, a place for apps, and the repo-wide tooling around them: formatting, linting, type checking, empty unit suites, builds with type declarations, git hooks and a hand-started npm publish workflow. A monorepo made from it passes all of its checks before it has any code of its own.
+Tetris Trainer is a desktop Tetris game that plays on TETR.IO's rules and handling. Load your TETR.IO config export (`.ttc`) and the game uses your key bindings and your DAS, ARR, DCD and SDF settings, so it plays like your own setup.
 
-## Using the template
+It is the base for a training tool: a playable game first, with control over the game and training experiments to be built on top.
 
-Create a repository from this template, then rename the root and the library package, and add packages under `packages/` and apps under `apps/`. The library starts private, and its publish workflow notes the switch to flip when the package is ready to go public.
+## Playing
+
+Start a game from the menu. Load a TETR.IO config with "Load TETR.IO config…"; until then the game uses TETR.IO's default bindings and handling. Your config's exit key returns to the menu and its retry key restarts. When the stack tops out, the game-over screen shows pieces, lines and time, with buttons to restart or return to the menu.
 
 ## License
 

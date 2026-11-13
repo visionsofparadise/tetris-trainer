@@ -1,5 +1,5 @@
 {
-	"name": "@monorepo-starter/library",
+	"name": "@tetris-trainer/game",
 	"license": "MIT",
 	"version": "0.0.0",
 	"private": true,
@@ -17,12 +17,15 @@
 	"scripts": {
 		"fix": "eslint . --fix --cache",
 		"check": "concurrently --group \"eslint . --no-cache -f unix\" \"tsc --noEmit --pretty false\"",
-		"unit": "vitest run",
+		"unit": "vitest run unit",
+		"integration": "vitest run integration",
 		"build": "tsup src/index.ts --format esm --dts --treeshake --clean"
 	},
+	"dependencies": {
+		"@haelp/teto": "4.2.8",
+		"zod": "4.6.7"
+	},
 	"devDependencies": {
-		"tsup": "^8.5.1",
-		"vitest": "^4.1.10",
-		"@types/node": "^24.0.0"
+		"tsup": "8.5.1"
 	}
 }

@@ -7,6 +7,11 @@
 		},
 		"packages/*": {
 			"project": ["src/**/*.ts"]
+		},
+		"apps/desktop": {
+			"entry": ["src/main/index.ts", "src/preload/index.ts", "index.html", "forge.config.ts", "vite.*.config.ts"],
+			"project": ["src/**/*.{ts,tsx,css}", "*.config.ts"],
+			"ignoreDependencies": ["events"]
 		}
 	}
 }

@@ -1,0 +1,16 @@
+appId: com.visionsofparadise.tetris-trainer
+productName: Tetris Trainer
+directories:
+   buildResources: assets
+   output: out/make
+win:
+   executableName: Tetris Trainer
+   target: nsis
+nsis:
+   artifactName: tetris-trainer-Setup-${version}-${arch}.exe
+   oneClick: false
+   perMachine: false
+   allowElevation: false
+   allowToChangeInstallationDirectory: false
+   runAfterFinish: true
+   include: assets/installer.nsh

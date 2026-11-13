@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+	--color-surface: #101014;
+	--color-panel: #23232d;
+	--color-text: #e8e8f0;
+	--color-muted: #8a8a9a;
+	--color-accent: #5b8cff;
+}
+
+.button {
+	cursor: pointer;
+	border-radius: var(--radius-md);
+	background: var(--color-accent);
+	padding: calc(var(--spacing) * 2) calc(var(--spacing) * 5);
+	font-weight: var(--font-weight-semibold);
+	color: white;
+	transition: filter 150ms;
+}
+
+.button:hover {
+	filter: brightness(1.1);
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--color-text);
+	outline-offset: 2px;
+}
+
+.button-secondary {
+	cursor: pointer;
+	border-radius: var(--radius-md);
+	background: var(--color-panel);
+	padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+	color: var(--color-text);
+	transition: filter 150ms;
+}
+
+.button-secondary:hover {
+	filter: brightness(1.25);
+}
+
+.button-secondary:focus-visible {
+	outline: 2px solid var(--color-text);
+	outline-offset: 2px;
+}
+
+html {
+	color-scheme: dark;
+	background: var(--color-surface);
+	color: var(--color-text);
+}

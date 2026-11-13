@@ -1,0 +1,13 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ES2022", "ES2022.Intl", "DOM", "DOM.Iterable"],
+		"types": ["node", "vite/client", "@electron-forge/plugin-vite/forge-vite-env"],
+		"jsx": "react-jsx",
+		"noEmit": true,
+		"tsBuildInfoFile": "tsconfig.tsbuildinfo"
+	},
+	"include": ["src/**/*", "*.config.ts"],
+	"exclude": ["node_modules", "dist", "out", "build", "coverage", "**/.*"]
+}

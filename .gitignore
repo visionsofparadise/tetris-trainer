@@ -8,3 +8,5 @@ coverage/
 .scratch/
 .eslintcache
 *.tsbuildinfo
+.vite/
+.stylelintcache
