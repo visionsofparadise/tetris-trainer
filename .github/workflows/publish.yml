@@ -1,0 +1,75 @@
+name: Publish Package
+
+on: workflow_dispatch
+
+concurrency:
+   group: release
+   cancel-in-progress: false
+
+jobs:
+   publish:
+      if: github.ref == 'refs/heads/main'
+      runs-on: ubuntu-24.04
+      permissions:
+         id-token: write
+         contents: write
+      env:
+         PACKAGE_DIR: packages/library
+      steps:
+         - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+         - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+           with:
+              node-version: 24
+              registry-url: "https://registry.npmjs.org"
+
+         - name: Pin npm 12
+           run: npm install -g npm@12
+
+         - name: Enforce install-script allowlist
+           run: npm config set strict-allow-scripts=true --location=project
+
+         - name: Check if version is already published
+           id: check
+           run: |
+              PACKAGE_NAME=$(node -p "require('./' + process.env.PACKAGE_DIR + '/package.json').name")
+              PACKAGE_VERSION=$(node -p "require('./' + process.env.PACKAGE_DIR + '/package.json').version")
+              PUBLISHED=$(npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version 2>/dev/null || echo "")
+              if [ "$PUBLISHED" = "$PACKAGE_VERSION" ]; then
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "skip=false" >> "$GITHUB_OUTPUT"
+              fi
+
+         - name: Install dependencies
+           if: steps.check.outputs.skip == 'false'
+           run: npm ci
+
+         - name: Type check and lint
+           if: steps.check.outputs.skip == 'false'
+           run: npm run check
+
+         - name: Run unit tests
+           if: steps.check.outputs.skip == 'false'
+           run: npm run unit
+
+         - name: Run integration tests
+           if: steps.check.outputs.skip == 'false'
+           run: npm run integration --if-present
+
+         - name: Build
+           if: steps.check.outputs.skip == 'false'
+           run: npm run build
+
+         # Publication switch: the starter package is private. When publication is authorized, drop "private" from the package's package.json and the leading `false &&` from both conditions below.
+         - name: Publish to NPM
+           if: false && steps.check.outputs.skip == 'false'
+           run: npm publish --workspace="$PACKAGE_DIR" --access public
+
+         - name: Tag published version
+           if: false && steps.check.outputs.skip == 'false'
+           run: |
+              PACKAGE_NAME=$(node -p "require('./' + process.env.PACKAGE_DIR + '/package.json').name")
+              PACKAGE_VERSION=$(node -p "require('./' + process.env.PACKAGE_DIR + '/package.json').version")
+              git tag "$PACKAGE_NAME@$PACKAGE_VERSION"
+              git push origin "$PACKAGE_NAME@$PACKAGE_VERSION"

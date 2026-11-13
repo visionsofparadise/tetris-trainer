@@ -1,0 +1,22 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalDependencies": ["eslint.config.js", ".gitignore", ".prettierrc", "tsconfig.json"],
+	"tasks": {
+		"fix": {
+			"cache": false
+		},
+		"check": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$"],
+			"outputs": []
+		},
+		"build": {
+			"dependsOn": ["^build", "check"],
+			"outputs": ["dist/**"]
+		},
+		"unit": {
+			"dependsOn": ["check"],
+			"outputs": []
+		}
+	}
+}

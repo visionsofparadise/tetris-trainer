@@ -1,0 +1,18 @@
+{
+	"minLines": 5,
+	"minTokens": 50,
+	"gitignore": true,
+	"absolute": true,
+	"threshold": 0,
+	"format": ["javascript", "typescript"],
+	"reporters": ["console"],
+	"ignore": [
+		"**/.*/**",
+		"**/*.md",
+		"**/*.test.ts",
+		"**/__fixtures__/**",
+		"**/types/*.d.ts",
+		"**/package.json",
+		"package-lock.json"
+	]
+}

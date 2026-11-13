@@ -1,0 +1,12 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	"workspaces": {
+		".": {
+			"project": ["*.mjs"],
+			"ignoreDependencies": ["prettier", "@commitlint/cli"]
+		},
+		"packages/*": {
+			"project": ["src/**/*.ts"]
+		}
+	}
+}
