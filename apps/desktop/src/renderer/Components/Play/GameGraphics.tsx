@@ -8,7 +8,7 @@ import type { Graphics, Ticker } from "pixi.js";
 
 interface GameGraphicsProps {
 	readonly game: Game;
-	readonly onGameOver: () => void;
+	readonly onGameOver?: () => void;
 }
 
 export function GameGraphics({ game, onGameOver }: GameGraphicsProps) {
@@ -19,12 +19,13 @@ export function GameGraphics({ game, onGameOver }: GameGraphicsProps) {
 	const draw = useCallback((graphics: Graphics) => drawGame(graphics, game, layout), [game, layout]);
 
 	useEffect(() => {
+		const { renderer } = app;
 		const handleResize = (width: number, height: number) => setScreen({ width, height });
 
-		app.renderer.on("resize", handleResize);
+		renderer.on("resize", handleResize);
 
 		return () => {
-			app.renderer.off("resize", handleResize);
+			renderer.off("resize", handleResize);
 		};
 	}, [app]);
 
@@ -34,7 +35,7 @@ export function GameGraphics({ game, onGameOver }: GameGraphicsProps) {
 
 			if (graphicsRef.current) draw(graphicsRef.current);
 
-			if (game.isOver) onGameOver();
+			if (game.isOver) onGameOver?.();
 		},
 		[game, draw, onGameOver],
 	);

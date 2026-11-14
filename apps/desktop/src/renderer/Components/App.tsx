@@ -1,24 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { TKI_OPENER } from "../lessons/tkiOpener";
 import { mainEvents } from "../models/mainEventsOfWindow";
 import { createSettings } from "../models/Settings";
-import { Menu } from "./Menu";
+import { Lesson } from "./Lesson";
+import { Navigation } from "./Navigation";
 import { Play } from "./Play";
 import type { AppContext } from "../models/AppContext";
+import type { View } from "../models/View";
 
 export function App() {
 	const [settings] = useState(() => createSettings(localStorage));
 	const context = useMemo<AppContext>(() => ({ main: window.main, mainEvents, settings }), [settings]);
-	const [screen, setScreen] = useState<"menu" | "play">("menu");
-	const handleStart = useCallback(() => setScreen("play"), []);
-	const handleExit = useCallback(() => setScreen("menu"), []);
+	const [view, setView] = useState<View>("free-play");
+	const navigation = <Navigation view={view} onSelect={setView} />;
 
-	return (
-		<main className="flex h-dvh items-center justify-center p-6">
-			{screen === "menu" ? (
-				<Menu onStart={handleStart} context={context} />
-			) : (
-				<Play onExit={handleExit} context={context} />
-			)}
-		</main>
+	return view === "free-play" ? (
+		<Play navigation={navigation} context={context} />
+	) : (
+		<Lesson lesson={TKI_OPENER} navigation={navigation} context={context} />
 	);
 }

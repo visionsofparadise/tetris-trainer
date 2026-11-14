@@ -4,10 +4,9 @@ import type { GameStats } from "@tetris-trainer/game";
 interface GameOverProps {
 	readonly stats: GameStats;
 	readonly onRestart: () => void;
-	readonly onExit: () => void;
 }
 
-export function GameOver({ stats, onRestart, onExit }: GameOverProps) {
+export function GameOver({ stats, onRestart }: GameOverProps) {
 	return (
 		<div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-surface/80">
 			<h2 className="text-3xl font-bold">Game over</h2>
@@ -19,14 +18,9 @@ export function GameOver({ stats, onRestart, onExit }: GameOverProps) {
 				<dt className="text-muted">Time</dt>
 				<dd className="text-right">{formatGameTime(stats.frames)}</dd>
 			</dl>
-			<div className="flex gap-3">
-				<button className="button" type="button" onClick={onRestart}>
-					Restart
-				</button>
-				<button className="button-secondary" type="button" onClick={onExit}>
-					Menu
-				</button>
-			</div>
+			<button className="button" type="button" onClick={onRestart}>
+				Restart
+			</button>
 		</div>
 	);
 }

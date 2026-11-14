@@ -7,32 +7,21 @@ import type { AppContext } from "../../models/AppContext";
 
 interface GameSessionProps {
 	readonly onRestart: () => void;
-	readonly onExit: () => void;
 	readonly context: AppContext;
 }
 
-export function GameSession({ onRestart, onExit, context }: GameSessionProps) {
+export function GameSession({ onRestart, context }: GameSessionProps) {
 	const { settings } = context;
 	const [game] = useState(() => new Game(settings.config.handling));
 	const [isOver, setIsOver] = useState(false);
 	const handleGameOver = useCallback(() => setIsOver(true), []);
 
-	useGameKeyboard(game, onRestart, onExit, context);
+	useGameKeyboard(game, onRestart, context);
 
 	return (
-		<div className="flex size-full flex-col items-center gap-4">
-			<div className="relative w-full flex-1">
-				<GameCanvas game={game} onGameOver={handleGameOver} />
-				{isOver && <GameOver stats={game.stats} onRestart={onRestart} onExit={onExit} />}
-			</div>
-			<div className={isOver ? "invisible flex gap-3" : "flex gap-3"}>
-				<button className="button-secondary" type="button" onClick={onRestart}>
-					Restart
-				</button>
-				<button className="button-secondary" type="button" onClick={onExit}>
-					Menu
-				</button>
-			</div>
-		</div>
+		<>
+			<GameCanvas game={game} onGameOver={handleGameOver} />
+			{isOver && <GameOver stats={game.stats} onRestart={onRestart} />}
+		</>
 	);
 }

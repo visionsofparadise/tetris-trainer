@@ -13,7 +13,8 @@
 		"build": "node tools/build.mjs",
 		"check": "concurrently --group \"eslint . --no-cache -f unix\" \"tsc --noEmit --pretty false\" \"stylelint \\\"**/*.css\\\" -f unix --allow-empty-input --cache\"",
 		"fix": "concurrently -m 1 --group \"eslint . --fix --cache\" \"stylelint \\\"**/*.css\\\" --fix --allow-empty-input --cache\"",
-		"unit": "vitest run unit --passWithNoTests"
+		"unit": "vitest run unit --passWithNoTests",
+		"integration": "vitest run integration"
 	},
 	"dependencies": {
 		"@pixi/react": "8.0.5",

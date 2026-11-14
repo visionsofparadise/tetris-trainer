@@ -45,6 +45,28 @@
 	outline-offset: 2px;
 }
 
+.nav-item {
+	cursor: pointer;
+	border-radius: var(--radius-md);
+	padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+	text-align: left;
+	color: var(--color-muted);
+	transition:
+		background-color 150ms,
+		color 150ms;
+}
+
+.nav-item:hover,
+.nav-item[aria-current="page"] {
+	background: var(--color-panel);
+	color: var(--color-text);
+}
+
+.nav-item:focus-visible {
+	outline: 2px solid var(--color-text);
+	outline-offset: 2px;
+}
+
 html {
 	color-scheme: dark;
 	background: var(--color-surface);

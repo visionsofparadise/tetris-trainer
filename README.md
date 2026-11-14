@@ -6,7 +6,10 @@ It is the base for a training tool: a playable game first, with control over the
 
 ## Playing
 
-Start a game from the menu. Load a TETR.IO config with "Load TETR.IO config…"; until then the game uses TETR.IO's default bindings and handling. Your config's exit key returns to the menu and its retry key restarts. When the stack tops out, the game-over screen shows pieces, lines and time, with buttons to restart or return to the menu.
+The play area sits on the left and a sidebar on the right switches between free play and lessons.
+
+- **Free play:** an endless game. Load a TETR.IO config with "Load TETR.IO config�"; until then the game uses TETR.IO's default bindings and handling. Your config's retry key restarts, and when the stack tops out the game-over screen shows pieces, lines and time with a restart button.
+- **Lessons:** each lesson teaches a fixed piece sequence. "Demonstrate" plays it, and "Attempt" lets you try it with your own config. A wrong placement fails the attempt and a full correct sequence clears it; either way the attempt restarts.
 
 ## License
 

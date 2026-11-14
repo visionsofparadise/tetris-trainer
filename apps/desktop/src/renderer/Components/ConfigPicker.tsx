@@ -1,13 +1,14 @@
 import { parseTetrioConfig } from "@tetris-trainer/game";
 import { scope } from "opshot/react";
 import { useState, type ChangeEvent } from "react";
-import type { AppContext } from "../../models/AppContext";
+import type { AppContext } from "../models/AppContext";
 
 interface ConfigPickerProps {
+	readonly onLoad: () => void;
 	readonly context: AppContext;
 }
 
-export const ConfigPicker = scope<ConfigPickerProps>(({ context }) => {
+export const ConfigPicker = scope<ConfigPickerProps>(({ onLoad, context }) => {
 	const { settings } = context;
 	const [error, setError] = useState<string | null>(null);
 	const { das, arr: autoRepeatRate, sdf } = settings.config.handling;
@@ -24,13 +25,14 @@ export const ConfigPicker = scope<ConfigPickerProps>(({ context }) => {
 			settings.config = parseTetrioConfig(await file.text());
 			settings.configName = file.name;
 			setError(null);
+			onLoad();
 		} catch {
 			setError(`${file.name} is not a TETR.IO config. Export one from TETR.IO's config menu and choose it here.`);
 		}
 	};
 
 	return (
-		<section className="flex flex-col items-center gap-3 text-sm">
+		<section className="flex flex-col items-start gap-3 text-sm">
 			<p className="text-muted">
 				Config: <span className="text-text">{settings.configName ?? "TETR.IO defaults"}</span>
 			</p>

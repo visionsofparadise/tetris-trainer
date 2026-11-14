@@ -9,7 +9,7 @@ extend({ Graphics, Text });
 
 interface GameCanvasProps {
 	readonly game: Game;
-	readonly onGameOver: () => void;
+	readonly onGameOver?: () => void;
 }
 
 export function GameCanvas({ game, onGameOver }: GameCanvasProps) {
