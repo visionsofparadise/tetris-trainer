@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"@haelp/teto": "4.2.8",
+		"mitt": "3.0.1",
 		"zod": "4.6.7"
 	},
 	"devDependencies": {

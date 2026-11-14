@@ -6,8 +6,6 @@ import { PanelLabel } from "./PanelLabel";
 import type { Game } from "@tetris-trainer/game";
 import type { Graphics, Ticker } from "pixi.js";
 
-const FRAME_MS = 1000 / 60;
-
 interface GameGraphicsProps {
 	readonly game: Game;
 	readonly onGameOver: () => void;
@@ -16,7 +14,6 @@ interface GameGraphicsProps {
 export function GameGraphics({ game, onGameOver }: GameGraphicsProps) {
 	const { app } = useApplication();
 	const graphicsRef = useRef<Graphics>(null);
-	const unplayedMs = useRef(0);
 	const [screen, setScreen] = useState<Size>(() => ({ width: app.screen.width, height: app.screen.height }));
 	const layout = useMemo(() => layoutFor(screen), [screen]);
 	const draw = useCallback((graphics: Graphics) => drawGame(graphics, game, layout), [game, layout]);
@@ -33,12 +30,7 @@ export function GameGraphics({ game, onGameOver }: GameGraphicsProps) {
 
 	const update = useCallback(
 		(ticker: Ticker) => {
-			unplayedMs.current += ticker.deltaMS;
-
-			while (unplayedMs.current >= FRAME_MS) {
-				game.tick();
-				unplayedMs.current -= FRAME_MS;
-			}
+			game.advance(ticker.deltaMS);
 
 			if (graphicsRef.current) draw(graphicsRef.current);
 

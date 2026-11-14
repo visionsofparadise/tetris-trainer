@@ -1,4 +1,10 @@
-export { Mino } from "@haelp/teto/engine";
+export { Mino, type Rotation, type SpinType } from "@haelp/teto/engine";
+export { BAG, placementCells, type Block, type Piece, type Placement } from "./pieces";
 export { DEFAULT_CONFIG, findAction, parseTetrioConfig, type Action, type Handling, type TetrioConfig } from "./config";
-export { BOARD_COLUMNS, Game, NEXT_COUNT, VISIBLE_ROWS, type Block, type GameKey, type GameStats } from "./Game";
+export { BOARD_COLUMNS, VISIBLE_ROWS } from "./engineOptions";
+export type { GameEvents, HoldEvent, InputEvent, PlaceEvent, SpawnEvent } from "./events";
+export { Game, NEXT_COUNT, type GameSnapshot, type GameStats } from "./Game";
+export { taps, type GameKey, type InputFrame, type InputType, type TapOptions } from "./inputs";
 export { piecePreview, type PiecePreview } from "./piecePreview";
+export type { BoardItem, Garbage, GameSetup, Hold, QueueMode } from "./setup";
+export { SetupError } from "./SetupError";

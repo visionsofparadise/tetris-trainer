@@ -1,5 +1,5 @@
-import { tetrominoes, type Mino } from "@haelp/teto/engine";
-import type { Block } from "./Game";
+import { pieceShape, type Block } from "./pieces";
+import type { Mino } from "@haelp/teto/engine";
 
 export interface PiecePreview {
 	width: number;
@@ -8,9 +8,7 @@ export interface PiecePreview {
 }
 
 export const piecePreview = (mino: Mino): PiecePreview => {
-	const preview = tetrominoes[mino]?.preview;
-
-	if (!preview) throw new Error(`No preview shape for mino "${mino}"`);
+	const { preview } = pieceShape(mino);
 
 	return { width: preview.w, height: preview.h, blocks: preview.data.map(([x, y]) => [x, y]) };
 };
