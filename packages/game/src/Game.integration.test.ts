@@ -2,7 +2,6 @@ import { Mino } from "@haelp/teto/engine";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "./config";
 import { Game } from "./Game";
-import { taps } from "./inputs";
 import { SetupError } from "./SetupError";
 import type { GameSetup } from "./setup";
 
@@ -59,9 +58,9 @@ describe("Game", () => {
 		it("builds the board in drop order and clears full lines", () => {
 			const game = loaded({
 				board: [
-					{ mino: Mino.I, rotation: 0, x: 0, y: 1 },
-					{ mino: Mino.I, rotation: 0, x: 4, y: 1 },
-					{ mino: Mino.O, rotation: 0, x: 8, y: 1 },
+					{ mino: Mino.I, orientation: "spawn", column: 0, row: 0 },
+					{ mino: Mino.I, orientation: "spawn", column: 4, row: 0 },
+					{ mino: Mino.O, orientation: "spawn", column: 8, row: 0 },
 				],
 			});
 
@@ -70,7 +69,7 @@ describe("Game", () => {
 		});
 
 		it("rejects a floating piece unless validation is off", () => {
-			const floating: GameSetup["board"] = [{ mino: Mino.I, rotation: 0, x: 0, y: 5 }];
+			const floating: GameSetup["board"] = [{ mino: Mino.I, orientation: "spawn", column: 0, row: 4 }];
 
 			expect(() => loaded({ board: floating })).toThrow(new SetupError("Board item 1 (I) is floating"));
 			expect(filledColumns(loaded({ board: floating, validate: false }), 4)).toEqual([0, 1, 2, 3]);
@@ -79,8 +78,8 @@ describe("Game", () => {
 		it("continues the board's bag after the fixed pieces", () => {
 			const game = loaded({
 				board: [
-					{ mino: Mino.I, rotation: 0, x: 0, y: 1 },
-					{ mino: Mino.O, rotation: 0, x: 4, y: 1 },
+					{ mino: Mino.I, orientation: "spawn", column: 0, row: 0 },
+					{ mino: Mino.O, orientation: "spawn", column: 4, row: 0 },
 				],
 				queue: { pieces: [Mino.T, Mino.S], mode: "continue-bag" },
 			});
@@ -91,7 +90,7 @@ describe("Game", () => {
 		});
 
 		it("checks the queue against the bag only in the bag modes", () => {
-			const board: GameSetup["board"] = [{ mino: Mino.I, rotation: 0, x: 0, y: 1 }];
+			const board: GameSetup["board"] = [{ mino: Mino.I, orientation: "spawn", column: 0, row: 0 }];
 
 			expect(() => loaded({ board, queue: { pieces: [Mino.I], mode: "continue-bag" } })).toThrow(
 				"Queue piece 1 (I)",
@@ -105,7 +104,7 @@ describe("Game", () => {
 
 		it("applies the hold setting", () => {
 			const game = loaded({
-				board: [{ hold: Mino.I }, { mino: Mino.O, rotation: 0, x: 0, y: 1 }],
+				board: [{ hold: Mino.I }, { mino: Mino.O, orientation: "spawn", column: 0, row: 0 }],
 				queue: { pieces: [Mino.T], mode: "any" },
 				holdEnabled: false,
 			});
@@ -119,7 +118,7 @@ describe("Game", () => {
 
 		it("plays hold steps into the hold, the falling piece and the bag", () => {
 			const game = loaded({
-				board: [{ hold: Mino.T }, { mino: Mino.I, rotation: 0, x: 0, y: 1 }, { hold: Mino.O }],
+				board: [{ hold: Mino.T }, { mino: Mino.I, orientation: "spawn", column: 0, row: 0 }, { hold: Mino.O }],
 				queue: { pieces: [Mino.S], mode: "continue-bag" },
 			});
 
@@ -140,9 +139,9 @@ describe("Game", () => {
 				loaded({
 					board: [
 						{ hold: Mino.T },
-						{ mino: Mino.I, rotation: 0, x: 0, y: 1 },
+						{ mino: Mino.I, orientation: "spawn", column: 0, row: 0 },
 						{ hold: Mino.O },
-						{ mino: Mino.I, rotation: 0, x: 4, y: 1 },
+						{ mino: Mino.I, orientation: "spawn", column: 4, row: 0 },
 					],
 				}),
 			).toThrow(new SetupError("Board item 4 (I) must place the T that came out of hold"));
@@ -187,7 +186,7 @@ describe("Game", () => {
 		game.on("place", ({ cells }) => (placedLeft = Math.min(...cells.map(([x]) => x))));
 		game.setUserInput(false);
 		game.press("moveRight");
-		game.input(taps(["moveLeft", "hardDrop"], { gapFrames: 2 }));
+		game.input([{ tap: "moveLeft" }, { tap: "hardDrop" }]);
 		game.step(5);
 
 		expect(placedLeft).toBe(spawnLeft - 1);
@@ -207,7 +206,7 @@ describe("Game", () => {
 	});
 
 	it("adds garbage under the stack and removes it from the bottom", () => {
-		const game = loaded({ board: [{ mino: Mino.O, rotation: 0, x: 0, y: 1 }] });
+		const game = loaded({ board: [{ mino: Mino.O, orientation: "spawn", column: 0, row: 0 }] });
 
 		game.addGarbage({ column: 3, amount: 2 });
 

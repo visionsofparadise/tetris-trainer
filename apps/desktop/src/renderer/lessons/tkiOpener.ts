@@ -1,4 +1,4 @@
-import { Mino } from "@tetris-trainer/game";
+import { finesseSteps, Mino } from "@tetris-trainer/game";
 import type { SequenceLesson } from "./sequenceLesson";
 
 export const TKI_OPENER: SequenceLesson = {
@@ -6,27 +6,20 @@ export const TKI_OPENER: SequenceLesson = {
 	instructions:
 		"Build a TKI from the first bag, then spin the T into its slot for a T-spin double. Hold is off. Every piece must land where the demonstration puts it.",
 	steps: [
+		{ placement: { mino: Mino.L, orientation: "right", column: 0, row: 0 } },
+		{ placement: { mino: Mino.I, orientation: "spawn", column: 3, row: 0 } },
+		{ placement: { mino: Mino.J, orientation: "reverse", column: 5, row: 0 } },
+		{ placement: { mino: Mino.O, orientation: "spawn", column: 8, row: 0 } },
+		{ placement: { mino: Mino.Z, orientation: "right", column: 4, row: 1 } },
+		{ placement: { mino: Mino.S, orientation: "right", column: 0, row: 2 } },
 		{
-			placement: { mino: Mino.L, rotation: 1, x: -1, y: 2 },
-			keys: ["rotateCW", "moveLeft", "moveLeft", "moveLeft", "moveLeft", "hardDrop"],
-		},
-		{ placement: { mino: Mino.I, rotation: 0, x: 3, y: 1 }, keys: ["hardDrop"] },
-		{
-			placement: { mino: Mino.J, rotation: 2, x: 5, y: 2 },
-			keys: ["rotate180", "moveRight", "moveRight", "hardDrop"],
-		},
-		{
-			placement: { mino: Mino.O, rotation: 0, x: 8, y: 1 },
-			keys: ["moveRight", "moveRight", "moveRight", "moveRight", "hardDrop"],
-		},
-		{ placement: { mino: Mino.Z, rotation: 1, x: 3, y: 3 }, keys: ["rotateCW", "hardDrop"] },
-		{
-			placement: { mino: Mino.S, rotation: 1, x: -1, y: 4 },
-			keys: ["rotateCCW", "moveLeft", "moveLeft", "moveLeft", "hardDrop"],
-		},
-		{
-			placement: { mino: Mino.T, rotation: 2, x: 1, y: 2 },
-			keys: ["rotateCW", "moveLeft", "moveLeft", "softDrop", "rotateCW", "hardDrop"],
+			placement: { mino: Mino.T, orientation: "reverse", column: 1, row: 0 },
+			keys: [
+				...finesseSteps({ mino: Mino.T, orientation: "right", column: 2 }),
+				{ hold: "softDrop", frames: 20 },
+				{ tap: "rotateCW" },
+				{ tap: "hardDrop" },
+			],
 		},
 	],
 };

@@ -1,6 +1,6 @@
-import { DEFAULT_CONFIG, taps, type Game, type PlaceEvent } from "@tetris-trainer/game";
+import { DEFAULT_CONFIG, samePlacement, type Game, type PlaceEvent } from "@tetris-trainer/game";
 import { describe, expect, it, vi } from "vitest";
-import { fillsPlacement, startAttempt, startDemo, type SequenceLesson } from "./sequenceLesson";
+import { lessonScript, startAttempt, startDemo, type SequenceLesson } from "./sequenceLesson";
 import { TKI_OPENER } from "./tkiOpener";
 
 const LESSONS: ReadonlyArray<SequenceLesson> = [TKI_OPENER];
@@ -24,7 +24,7 @@ describe("sequence lessons", () => {
 			playUntilPaused(game);
 
 			expect(onDone).toHaveBeenCalledOnce();
-			expect(placed.map(({ cells }, index) => fillsPlacement(cells, lesson.steps[index]!.placement))).toEqual(
+			expect(placed.map(({ placement }, index) => samePlacement(placement, lesson.steps[index]!.placement))).toEqual(
 				lesson.steps.map(() => true),
 			);
 		},
@@ -46,18 +46,13 @@ describe("sequence lessons", () => {
 		const onFail = vi.fn();
 		const failing = startAttempt(TKI_OPENER, INSTANT_SOFT_DROP, onFail);
 
-		failing.input(taps(["hardDrop"], { gapFrames: 8 }));
+		failing.input([{ tap: "hardDrop" }]);
 		failing.step(10);
 
 		const onSuccess = vi.fn();
 		const succeeding = startAttempt(TKI_OPENER, INSTANT_SOFT_DROP, onSuccess);
 
-		succeeding.input(
-			taps(
-				TKI_OPENER.steps.flatMap(({ keys }) => keys),
-				{ gapFrames: 8 },
-			),
-		);
+		succeeding.input(lessonScript(TKI_OPENER, { keyWait: 0, pieceWait: 0 }));
 		playUntilPaused(succeeding);
 
 		expect(onFail).toHaveBeenCalledExactlyOnceWith("fail");

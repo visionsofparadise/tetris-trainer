@@ -1,7 +1,8 @@
 import { Board, Engine, legal, type EngineSnapshot, type LockRes, type Mino } from "@haelp/teto/engine";
 import mitt from "mitt";
 import { BOARD_SIZE, createEngineOptions, DEFAULT_GRAVITY } from "./engineOptions";
-import { BAG, placementCells, type Block, type Piece, type Placement } from "./pieces";
+import { BAG, leftmost, lowest, ORIENTATIONS, placementCells, type Block, type Piece, type Placement } from "./pieces";
+import { compileScript, type GameKey, type InputType, type ScriptStep } from "./script";
 import {
 	buildBoard,
 	cellsSettle,
@@ -14,7 +15,6 @@ import {
 } from "./setup";
 import type { Handling } from "./config";
 import type { GameEvents, InputEvent, PlaceEvent, SpawnEvent } from "./events";
-import type { GameKey, InputFrame, InputType } from "./inputs";
 
 export interface GameStats {
 	pieces: number;
@@ -43,6 +43,7 @@ const isPiece = (mino: Mino): mino is Piece => BAG.some((piece) => piece === min
 
 export class Game {
 	readonly #engine: Engine;
+	readonly #handling: Handling;
 	readonly #events = mitt<GameEvents>();
 	readonly #userKeys = new Set<GameKey>();
 	readonly #idleInput: Engine["input"];
@@ -58,6 +59,7 @@ export class Game {
 	#spawnAfterLock: SpawnEvent | null = null;
 
 	constructor(handling: Handling, seed = randomSeed()) {
+		this.#handling = handling;
 		this.#engine = new Engine(createEngineOptions(handling, seed));
 		this.#idleInput = structuredClone(this.#engine.input);
 		this.#engine.events.on("falling.lock.pre", () => this.#handleLockStart());
@@ -208,8 +210,9 @@ export class Game {
 		this.#schedule(0, "keyup", key, "user");
 	}
 
-	input(frames: ReadonlyArray<InputFrame>): void {
-		for (const { frame, type, key } of frames) this.#schedule(frame, type, key, "script");
+	input(steps: ReadonlyArray<ScriptStep>): void {
+		for (const { frame, type, key } of compileScript(steps, this.#handling))
+			this.#schedule(frame, type, key, "script");
 	}
 
 	addGarbage(garbage: Garbage): void {
@@ -261,12 +264,18 @@ export class Game {
 	#handleLockStart(): void {
 		const { falling } = this.#engine;
 		const mino = falling.symbol;
+		const cells = falling.absoluteBlocks;
 
 		if (!isPiece(mino)) return;
 
 		this.#locked = {
-			placement: { mino, rotation: falling.rotation, x: falling.x, y: falling.y },
-			cells: falling.absoluteBlocks,
+			placement: {
+				mino,
+				orientation: ORIENTATIONS[falling.rotation % ORIENTATIONS.length] ?? "spawn",
+				column: leftmost(cells),
+				row: lowest(cells),
+			},
+			cells,
 		};
 	}
 

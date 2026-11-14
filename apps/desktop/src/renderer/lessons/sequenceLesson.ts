@@ -1,9 +1,9 @@
-import { DEFAULT_CONFIG, Game, placementCells, taps } from "@tetris-trainer/game";
-import type { Block, GameKey, GameSetup, Handling, Placement } from "@tetris-trainer/game";
+import { DEFAULT_CONFIG, dropSteps, Game, samePlacement } from "@tetris-trainer/game";
+import type { GameSetup, Handling, Placement, ScriptStep } from "@tetris-trainer/game";
 
 interface SequenceStep {
 	readonly placement: Placement;
-	readonly keys: ReadonlyArray<GameKey>;
+	readonly keys?: ReadonlyArray<ScriptStep>;
 }
 
 export interface SequenceLesson {
@@ -12,11 +12,15 @@ export interface SequenceLesson {
 	readonly steps: ReadonlyArray<SequenceStep>;
 }
 
+export interface ScriptPacing {
+	readonly keyWait: number;
+	readonly pieceWait: number;
+}
+
 export type AttemptResult = "success" | "fail";
 
 const DEMO_HANDLING: Handling = { ...DEFAULT_CONFIG.handling, sdf: 41 };
-const DEMO_GAP_FRAMES = 8;
-const DEMO_PAUSE_FRAMES = 30;
+const DEMO_PACING: ScriptPacing = { keyWait: 6, pieceWait: 30 };
 
 const setupFor = ({ steps }: SequenceLesson): GameSetup => ({
 	board: [],
@@ -25,14 +29,10 @@ const setupFor = ({ steps }: SequenceLesson): GameSetup => ({
 	holdEnabled: false,
 });
 
-const cellsKey = (cells: ReadonlyArray<Block>): string =>
-	cells
-		.map(([x, y]) => `${x},${y}`)
-		.sort()
-		.join(" ");
-
-export const fillsPlacement = (cells: ReadonlyArray<Block>, placement: Placement): boolean =>
-	cellsKey(cells) === cellsKey(placementCells(placement));
+export const lessonScript = ({ steps }: SequenceLesson, { keyWait, pieceWait }: ScriptPacing): Array<ScriptStep> =>
+	steps.flatMap(({ placement, keys = dropSteps(placement) }) =>
+		keys.map((key, index) => ({ ...key, wait: index === 0 ? pieceWait : keyWait })),
+	);
 
 export const startPreview = (lesson: SequenceLesson): Game => {
 	const game = new Game(DEMO_HANDLING);
@@ -45,21 +45,11 @@ export const startPreview = (lesson: SequenceLesson): Game => {
 
 export const startDemo = (lesson: SequenceLesson, onDone: () => void): Game => {
 	const game = new Game(DEMO_HANDLING);
-	let startFrame = DEMO_PAUSE_FRAMES;
 	let placed = 0;
 
 	game.load(setupFor(lesson));
 	game.setUserInput(false);
-
-	for (const { keys } of lesson.steps) {
-		const offset = startFrame;
-
-		game.input(
-			taps(keys, { gapFrames: DEMO_GAP_FRAMES }).map((input) => ({ ...input, frame: input.frame + offset })),
-		);
-		startFrame += keys.length * DEMO_GAP_FRAMES + DEMO_PAUSE_FRAMES;
-	}
-
+	game.input(lessonScript(lesson, DEMO_PACING));
 	game.on("place", () => {
 		placed++;
 
@@ -90,10 +80,10 @@ export const startAttempt = (
 	};
 
 	game.load(setupFor(lesson));
-	game.on("place", ({ cells }) => {
+	game.on("place", ({ placement }) => {
 		const expected = lesson.steps[placed];
 
-		if (expected === undefined || !fillsPlacement(cells, expected.placement)) {
+		if (expected === undefined || !samePlacement(placement, expected.placement)) {
 			finish("fail");
 
 			return;

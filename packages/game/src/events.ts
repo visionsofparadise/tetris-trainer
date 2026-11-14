@@ -1,5 +1,5 @@
-import type { GameKey, InputType } from "./inputs";
 import type { Block, Placement } from "./pieces";
+import type { GameKey, InputType } from "./script";
 import type { Mino, SpinType } from "@haelp/teto/engine";
 
 export interface SpawnEvent {
