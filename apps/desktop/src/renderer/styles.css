@@ -62,6 +62,37 @@
 	color: var(--color-text);
 }
 
+.segment {
+	cursor: pointer;
+	border-radius: var(--radius-sm);
+	padding: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+	font-size: var(--text-sm);
+	color: var(--color-muted);
+	transition:
+		background-color 150ms,
+		color 150ms;
+}
+
+.segment:hover {
+	color: var(--color-text);
+}
+
+.segment[aria-pressed="true"] {
+	background: var(--color-accent);
+	color: white;
+}
+
+.segment:focus-visible {
+	outline: 2px solid var(--color-text);
+	outline-offset: 2px;
+}
+
+.button:disabled,
+.button-secondary:disabled {
+	cursor: not-allowed;
+	opacity: 0.4;
+}
+
 .nav-item:focus-visible {
 	outline: 2px solid var(--color-text);
 	outline-offset: 2px;

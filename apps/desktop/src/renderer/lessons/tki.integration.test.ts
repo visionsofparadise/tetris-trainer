@@ -1,0 +1,97 @@
+import { DEFAULT_CONFIG, dropSteps, samePlacement, type Game, type PlaceEvent } from "@tetris-trainer/game";
+import { describe, expect, it } from "vitest";
+import { DEMO_HANDLING, loadOrder, planScript } from "./opener/openerScript";
+import { ordersByCategory } from "./opener/orders";
+import { plan, startState } from "./opener/planner";
+import {
+	declareImpossible,
+	dealPractice,
+	initialPractice,
+	retryMistake,
+	type PracticeSession,
+} from "./opener/practiceSession";
+import { TKI } from "./tki";
+
+const FAST = { keyWait: 0, decisionWait: 0 };
+const HANDLING = { ...DEFAULT_CONFIG.handling, sdf: 41 };
+const SAMPLE_EVERY = 40;
+
+const playUntilPaused = (game: Game): void => {
+	for (let frame = 0; frame < 3000 && !game.isPaused; frame++) game.step();
+};
+
+const sampled = [
+	...ordersByCategory(TKI)["no-hold"],
+	...ordersByCategory(TKI).hold.filter((_order, index) => index % SAMPLE_EVERY === 0),
+];
+
+const practice = (filter: PracticeSession["filter"]): PracticeSession => {
+	const session = initialPractice(TKI, HANDLING);
+
+	session.filter = filter;
+	dealPractice(session, TKI, HANDLING);
+	session.game.resume();
+
+	return session;
+};
+
+describe("TKI", () => {
+	it("plays every planned order into its homes and ends on a T-spin double", () => {
+		const failures = sampled.filter((order) => {
+			const decisions = plan(TKI, startState(order)) ?? [];
+			const homes = decisions.flatMap((decision) => (decision.kind === "place" ? [decision.home] : []));
+			const game = loadOrder(DEMO_HANDLING, order);
+			const placed: Array<PlaceEvent> = [];
+
+			game.on("place", (event) => {
+				placed.push(event);
+
+				if (placed.length === homes.length) game.pause();
+			});
+			game.input(planScript(decisions, FAST));
+			playUntilPaused(game);
+
+			const last = placed.at(-1);
+
+			return (
+				placed.length !== homes.length ||
+				!placed.every(({ placement }, index) => homes[index] && samePlacement(placement, homes[index].placement)) ||
+				last?.lines !== 2 ||
+				last.spin !== "normal"
+			);
+		});
+
+		expect(failures).toEqual([]);
+	});
+
+	it("shows a practice mistake, retries from it and clears the order", () => {
+		const session = practice("hold");
+		const first = session.state.current;
+
+		if (first === "next-bag") throw new Error("A dealt order starts with a piece");
+
+		session.game.input(dropSteps({ mino: first, orientation: "spawn", column: 4, row: 0 }));
+		playUntilPaused(session.game);
+
+		expect(session.status).toBe("mistake");
+		expect(session.banner?.title).toBe(`That isn't a home for the ${first.toUpperCase()}.`);
+		expect(session.marks.map(({ tone }) => tone)).toContain("mistake");
+
+		retryMistake(session);
+		session.game.input(planScript(plan(TKI, session.state) ?? [], FAST));
+		playUntilPaused(session.game);
+
+		expect(session.status).toBe("cleared");
+	});
+
+	it("marks an impossible call right only when the order can't be built", () => {
+		const impossible = practice("impossible");
+		const possible = practice("no-hold");
+
+		declareImpossible(impossible, TKI);
+		declareImpossible(possible, TKI);
+
+		expect(impossible.status).toBe("cleared");
+		expect(possible.status).toBe("mistake");
+	});
+});

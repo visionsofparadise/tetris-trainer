@@ -1,4 +1,4 @@
-import { TKI_OPENER } from "../lessons/tkiOpener";
+import { TKI } from "../lessons/tki";
 import type { View } from "../models/View";
 
 interface NavigationItem {
@@ -13,7 +13,14 @@ interface NavigationSection {
 
 const SECTIONS: ReadonlyArray<NavigationSection> = [
 	{ title: "Play", items: [{ view: "free-play", label: "Free play" }] },
-	{ title: "Lessons", items: [{ view: "tki-opener", label: TKI_OPENER.name }] },
+	{
+		title: TKI.name,
+		items: [
+			{ view: "tki-rules", label: "Rules" },
+			{ view: "tki-watch", label: "Watch" },
+			{ view: "tki-practice", label: "Practice" },
+		],
+	},
 ];
 
 interface NavigationProps {

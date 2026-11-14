@@ -9,7 +9,10 @@ It is the base for a training tool: a playable game first, with control over the
 The play area sits on the left and a sidebar on the right switches between free play and lessons.
 
 - **Free play:** an endless game. Load a TETR.IO config with "Load TETR.IO config�"; until then the game uses TETR.IO's default bindings and handling. Your config's retry key restarts, and when the stack tops out the game-over screen shows pieces, lines and time with a restart button.
-- **Lessons:** each lesson teaches a fixed piece sequence. "Demonstrate" plays it, and "Attempt" lets you try it with your own config. A wrong placement fails the attempt and a full correct sequence clears it; either way the attempt restarts.
+- **TKI:** learn the TKI opener, a first-bag shape that ends in a T-spin double, in three parts.
+   - **Rules** walks through the shape, where each piece goes, what it rests on, when to hold and how to tell whether an order can build it.
+   - **Watch** deals a first bag and plays it through, explaining each decision. Choose orders that need no hold, orders that need hold, or a mix that includes orders TKI can't be built from.
+   - **Practice** deals the same three kinds of order for you to build with your own config. A move that makes TKI unreachable pauses the game, shows your piece in red and the right move in green, and lets you retry from that moment. In the mixed stage, press Impossible when an order can't build TKI.
 
 ## License
 

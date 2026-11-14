@@ -1,6 +1,8 @@
 import { Mino, NEXT_COUNT, piecePreview, VISIBLE_ROWS, type Block, type Game } from "@tetris-trainer/game";
 import { Color, type Graphics } from "pixi.js";
 import { HEADER_ROWS, PANEL_COLUMNS, PREVIEW_ROWS, type Layout } from "./gameLayout";
+import type { BoardMark, MarkTone } from "../models/BoardMark";
+import type { GameDisplay } from "../models/GameDisplay";
 
 const SPAWN_ROWS = 2;
 const GHOST_ALPHA = 0.25;
@@ -9,6 +11,10 @@ const SHADE = [0.65, 0.65, 0.65];
 const LINE_RATIO = 0.08;
 const INNER_INSET_RATIO = 0.3;
 const CHAMFER_RATIO = 0.5;
+const MARK_FILL_ALPHA = 0.3;
+const MARK_LINE_RATIO = 0.1;
+
+const MARK_COLORS: Record<MarkTone, number> = { target: 0x4ade80, mistake: 0xf87171 };
 
 const MINO_COLORS: Record<Mino, number> = {
 	[Mino.I]: 0x3bd6a2,
@@ -82,7 +88,24 @@ const drawFrame = (graphics: Graphics, layout: Layout): void => {
 	drawPanel(graphics, nextLeft, nextLeft + PANEL_COLUMNS * cellSize, NEXT_COUNT * PREVIEW_ROWS, layout);
 };
 
-export const drawGame = (graphics: Graphics, game: Game, layout: Layout): void => {
+const drawMark = (graphics: Graphics, { cells, tone }: BoardMark, layout: Layout): void => {
+	const { cellSize, boardLeft, boardTop } = layout;
+	const color = MARK_COLORS[tone];
+
+	for (const [x, y] of cells)
+		graphics
+			.rect(boardLeft + x * cellSize, boardTop + (VISIBLE_ROWS - 1 - y) * cellSize, cellSize, cellSize)
+			.fill({ color, alpha: MARK_FILL_ALPHA })
+			.stroke({ color, width: cellSize * MARK_LINE_RATIO, alignment: 1 });
+};
+
+export const drawGame = (
+	graphics: Graphics,
+	game: Game,
+	layout: Layout,
+	marks: ReadonlyArray<BoardMark>,
+	display: GameDisplay,
+): void => {
 	const { cellSize, holdLeft, nextLeft, boardTop } = layout;
 	const panelTop = boardTop + HEADER_ROWS * cellSize;
 
@@ -94,13 +117,17 @@ export const drawGame = (graphics: Graphics, game: Game, layout: Layout): void =
 		});
 	});
 
+	for (const mark of marks) drawMark(graphics, mark, layout);
+
+	drawFrame(graphics, layout);
+
+	if (display === "board") return;
+
 	const { mino, blocks } = game.falling;
 
 	for (const block of game.ghost) drawBoardBlock(graphics, block, mino, layout, GHOST_ALPHA);
 
 	for (const block of blocks) drawBoardBlock(graphics, block, mino, layout);
-
-	drawFrame(graphics, layout);
 
 	if (game.hold !== null) drawPreview(graphics, game.hold, holdLeft, panelTop, layout);
 

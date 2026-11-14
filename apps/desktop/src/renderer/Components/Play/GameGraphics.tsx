@@ -3,20 +3,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { drawGame } from "../../utils/drawGame";
 import { layoutFor, type Size } from "../../utils/gameLayout";
 import { PanelLabel } from "./PanelLabel";
+import type { BoardMark } from "../../models/BoardMark";
+import type { GameDisplay } from "../../models/GameDisplay";
 import type { Game } from "@tetris-trainer/game";
 import type { Graphics, Ticker } from "pixi.js";
 
 interface GameGraphicsProps {
 	readonly game: Game;
+	readonly marks: ReadonlyArray<BoardMark>;
+	readonly display: GameDisplay;
 	readonly onGameOver?: () => void;
 }
 
-export function GameGraphics({ game, onGameOver }: GameGraphicsProps) {
+export function GameGraphics({ game, marks, display, onGameOver }: GameGraphicsProps) {
 	const { app } = useApplication();
 	const graphicsRef = useRef<Graphics>(null);
 	const [screen, setScreen] = useState<Size>(() => ({ width: app.screen.width, height: app.screen.height }));
 	const layout = useMemo(() => layoutFor(screen), [screen]);
-	const draw = useCallback((graphics: Graphics) => drawGame(graphics, game, layout), [game, layout]);
+	const draw = useCallback(
+		(graphics: Graphics) => drawGame(graphics, game, layout, marks, display),
+		[game, layout, marks, display],
+	);
 
 	useEffect(() => {
 		const { renderer } = app;
