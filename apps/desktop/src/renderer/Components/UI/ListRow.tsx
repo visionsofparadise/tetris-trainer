@@ -24,7 +24,7 @@ function ListRowContent({ number, title, detail, status }: ListRowContentProps) 
 			<span className="flex min-w-0 flex-1 flex-col gap-1">
 				{title !== undefined && <span className="heading text-sm">{title}</span>}
 				{detail !== undefined && (
-					<span className={cn("leading-snug", title === undefined ? "text-sm" : "text-[13px] text-muted")}>
+					<span className={cn("leading-snug", title === undefined ? "text-[15px]" : "text-sm text-muted")}>
 						{detail}
 					</span>
 				)}

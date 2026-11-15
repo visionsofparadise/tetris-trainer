@@ -31,12 +31,17 @@ const POSITIONS: ReadonlyArray<Position> = [
 	{ placement: Z_POSITION, after: [Mino.I], description: "Lay the Z on the I, its top hanging over the slot." },
 	{ placement: S_POSITION, after: [], description: "Stand the S upright at the I's right end." },
 	{ placement: O_POSITION, after: [], description: "Put the O in the right corner." },
-	{ placement: J_ON_O, after: [Mino.O], description: "Stand the J upright on the O." },
-	{ placement: J_ACROSS, after: [Mino.S, Mino.O], description: "Lay the J flat across the S and the O." },
-	{ placement: J_ON_Z, after: [Mino.Z], description: "Lay the J upside down on the Z." },
+	{ placement: J_ON_O, after: [Mino.O], before: [Mino.T], description: "Stand the J upright on the O." },
+	{
+		placement: J_ACROSS,
+		after: [Mino.S, Mino.O],
+		before: [Mino.T],
+		description: "Lay the J flat across the S and the O.",
+	},
+	{ placement: J_ON_Z, after: [Mino.Z], before: [Mino.T], description: "Lay the J upside down on the Z." },
 	{
 		placement: T_POSITION,
-		after: [Mino.L, Mino.I, Mino.Z, Mino.S, Mino.O, Mino.J],
+		after: [Mino.L, Mino.I, Mino.Z, Mino.S, Mino.O],
 		description: "Spin the T into the slot for a T-spin double.",
 		keys: [
 			...finesseSteps({ mino: Mino.T, orientation: "right", column: 1 }),
@@ -48,74 +53,83 @@ const POSITIONS: ReadonlyArray<Position> = [
 ];
 
 export const TKI: Opener = {
-	name: "TKI",
+	name: "TKI-3",
 	positions: POSITIONS,
+	optional: [Mino.J],
 	slides: [
 		{
-			title: "TKI",
-			text: "TKI is an opener: the first bag builds this shape, and the last piece, the T, spins into the slot for a T-spin double. It's named after TKI, the player who invented it.",
-			board: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION, O_POSITION, J_ON_O],
-			marks: [T_POSITION],
+			title: "TKI-3",
+			notes: [
+				{
+					text: "TKI-3 is a first-bag opener. The L, I, Z, S and O build this shape, then the T spins into the slot for a T-spin double.",
+					aims: [T_POSITION],
+				},
+			],
+			board: [],
+			marks: [],
+			isDemo: true,
 		},
 		{
 			title: "The slot",
-			text: "The slot is three wide and two deep. The L and the I give the T its two bottom corners and the Z's overhang gives the third, so the T can only get in by spinning.",
+			notes: [
+				{
+					text: "The slot is three wide and two deep. Spin the T in: turn it clockwise, move it left of the slot, soft drop, then turn it clockwise again.",
+					aims: [T_POSITION],
+				},
+				{ text: "The Z hangs over the slot, so the T can't drop straight in.", aims: [Z_POSITION] },
+			],
 			board: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION, O_POSITION],
 			marks: [T_POSITION],
 		},
 		{
-			title: "L",
-			text: "The L stands against the left wall. It rests on the floor, so it can go in at any time.",
-			board: [],
-			marks: [L_POSITION],
-		},
-		{
-			title: "I",
-			text: "The I lies flat on the floor right of the slot. The Z rests on it, so the I must come before the Z.",
-			board: [L_POSITION],
-			marks: [I_POSITION],
-		},
-		{
-			title: "Z",
-			text: "The Z lies on the I with its top hanging over the slot. That overhang is what makes the T spin. It needs the I first.",
-			board: [L_POSITION, I_POSITION],
-			marks: [Z_POSITION],
-		},
-		{
-			title: "S",
-			text: "The S stands upright at the I's right end. It rests on the floor, so it can go in at any time.",
-			board: [L_POSITION, I_POSITION, Z_POSITION],
-			marks: [S_POSITION],
-		},
-		{
-			title: "O",
-			text: "The O fills the right corner. It rests on the floor, so it can go in at any time.",
-			board: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION],
-			marks: [O_POSITION],
+			title: "Dependencies",
+			notes: [
+				{ text: "The Z rests on the I, so the I must come before the Z.", aims: [I_POSITION, Z_POSITION] },
+				{
+					text: "The T needs the L, I, Z, S and O in first, but not the J.",
+					aims: [T_POSITION],
+				},
+			],
+			board: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION, O_POSITION],
+			marks: [T_POSITION],
 		},
 		{
 			title: "J",
-			text: "The J sits on top, clear of the two lines the T clears. It has three positions: upright on the O, flat across the S and the O, or upside down on the Z. Each needs the pieces under it first.",
+			notes: [
+				{
+					text: "The setup doesn't need the J. Placing it in one of these spots sets up continuations.",
+					aims: [J_ON_O, J_ACROSS, J_ON_Z],
+				},
+				{ text: "Or keep it in hold through the T-spin and place it anywhere after.", aims: ["hold"] },
+				{ text: "If the J comes last, the setup is already done.", aims: [] },
+			],
 			board: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION, O_POSITION],
 			marks: [J_ON_O, J_ACROSS, J_ON_Z],
 		},
 		{
-			title: "T goes last",
-			text: "The T goes in after the other six. Turn it clockwise, move it to the column left of the slot, soft drop to the bottom, then turn it clockwise again. The two full lines clear: a T-spin double.",
-			board: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION, O_POSITION, J_ON_O],
-			marks: [T_POSITION],
-		},
-		{
 			title: "Hold",
-			text: "A piece that arrives before the pieces it needs goes into hold. Hold keeps one piece waiting, and a swap brings it back out once its support is in. An early T waits in hold to the end, then swaps out with the first piece of the next bag.",
-			board: [L_POSITION, I_POSITION],
-			marks: [Z_POSITION, S_POSITION],
+			notes: [
+				{
+					text: "A piece that comes before the pieces it needs waits in hold. A swap brings it back once its support is in.",
+					aims: ["hold"],
+				},
+				{ text: "An early Z can wait in hold until the I is in.", aims: [Z_POSITION] },
+				{ text: "An early T can wait in hold until the L, I, Z, S and O are in.", aims: [T_POSITION] },
+			],
+			board: [L_POSITION, I_POSITION, S_POSITION, O_POSITION, { hold: Mino.Z }],
+			marks: [Z_POSITION, T_POSITION],
 		},
 		{
 			title: "Is it possible?",
-			text: "At the start you can see the whole first bag: the current piece, the five in the queue, and the one piece missing from them. Look for pieces that come before what they need, including a T that isn't last. If two of them would have to wait at the same time, hold can't keep both, and TKI can't be built.",
+			notes: [
+				{
+					text: "Look for pieces that come before what they need: a Z before the I, or a T before any of the L, I, Z, S and O. Here the T and the Z both come early. Hold can't keep both, so TKI-3 can't be built.",
+					aims: [],
+				},
+			],
 			board: [],
-			marks: [L_POSITION, I_POSITION, Z_POSITION, S_POSITION, O_POSITION, J_ON_O],
+			marks: [],
+			queue: [Mino.T, Mino.Z, Mino.L, Mino.O, Mino.I, Mino.S, Mino.J],
 		},
 	],
 };

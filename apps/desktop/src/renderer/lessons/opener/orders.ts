@@ -6,7 +6,14 @@ export type Category = "no-hold" | "hold" | "impossible";
 
 export type OrderFilter = Category | "mixed";
 
+export type OrderPool = OrderFilter | "possible";
+
 const CATEGORIES: ReadonlyArray<Category> = ["no-hold", "hold", "impossible"];
+
+const POOLS: Record<"mixed" | "possible", ReadonlyArray<Category>> = {
+	mixed: CATEGORIES,
+	possible: ["no-hold", "hold"],
+};
 
 const permutations = (pieces: ReadonlyArray<Piece>): Array<Array<Piece>> =>
 	pieces.length <= 1
@@ -45,8 +52,8 @@ const pick = <T>(items: ReadonlyArray<T>, random: () => number): T => {
 	return item;
 };
 
-export const dealOrder = (opener: Opener, filter: OrderFilter, random = Math.random): Array<Piece> => {
-	const category = filter === "mixed" ? pick(CATEGORIES, random) : filter;
+export const dealOrder = (opener: Opener, pool: OrderPool, random = Math.random): Array<Piece> => {
+	const category = pool === "mixed" || pool === "possible" ? pick(POOLS[pool], random) : pool;
 
 	return pick(ordersByCategory(opener)[category], random);
 };

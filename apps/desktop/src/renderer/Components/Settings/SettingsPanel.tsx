@@ -55,13 +55,13 @@ export const SettingsPanel = scope<SettingsPanelProps>(({ onLoad, context }) => 
 				<h2 className="display text-[40px]">Settings</h2>
 				<TitleRule />
 			</div>
-			<div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto">
+			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
 				<section className="flex flex-col gap-2.5" aria-label="Config">
 					<LabelRow label="Config" detail={settings.configName ?? "TETR.IO defaults"} />
-					<p className="text-[13px] leading-snug text-muted">
+					<p className="text-sm leading-snug text-muted">
 						Load your TETR.IO config export (.ttc) to play with your own handling and keys.
 					</p>
-					<p className="text-[13px] text-pink" aria-live="polite">
+					<p className="text-sm text-pink" aria-live="polite">
 						{error}
 					</p>
 				</section>

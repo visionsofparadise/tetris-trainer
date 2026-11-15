@@ -4,16 +4,15 @@ import type { CSSProperties } from "react";
 
 const SIDE_CELLS = 3.5;
 const MIN_SIDE = 104;
-const PREVIEW_RATIO = 0.47;
-const MIN_PREVIEW = 14;
+const PREVIEW_RATIO = 0.55;
+const MIN_PREVIEW = 15;
 const HOLD_CELLS = 2.4;
 const MIN_HOLD = 72;
-const NEXT_SLOT_CELLS = 2.5;
-const MIN_NEXT_SLOT = 72;
+const NEXT_SLOT_CELLS = 2.15;
+const MIN_NEXT_SLOT = 56;
 const COLUMN_GAP = 22;
 const WELL_PADDING = 12;
-const LABEL_ROW = 16;
-const LABEL_GAP = 14;
+const INPUT_GAP = 18;
 const INPUT_ROW = 34;
 const ASIDE_GAP = 52;
 const ASIDE_WIDTH = 440;
@@ -22,7 +21,7 @@ const HEADER_HEIGHT = 72;
 const STAGE_PADDING_X = 2 * 32;
 const STAGE_PADDING_Y = 24 + 48;
 
-const VERTICAL_CHROME = WELL_PADDING + LABEL_GAP + LABEL_ROW + COLUMN_GAP + INPUT_ROW;
+const VERTICAL_CHROME = WELL_PADDING + INPUT_GAP + INPUT_ROW;
 const HORIZONTAL_CHROME = 2 * COLUMN_GAP + WELL_PADDING + ASIDE_GAP + ASIDE_WIDTH;
 
 const scaled = (cell: number, ratio: number, minimum: number): number => Math.max(minimum, Math.round(cell * ratio));

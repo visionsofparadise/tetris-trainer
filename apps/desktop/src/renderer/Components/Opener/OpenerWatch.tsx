@@ -1,9 +1,7 @@
-import { placementCells } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
 import { useCallback, useEffect, useState } from "react";
 import { usePause } from "../../hooks/usePause";
-import { DEMO_HANDLING } from "../../lessons/opener/openerScript";
 import {
 	dealWatch,
 	initialWatch,
@@ -11,6 +9,7 @@ import {
 	setWatchSpeed,
 	type WatchSession,
 } from "../../lessons/opener/watchSession";
+import { decisionMarks } from "../../utils/decisionMarks";
 import { CATEGORY_SHORT_LABELS, ORDER_OPTIONS } from "../../utils/orderOptions";
 import { PlayArea } from "../Board/PlayArea";
 import { PauseButton } from "../Chrome/PauseButton";
@@ -22,26 +21,19 @@ import { IconButton } from "../UI/IconButton";
 import { ArrowIcon, PlayIcon } from "../UI/Icons";
 import { LabelRow } from "../UI/LabelRow";
 import { ListRow } from "../UI/ListRow";
-import { ProgressSegments } from "../UI/ProgressSegments";
-import { Segmented, type SegmentedOption } from "../UI/Segmented";
+import { Segmented } from "../UI/Segmented";
+import { StepSlider } from "../UI/StepSlider";
 import { LessonPanel } from "./LessonPanel";
 import type { Opener } from "../../lessons/opener/Opener";
 import type { AppContext } from "../../models/AppContext";
-import type { BoardMark } from "../../models/BoardMark";
 import type { View } from "../../models/View";
 
-const SPEED_OPTIONS: ReadonlyArray<SegmentedOption<number>> = [
-	{ value: 0.5, label: "0.5×" },
-	{ value: 1, label: "1×" },
-	{ value: 2, label: "2×" },
-];
+const SPEED_STEPS: ReadonlyArray<number> = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
 
-const NO_MARKS: ReadonlyArray<BoardMark> = [];
+const formatSpeed = (speed: number): string => `${speed}×`;
 
 const NEXT_ORDER_DELAY_MS = 2000;
 const IMPOSSIBLE_READ_DELAY_MS = 5000;
-
-const pad = (value: number): string => String(value).padStart(2, "0");
 
 interface WatchViewProps {
 	readonly session: WatchSession;
@@ -61,14 +53,16 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, o
 	useEffect(() => {
 		if (!isDone) return;
 
-		const timeout = setTimeout(onDeal, category === "impossible" ? IMPOSSIBLE_READ_DELAY_MS : NEXT_ORDER_DELAY_MS);
+		const timeout = setTimeout(
+			onDeal,
+			category === "impossible" ? IMPOSSIBLE_READ_DELAY_MS : NEXT_ORDER_DELAY_MS / session.speed,
+		);
 
 		return () => clearTimeout(timeout);
-	}, [isDone, round, category, onDeal]);
+	}, [isDone, round, category, onDeal, session.speed]);
 
 	const pause = usePause(context);
-	const marks: ReadonlyArray<BoardMark> =
-		current?.kind === "place" ? [{ cells: placementCells(current.position.placement), tone: "target" }] : NO_MARKS;
+	const marks = decisionMarks(current);
 
 	return (
 		<Shell
@@ -76,28 +70,24 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, o
 			onNavigate={onNavigate}
 			context={context}
 			actions={<PauseButton pause={pause} />}
-			hints={["Hatched: where the piece goes"]}
 			aside={
 				<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
-					<div className="flex flex-col gap-2.5">
-						<LabelRow
-							label="Demonstration"
-							detail={
-								decisions.length > 0
-									? `Move ${pad(Math.min(index + 1, decisions.length))} / ${pad(decisions.length)}`
-									: undefined
-							}
-						/>
-						<ProgressSegments total={Math.max(decisions.length, 1)} done={index} label="Moves played" />
+					<div className="flex flex-col gap-3">
 						<Segmented label="Orders" options={ORDER_OPTIONS} value={session.filter} onChange={onFilter} />
-						<Segmented label="Speed" options={SPEED_OPTIONS} value={session.speed} onChange={onSpeed} />
+						<StepSlider
+							label="Speed"
+							steps={SPEED_STEPS}
+							value={session.speed}
+							format={formatSpeed}
+							onChange={onSpeed}
+						/>
 					</div>
 					<LabelRow
-						label="Order"
+						label={`Order · ${CATEGORY_SHORT_LABELS[category]}`}
 						detail={<OrderGlyphs order={session.order} />}
 						tone={category === "impossible" ? "pink" : "lime"}
 					/>
-					<ol className="-mr-2 flex min-h-28 flex-1 flex-col gap-1.5 overflow-y-auto pr-2">
+					<ol className="-mr-2 flex min-h-28 flex-1 flex-col gap-2 overflow-y-auto pr-2">
 						{decisions.map((decision, decisionIndex) => (
 							<ListRow
 								key={`${decisionIndex}-${decision.reason}`}
@@ -121,22 +111,14 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, o
 				</LessonPanel>
 			}
 		>
-			<PlayArea
-				game={session.game}
-				handling={DEMO_HANDLING}
-				context={context}
-				marks={marks}
-				pause={pause}
-				status={{ text: CATEGORY_SHORT_LABELS[category], tone: category === "impossible" ? "pink" : "lime" }}
-				inputLabel="Demo input"
-			>
+			<PlayArea game={session.game} context={context} marks={marks} pause={pause} inputLabel="Demo input">
 				<div className="absolute top-3.5 left-3.5 flex gap-1.5">
 					<span className="label inline-flex h-6 items-center gap-1.5 bg-lime px-2 font-bold text-ink">
 						<PlayIcon size={10} />
 						Demo
 					</span>
 					<span className="label inline-flex h-6 items-center bg-panel px-2 font-bold">
-						{session.speed}× speed
+						{formatSpeed(session.speed)} speed
 					</span>
 				</div>
 				{banner && <BannerCard banner={banner} />}

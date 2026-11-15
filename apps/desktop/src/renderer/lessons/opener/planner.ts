@@ -25,9 +25,15 @@ export type Decision =
 
 export type Move = { readonly kind: "place"; readonly placement: Placement } | { readonly kind: "hold" };
 
-export type Verdict =
-	| { readonly ok: true; readonly next: PlanState }
-	| { readonly ok: false; readonly problem: string; readonly best: Decision | null };
+export type MistakeKind = "placement" | "order" | "dead-end" | "hold" | "next-bag" | "impossible";
+
+export interface Mistake {
+	readonly kind: MistakeKind;
+	readonly detail?: string;
+	readonly best: Decision | null;
+}
+
+export type Verdict = { readonly ok: true; readonly next: PlanState } | ({ readonly ok: false } & Mistake);
 
 const name = (hand: Hand): string => (hand === NEXT_BAG ? "next bag's piece" : hand.toUpperCase());
 
@@ -37,14 +43,23 @@ const list = (pieces: ReadonlyArray<Piece>): string => {
 	return names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1) ?? ""}`;
 };
 
-export const pieceCount = ({ positions }: Opener): number =>
-	new Set(positions.map(({ placement }) => placement.mino)).size;
+const requiredPieces = ({ positions, optional }: Opener): Array<Piece> => [
+	...new Set(positions.map(({ placement }) => placement.mino).filter((mino) => !optional.includes(mino))),
+];
+
+export const pieceCount = (opener: Opener): number => requiredPieces(opener).length;
+
+export const placedCount = (opener: Opener, { placed }: PlanState): number =>
+	requiredPieces(opener).filter((piece) => placed.includes(piece)).length;
 
 const positionsOf = ({ positions }: Opener, hand: Hand): Array<Position> =>
 	positions.filter(({ placement }) => placement.mino === hand);
 
 const missing = (position: Position, placed: ReadonlyArray<Piece>): Array<Piece> =>
 	position.after.filter((piece) => !placed.includes(piece));
+
+const isOpen = (position: Position, placed: ReadonlyArray<Piece>): boolean =>
+	!position.before?.some((piece) => placed.includes(piece));
 
 const draw = ({ order, drawn }: PlanState): Pick<PlanState, "current" | "drawn"> => {
 	const next = order[drawn];
@@ -73,12 +88,15 @@ export const afterHold = (state: PlanState): PlanState =>
 		? { ...state, ...draw(state), hold: state.current, holdLocked: true }
 		: { ...state, current: state.hold, hold: state.current, holdLocked: true };
 
-export const isComplete = (opener: Opener, { placed }: PlanState): boolean => placed.length === pieceCount(opener);
+export const isComplete = (opener: Opener, state: PlanState): boolean =>
+	placedCount(opener, state) === pieceCount(opener);
 
 const readyPositions = (opener: Opener, { current, placed }: PlanState): Array<Position> =>
 	current === NEXT_BAG || placed.includes(current)
 		? []
-		: positionsOf(opener, current).filter((position) => missing(position, placed).length === 0);
+		: positionsOf(opener, current).filter(
+				(position) => isOpen(position, placed) && missing(position, placed).length === 0,
+			);
 
 const whyNotNow = (opener: Opener, { current, placed }: PlanState): string => {
 	if (current === NEXT_BAG) return "this piece belongs to the next bag";
@@ -89,8 +107,6 @@ const whyNotNow = (opener: Opener, { current, placed }: PlanState): string => {
 	const needs = closest === undefined ? [] : missing(closest, placed);
 
 	if (needs.length === 0) return `placing the ${name(current)} now leaves no way to finish`;
-
-	if (closest?.after.length === pieceCount(opener) - 1) return `the ${name(current)} goes in last`;
 
 	return `the ${name(current)} needs ${list(needs)} placed first`;
 };
@@ -136,47 +152,52 @@ const earlyPieces = (opener: Opener, order: ReadonlyArray<Piece>): Array<Piece> 
 		positionsOf(opener, piece).every((position) => missing(position, order.slice(0, index)).length > 0),
 	);
 
-export const impossibleReason = (opener: Opener, order: ReadonlyArray<Piece>): string => {
-	const early = list(earlyPieces(opener, order));
+const capitalized = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 
-	return `${early.charAt(0).toUpperCase()}${early.slice(1)} come before the pieces they need, and hold can only keep one piece waiting at a time.`;
-};
+export const impossibleReason = (opener: Opener, order: ReadonlyArray<Piece>): string =>
+	`${capitalized(list(earlyPieces(opener, order)))} come before the pieces they need, and hold can only keep one piece waiting at a time.`;
 
-const mistake = (opener: Opener, state: PlanState, problem: string): Verdict => ({
+const earlyNote = (opener: Opener, order: ReadonlyArray<Piece>): string =>
+	`${capitalized(list(earlyPieces(opener, order)))} come early.`;
+
+const mistake = (opener: Opener, state: PlanState, kind: MistakeKind, detail?: string): Verdict => ({
 	ok: false,
-	problem,
+	kind,
+	detail,
 	best: plan(opener, state)?.[0] ?? null,
 });
 
 const judgePlace = (opener: Opener, state: PlanState, placement: Placement): Verdict => {
 	const { current, placed } = state;
 
-	if (current === NEXT_BAG) return mistake(opener, state, "That piece belongs to the next bag.");
+	if (current === NEXT_BAG) {
+		const stand = { ...state, current: placement.mino };
+
+		return readyPositions(opener, stand).some((position) => samePlacement(position.placement, placement))
+			? judgePlace(opener, stand, placement)
+			: mistake(opener, state, "next-bag");
+	}
 
 	const position = positionsOf(opener, current).find((candidate) => samePlacement(candidate.placement, placement));
 
-	if (position === undefined) return mistake(opener, state, `That isn't where the ${name(current)} goes.`);
+	if (position === undefined) return mistake(opener, state, "placement");
 
 	const needs = missing(position, placed);
 
-	if (needs.length > 0) return mistake(opener, state, `The ${name(current)} needs ${list(needs)} placed first.`);
+	if (needs.length > 0) return mistake(opener, state, "order", `Needs ${list(needs)} first.`);
 
 	const next = afterPlace(state, current);
 
-	return plan(opener, next) ? { ok: true, next } : mistake(opener, state, "That leaves no way to finish.");
+	return plan(opener, next) ? { ok: true, next } : mistake(opener, state, "dead-end");
 };
 
 export const judge = (opener: Opener, state: PlanState, move: Move): Verdict => {
 	if (plan(opener, state) === null)
-		return {
-			ok: false,
-			problem: `This order can't build ${opener.name}. ${impossibleReason(opener, state.order)}`,
-			best: null,
-		};
+		return { ok: false, kind: "impossible", detail: earlyNote(opener, state.order), best: null };
 
 	if (move.kind === "place") return judgePlace(opener, state, move.placement);
 
 	const next = afterHold(state);
 
-	return plan(opener, next) ? { ok: true, next } : mistake(opener, state, "Holding there leaves no way to finish.");
+	return plan(opener, next) ? { ok: true, next } : mistake(opener, state, "hold");
 };

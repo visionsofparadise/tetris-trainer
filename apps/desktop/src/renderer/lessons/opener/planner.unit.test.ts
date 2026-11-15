@@ -2,7 +2,7 @@ import { Mino, type Piece } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
 import { TKI } from "../tki";
 import { ordersByCategory } from "./orders";
-import { afterHold, afterPlace, judge, plan, startState } from "./planner";
+import { afterHold, afterPlace, isComplete, judge, plan, startState } from "./planner";
 
 const { L, I, Z, S, O, J, T } = Mino;
 
@@ -69,7 +69,7 @@ describe("judge", () => {
 
 		expect(verdict).toMatchObject({
 			ok: false,
-			problem: "That isn't where the I goes.",
+			kind: "placement",
 			best: { kind: "place", reason: "Lay the I flat on the floor, right of the slot." },
 		});
 	});
@@ -81,7 +81,7 @@ describe("judge", () => {
 			placement: { mino: Z, orientation: "spawn", column: 3, row: 1 },
 		});
 
-		expect(verdict).toMatchObject({ ok: false, problem: "The Z needs the I placed first." });
+		expect(verdict).toMatchObject({ ok: false, kind: "order", detail: "Needs the I first." });
 	});
 
 	it("tucks the I under an S that is already in", () => {
@@ -92,6 +92,25 @@ describe("judge", () => {
 			kind: "place",
 			reason: "Slide the I under the S.",
 		});
+	});
+
+	it("accepts the next bag's T in place of a T still in hold", () => {
+		const pieces: Array<Piece> = [L, I, Z, S, O, J];
+		const tHeld = pieces.reduce(
+			(state, piece) => afterPlace(state, piece),
+			afterHold(startState([T, L, I, Z, S, O, J])),
+		);
+		const verdict = judge(TKI, tHeld, {
+			kind: "place",
+			placement: { mino: T, orientation: "reverse", column: 1, row: 0 },
+		});
+
+		expect(verdict).toMatchObject({ ok: true });
+		expect(verdict.ok && isComplete(TKI, verdict.next)).toBe(true);
+	});
+
+	it("finishes on the T without the J", () => {
+		expect(plan(TKI, startState([L, I, Z, S, O, T, J]))).toHaveLength(6);
 	});
 
 	it("accepts any route that can still finish", () => {

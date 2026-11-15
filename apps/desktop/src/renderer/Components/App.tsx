@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { TKI } from "../lessons/tki";
 import { mainEvents } from "../models/mainEventsOfWindow";
 import { createSettings } from "../models/Settings";
+import { OpenerLearn } from "./Opener/OpenerLearn";
 import { OpenerPractice } from "./Opener/OpenerPractice";
-import { OpenerRules } from "./Opener/OpenerRules";
 import { OpenerWatch } from "./Opener/OpenerWatch";
 import { Play } from "./Play";
 import type { AppContext } from "../models/AppContext";
@@ -18,8 +18,8 @@ export function App() {
 		case "free-play":
 		case "settings":
 			return <Play view={view} onNavigate={setView} context={context} />;
-		case "tki-rules":
-			return <OpenerRules opener={TKI} view={view} onNavigate={setView} context={context} />;
+		case "tki-learn":
+			return <OpenerLearn opener={TKI} view={view} onNavigate={setView} context={context} />;
 		case "tki-watch":
 			return <OpenerWatch opener={TKI} view={view} onNavigate={setView} context={context} />;
 		case "tki-practice":

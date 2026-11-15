@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, dropSteps, samePlacement, type Game, type PlaceEvent } from "@tetris-trainer/game";
+import { DEFAULT_CONFIG, dropSteps, Mino, samePlacement, type Game, type PlaceEvent } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
 import { DEMO_HANDLING, loadOrder, planScript } from "./opener/openerScript";
 import { ordersByCategory } from "./opener/orders";
@@ -36,7 +36,7 @@ const practice = (filter: PracticeSession["filter"]): PracticeSession => {
 };
 
 describe("TKI", () => {
-	it("plays every planned order into its positions and ends on a T-spin double", () => {
+	it("plays every planned order into its positions with a T-spin double", () => {
 		const failures = sampled.filter((order) => {
 			const decisions = plan(TKI, startState(order)) ?? [];
 			const positions = decisions.flatMap((decision) => (decision.kind === "place" ? [decision.position] : []));
@@ -51,22 +51,22 @@ describe("TKI", () => {
 			game.input(planScript(decisions, FAST));
 			playUntilPaused(game);
 
-			const last = placed.at(-1);
+			const spin = placed.find(({ placement }) => placement.mino === Mino.T);
 
 			return (
 				placed.length !== positions.length ||
 				!placed.every(
 					({ placement }, index) => positions[index] && samePlacement(placement, positions[index].placement),
 				) ||
-				last?.lines !== 2 ||
-				last.spin !== "normal"
+				spin?.lines !== 2 ||
+				spin.spin !== "normal"
 			);
 		});
 
 		expect(failures).toEqual([]);
 	});
 
-	it("shows a practice mistake, retries from it and clears the order", () => {
+	it("shows a practice mistake, retries from it and deals the next order on a clear", () => {
 		const session = practice("hold");
 		const first = session.state.current;
 
@@ -76,24 +76,39 @@ describe("TKI", () => {
 		playUntilPaused(session.game);
 
 		expect(session.status).toBe("mistake");
-		expect(session.banner?.title).toBe(`That isn't where the ${first.toUpperCase()} goes.`);
-		expect(session.marks.map(({ tone }) => tone)).toContain("mistake");
+		expect(session.mistake?.kind).toBe("placement");
+		expect(session.mistake?.best).not.toBeNull();
+		expect(session.mistake?.placed).toHaveLength(4);
 
 		retryMistake(session);
 		session.game.input(planScript(plan(TKI, session.state) ?? [], FAST));
 		playUntilPaused(session.game);
 
-		expect(session.status).toBe("cleared");
+		expect(session.clears).toBe(1);
+		expect(session.status).toBe("playing");
+	});
+
+	it("retries a new order from its own empty board after a clear", () => {
+		const session = practice("no-hold");
+		const finished = session.game;
+
+		finished.input(planScript(plan(TKI, session.state) ?? [], FAST));
+		playUntilPaused(finished);
+		retryMistake(session);
+
+		expect(session.clears).toBe(1);
+		expect(session.game).not.toBe(finished);
+		expect(session.game.board.flat().every((cell) => cell === null)).toBe(true);
 	});
 
 	it("marks an impossible call right only when the order can't be built", () => {
 		const impossible = practice("impossible");
 		const possible = practice("no-hold");
 
-		declareImpossible(impossible, TKI);
-		declareImpossible(possible, TKI);
+		declareImpossible(impossible, TKI, HANDLING);
+		declareImpossible(possible, TKI, HANDLING);
 
-		expect(impossible.status).toBe("cleared");
-		expect(possible.status).toBe("mistake");
+		expect(impossible.clears).toBe(1);
+		expect(possible.mistake?.kind).toBe("possible");
 	});
 });

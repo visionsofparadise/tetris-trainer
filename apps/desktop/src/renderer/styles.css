@@ -253,7 +253,7 @@
 		align-items: center;
 		gap: 14px;
 		width: 100%;
-		padding: 10px 14px;
+		padding: 12px 16px;
 		background: var(--color-raised);
 		text-align: left;
 		color: var(--color-text);
@@ -274,5 +274,85 @@
 
 	button.list-row:focus-visible {
 		outline-offset: -2px;
+	}
+}
+
+@layer components {
+	.note-card {
+		animation: note-rise 240ms ease-out both;
+	}
+
+	.note-leaders {
+		animation: fade-in 300ms 120ms ease-out both;
+	}
+
+	.success-ring {
+		box-shadow:
+			0 0 0 2px var(--color-lime),
+			0 0 32px 6px rgb(200 255 31 / 55%),
+			inset 0 0 32px rgb(200 255 31 / 25%);
+		animation: success-ring 900ms ease-out both;
+	}
+
+	.success-check {
+		animation: success-check 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes note-rise {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+
+@keyframes success-ring {
+	0% {
+		opacity: 0;
+		transform: scale(1.04);
+	}
+
+	20% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes success-check {
+	0% {
+		opacity: 0;
+		transform: scale(0.5);
+	}
+
+	30% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	75% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0;
+		transform: scale(1);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.note-card,
+	.success-ring,
+	.success-check {
+		animation-name: fade-in;
 	}
 }

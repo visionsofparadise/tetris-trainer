@@ -1,11 +1,10 @@
-import { placementCells } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useContinueKey } from "../../hooks/useContinueKey";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
 import { usePause } from "../../hooks/usePause";
-import { pieceCount, plan } from "../../lessons/opener/planner";
+import { pieceCount, placedCount, plan } from "../../lessons/opener/planner";
 import {
 	dealPractice,
 	declareImpossible,
@@ -15,13 +14,16 @@ import {
 	setPracticeFilter,
 	type PracticeSession,
 } from "../../lessons/opener/practiceSession";
+import { decisionMarks, NO_MARKS } from "../../utils/decisionMarks";
 import { keyLabel } from "../../utils/keyLabel";
+import { mistakeMarks, mistakeNotes } from "../../utils/mistakeNotes";
 import { ORDER_OPTIONS } from "../../utils/orderOptions";
 import { retryHints } from "../../utils/retryHints";
+import { BoardNotes } from "../Board/BoardNotes";
 import { PlayArea } from "../Board/PlayArea";
+import { SuccessFlash } from "../Board/SuccessFlash";
 import { PauseButton } from "../Chrome/PauseButton";
 import { Shell } from "../Shell";
-import { BannerCard } from "../UI/BannerCard";
 import { IconButton, PrimaryIconButton } from "../UI/IconButton";
 import { ArrowIcon, CrossIcon, PreviousIcon, ReplayIcon } from "../UI/Icons";
 import { LabelRow } from "../UI/LabelRow";
@@ -31,10 +33,7 @@ import { LessonPanel } from "./LessonPanel";
 import type { Opener } from "../../lessons/opener/Opener";
 import type { OrderFilter } from "../../lessons/opener/orders";
 import type { AppContext } from "../../models/AppContext";
-import type { BoardMark } from "../../models/BoardMark";
 import type { View } from "../../models/View";
-
-const NEXT_ORDER_DELAY_MS = 1500;
 
 type Guide = "off" | "on";
 
@@ -42,8 +41,6 @@ const GUIDE_OPTIONS: ReadonlyArray<SegmentedOption<Guide>> = [
 	{ value: "off", label: "Off" },
 	{ value: "on", label: "On" },
 ];
-
-const NO_MARKS: ReadonlyArray<BoardMark> = [];
 
 const STAGE_TEXT: Record<OrderFilter, string> = {
 	"no-hold": "Every order can be built by placing each piece as it comes.",
@@ -67,25 +64,20 @@ interface PracticeViewProps {
 
 const PracticeView = scope<PracticeViewProps>(
 	({ session, onDeal, onFilter, onRetry, onRestart, onImpossible, opener, view, onNavigate, context }) => {
-		const { status, filter, banner } = session;
+		const { status, filter, mistake, clears } = session;
 		const { config } = context.settings;
 		const pieces = pieceCount(opener);
-		const placed = session.state.placed.length;
+		const placed = placedCount(opener, session.state);
 		const isMistake = status === "mistake";
 		const canCallImpossible = status === "playing" && (filter === "mixed" || filter === "impossible");
 		const pause = usePause(context);
 		const { resume } = pause;
 		const [guide, setGuide] = useState<Guide>("off");
 
-		const guideMarks = useMemo((): ReadonlyArray<BoardMark> => {
-			if (guide === "off" || status !== "playing") return NO_MARKS;
-
-			const [next] = plan(opener, session.state) ?? [];
-
-			return next?.kind === "place"
-				? [{ cells: placementCells(next.position.placement), tone: "target" }]
-				: NO_MARKS;
-		}, [guide, status, opener, session.state]);
+		const guideMarks = useMemo(
+			() => (guide === "on" && status === "playing" ? decisionMarks(plan(opener, session.state)?.[0]) : NO_MARKS),
+			[guide, status, opener, session.state],
+		);
 
 		const handleDeal = useCallback(() => {
 			resume();
@@ -102,18 +94,11 @@ const PracticeView = scope<PracticeViewProps>(
 			onRetry();
 		}, [resume, onRetry]);
 
-		useEffect(() => {
-			if (status !== "cleared") return;
-
-			const timeout = setTimeout(onDeal, NEXT_ORDER_DELAY_MS);
-
-			return () => clearTimeout(timeout);
-		}, [status, onDeal]);
-
-		const handleContinue = isMistake ? handleRetry : handleDeal;
+		const notes = useMemo(() => (mistake ? mistakeNotes(mistake) : null), [mistake]);
+		const mistakeBoardMarks = useMemo(() => (mistake ? mistakeMarks(mistake) : null), [mistake]);
 
 		useGameKeyboard(session.game, handleRetry, context, pause.isPaused);
-		useContinueKey(status !== "playing", handleContinue, context);
+		useContinueKey(isMistake, handleRetry, context);
 
 		return (
 			<Shell
@@ -127,12 +112,12 @@ const PracticeView = scope<PracticeViewProps>(
 				]}
 				aside={
 					<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
-						<div className="flex flex-col gap-2.5">
+						<div className="flex flex-col gap-3">
 							<Segmented label="Stage" options={ORDER_OPTIONS} value={filter} onChange={onFilter} />
-							<p className="text-[13px] leading-snug text-muted">{STAGE_TEXT[filter]}</p>
+							<p className="text-sm leading-snug text-muted">{STAGE_TEXT[filter]}</p>
 							<Segmented label="Guide" options={GUIDE_OPTIONS} value={guide} onChange={setGuide} />
 						</div>
-						<div className="flex flex-col gap-2.5">
+						<div className="flex flex-col gap-3">
 							<LabelRow label="Progress" detail={`${placed} / ${pieces}`} tone={isMistake ? "pink" : "lime"} />
 							<ProgressSegments total={pieces} done={placed} label="Pieces placed" isFailed={isMistake} />
 						</div>
@@ -162,14 +147,9 @@ const PracticeView = scope<PracticeViewProps>(
 					</LessonPanel>
 				}
 			>
-				<PlayArea
-					game={session.game}
-					handling={config.handling}
-					context={context}
-					marks={isMistake ? session.marks : guideMarks}
-					pause={pause}
-				>
-					{banner && <BannerCard banner={banner} />}
+				<PlayArea game={session.game} context={context} marks={mistakeBoardMarks ?? guideMarks} pause={pause}>
+					{notes && <BoardNotes notes={notes} />}
+					{clears > 0 && <SuccessFlash key={clears} />}
 				</PlayArea>
 			</Shell>
 		);
@@ -211,7 +191,10 @@ export function OpenerPractice({ opener, view, onNavigate, context }: OpenerPrac
 
 	const handleRestart = useCallback(() => restartOrder(session), [session]);
 
-	const handleImpossible = useCallback(() => declareImpossible(session, opener), [session, opener]);
+	const handleImpossible = useCallback(
+		() => declareImpossible(session, opener, settings.config.handling),
+		[session, opener, settings],
+	);
 
 	return (
 		<PracticeView

@@ -17,7 +17,7 @@ interface LessonGroup {
 }
 
 export const TKI_SECTIONS: ReadonlyArray<LessonSection> = [
-	{ view: "tki-rules", title: "Rules" },
+	{ view: "tki-learn", title: "Learn" },
 	{ view: "tki-watch", title: "Watch" },
 	{ view: "tki-practice", title: "Practice" },
 ];
@@ -25,6 +25,6 @@ export const TKI_SECTIONS: ReadonlyArray<LessonSection> = [
 export const LESSON_GROUPS: ReadonlyArray<LessonGroup> = [
 	{
 		title: "Openers",
-		lessons: [{ title: "TKI", detail: "A first-bag opener that ends in a T-spin double.", sections: TKI_SECTIONS }],
+		lessons: [{ title: "TKI-3", detail: "A first-bag opener that ends in a T-spin double.", sections: TKI_SECTIONS }],
 	},
 ];

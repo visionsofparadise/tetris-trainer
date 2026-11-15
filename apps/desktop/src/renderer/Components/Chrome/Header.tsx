@@ -1,7 +1,5 @@
-import { scope } from "opshot/react";
-import { cn } from "../../utils/cn";
-import { VIEW_TITLES } from "../../utils/viewTitles";
 import { LogoMark, SettingsIcon } from "../UI/Icons";
+import { Breadcrumbs } from "./Breadcrumbs";
 import { WindowControls } from "./WindowControls";
 import type { AppContext } from "../../models/AppContext";
 import type { View } from "../../models/View";
@@ -14,8 +12,7 @@ interface HeaderProps {
 	readonly context: AppContext;
 }
 
-export const Header = scope<HeaderProps>(({ view, onNavigate, actions, context }) => {
-	const { configName } = context.settings;
+export function Header({ view, onNavigate, actions, context }: HeaderProps) {
 	const isSettings = view === "settings";
 
 	return (
@@ -29,12 +26,8 @@ export const Header = scope<HeaderProps>(({ view, onNavigate, actions, context }
 				<LogoMark />
 				<span className="display text-xl tracking-[0.01em] text-text">Trainer</span>
 			</button>
-			<div className="pointer-events-none absolute inset-x-0 flex justify-center gap-7">
-				<span className="label">{VIEW_TITLES[view]}</span>
-				<span className="label text-muted">SRS+ · 7-bag</span>
-				<span className={cn("label", configName ? "text-lime" : "text-muted")}>
-					{configName ?? "TETR.IO default handling"}
-				</span>
+			<div className="absolute left-1/2 -translate-x-1/2">
+				<Breadcrumbs view={view} onNavigate={onNavigate} />
 			</div>
 			<div className="flex items-center gap-2">
 				{actions}
@@ -51,4 +44,4 @@ export const Header = scope<HeaderProps>(({ view, onNavigate, actions, context }
 			</div>
 		</header>
 	);
-});
+}

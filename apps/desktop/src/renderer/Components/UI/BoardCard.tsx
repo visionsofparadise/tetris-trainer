@@ -34,7 +34,7 @@ export function BoardCard({ tone, icon, title, detail, children }: BoardCardProp
 				</span>
 			</span>
 			{detail && (
-				<p className="text-[13px] leading-snug text-muted">
+				<p className="text-sm leading-snug text-muted">
 					<PieceText text={detail} />
 				</p>
 			)}

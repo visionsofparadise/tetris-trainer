@@ -17,7 +17,7 @@ export function SidePanel({ label, detail, tone = "muted", className, children }
 			<LabelRow label={label} detail={detail} tone={tone} className="absolute inset-x-0 bottom-full mb-2.5" />
 			<div
 				className={cn(
-					"flex h-(--well-height) flex-col overflow-y-auto gap-[18px] bg-panel p-[22px] chamfer-tr-22",
+					"flex h-(--well-height) flex-col gap-6 overflow-y-auto bg-panel p-[22px] chamfer-tr-22",
 					className,
 				)}
 			>

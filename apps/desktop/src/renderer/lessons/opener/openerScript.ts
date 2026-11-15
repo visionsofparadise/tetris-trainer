@@ -1,12 +1,5 @@
-import {
-	DEFAULT_CONFIG,
-	dropSteps,
-	Game,
-	type Handling,
-	type Piece,
-	type Placement,
-	type ScriptStep,
-} from "@tetris-trainer/game";
+import { DEFAULT_CONFIG, dropSteps, Game, type Handling, type Piece, type ScriptStep } from "@tetris-trainer/game";
+import type { Slide } from "./Opener";
 import type { Decision } from "./planner";
 
 export interface ScriptPacing {
@@ -37,10 +30,15 @@ export const loadOrder = (handling: Handling, order: ReadonlyArray<Piece>): Game
 	return game;
 };
 
-export const loadBoard = (board: ReadonlyArray<Placement>): Game => {
+export const loadSlide = ({ board, queue }: Slide): Game => {
 	const game = new Game(DEMO_HANDLING);
 
-	game.load({ board, validate: true, queue: { pieces: [], mode: "any" }, holdEnabled: true });
+	game.load({
+		board,
+		validate: true,
+		queue: queue ? { pieces: queue, mode: "fresh-bag" } : { pieces: [], mode: "any" },
+		holdEnabled: true,
+	});
 	game.pause();
 
 	return game;

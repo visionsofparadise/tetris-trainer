@@ -1,4 +1,5 @@
-import type { Piece, Placement, ScriptStep } from "@tetris-trainer/game";
+import type { NoteAnchor } from "../../models/BoardNote";
+import type { BoardItem, Piece, Placement, ScriptStep } from "@tetris-trainer/game";
 
 interface Tuck {
 	readonly under: ReadonlyArray<Piece>;
@@ -9,20 +10,31 @@ interface Tuck {
 export interface Position {
 	readonly placement: Placement;
 	readonly after: ReadonlyArray<Piece>;
+	readonly before?: ReadonlyArray<Piece>;
 	readonly description: string;
 	readonly keys?: ReadonlyArray<ScriptStep>;
 	readonly tuck?: Tuck;
 }
 
-interface Slide {
-	readonly title: string;
+type NoteAim = Placement | NoteAnchor;
+
+interface SlideNote {
 	readonly text: string;
-	readonly board: ReadonlyArray<Placement>;
+	readonly aims: ReadonlyArray<NoteAim>;
+}
+
+export interface Slide {
+	readonly title: string;
+	readonly notes: ReadonlyArray<SlideNote>;
+	readonly board: ReadonlyArray<BoardItem>;
 	readonly marks: ReadonlyArray<Placement>;
+	readonly queue?: ReadonlyArray<Piece>;
+	readonly isDemo?: boolean;
 }
 
 export interface Opener {
 	readonly name: string;
 	readonly positions: ReadonlyArray<Position>;
+	readonly optional: ReadonlyArray<Piece>;
 	readonly slides: ReadonlyArray<Slide>;
 }

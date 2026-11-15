@@ -20,11 +20,11 @@ export function LessonList({ onNavigate }: LessonListProps) {
 				<h2 className="display text-[52px]">Lessons</h2>
 				<TitleRule />
 			</div>
-			<div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto px-[22px] pt-1 pb-[22px]">
+			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-[22px] pt-1 pb-[22px]">
 				{LESSON_GROUPS.map(({ title, lessons }, groupIndex) => (
-					<section key={title} className="flex flex-col gap-1.5" aria-label={title}>
+					<section key={title} className="flex flex-col gap-2" aria-label={title}>
 						<LabelRow label={title} className="px-0.5" />
-						<ol className="flex flex-col gap-1.5">
+						<ol className="flex flex-col gap-2">
 							{lessons.map((lesson, index) => (
 								<ListRowButton
 									key={lesson.title}

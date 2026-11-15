@@ -1,6 +1,6 @@
 import { ignore } from "opshot";
 import { DEMO_HANDLING, DEMO_PACING, loadOrder, planScript } from "./openerScript";
-import { categorize, dealOrder, type Category, type OrderFilter } from "./orders";
+import { categorize, dealOrder, type Category, type OrderFilter, type OrderPool } from "./orders";
 import { impossibleReason, plan, startState, type Decision } from "./planner";
 import type { Opener } from "./Opener";
 import type { Banner } from "../../models/Banner";
@@ -39,8 +39,8 @@ export const initialWatch = (opener: Opener): WatchSession => {
 	};
 };
 
-export const dealWatch = (session: WatchSession, opener: Opener): void => {
-	const order = dealOrder(opener, session.filter);
+export const dealWatch = (session: WatchSession, opener: Opener, pool: OrderPool = session.filter): void => {
+	const order = dealOrder(opener, pool);
 	const decisions = plan(opener, startState(order));
 	const game = loadOrder(DEMO_HANDLING, order);
 
