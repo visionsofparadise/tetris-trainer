@@ -1,6 +1,7 @@
 import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
 import { useCallback, useEffect, useState } from "react";
+import { useCue } from "../../hooks/useCue";
 import { PAUSE_HINT, usePause } from "../../hooks/usePause";
 import {
 	dealWatch,
@@ -51,6 +52,8 @@ interface WatchViewProps {
 const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, opener, view, onNavigate, context }) => {
 	const { isDone, round, category, decisions, index, banner, clears } = session;
 	const current = decisions[index];
+
+	useCue(context.sound, "success", clears);
 
 	useEffect(() => {
 		if (!isDone) return;

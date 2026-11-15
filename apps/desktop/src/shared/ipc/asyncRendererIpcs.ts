@@ -1,3 +1,4 @@
+import { ReadSettingsRendererIpc, WriteSettingsRendererIpc } from "./settingsRendererIpcs";
 import {
 	CloseWindowRendererIpc,
 	MinimizeWindowRendererIpc,
@@ -9,6 +10,8 @@ export const ASYNC_RENDERER_IPCS = [
 	MinimizeWindowRendererIpc,
 	ToggleMaximizeWindowRendererIpc,
 	CloseWindowRendererIpc,
+	ReadSettingsRendererIpc,
+	WriteSettingsRendererIpc,
 ] as const;
 
 export type AsyncIpcAction = IpcHandlerAction<InstanceType<(typeof ASYNC_RENDERER_IPCS)[number]>>;

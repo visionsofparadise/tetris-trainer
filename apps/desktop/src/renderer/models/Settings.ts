@@ -1,38 +1,17 @@
-import { DEFAULT_CONFIG, parseTetrioConfig, type TetrioConfig } from "@tetris-trainer/game";
 import { createMutableState, subscribe } from "opshot";
+import { parseSettings, serializeSettings } from "../utils/settingsFile";
+import type { TetrioConfig } from "@tetris-trainer/game";
 
 export interface Settings {
 	config: TetrioConfig;
 	configName: string | null;
+	volume: number;
 }
 
-const CONFIG_KEY = "config";
-const CONFIG_NAME_KEY = "configName";
+export const createSettings = (saved: string | null, save: (text: string) => unknown): Settings => {
+	const settings = createMutableState<Settings>(parseSettings(saved));
 
-const loadConfig = (storage: Storage): TetrioConfig => {
-	const saved = storage.getItem(CONFIG_KEY);
-
-	if (saved === null) return DEFAULT_CONFIG;
-
-	try {
-		return parseTetrioConfig(saved);
-	} catch {
-		return DEFAULT_CONFIG;
-	}
-};
-
-export const createSettings = (storage: Storage): Settings => {
-	const settings = createMutableState<Settings>({
-		config: loadConfig(storage),
-		configName: storage.getItem(CONFIG_NAME_KEY),
-	});
-
-	subscribe(settings, () => {
-		storage.setItem(CONFIG_KEY, JSON.stringify(settings.config));
-
-		if (settings.configName === null) storage.removeItem(CONFIG_NAME_KEY);
-		else storage.setItem(CONFIG_NAME_KEY, settings.configName);
-	});
+	subscribe(settings, () => save(serializeSettings(settings)));
 
 	return settings;
 };

@@ -4,4 +4,4 @@ import "./styles.css";
 
 const root = document.getElementById("root");
 
-if (root) createRoot(root).render(<App />);
+if (root) void window.main.readSettings().then((saved) => createRoot(root).render(<App savedSettings={saved} />));

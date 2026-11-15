@@ -1,5 +1,6 @@
 import { Game } from "@tetris-trainer/game";
 import { useCallback, useState } from "react";
+import { useCue } from "../../hooks/useCue";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
 import { PlayArea } from "../Board/PlayArea";
 import { GameOver } from "./GameOver";
@@ -19,6 +20,7 @@ export function GameSession({ pause, onRestart, context }: GameSessionProps) {
 	const handleGameOver = useCallback(() => setIsOver(true), []);
 
 	useGameKeyboard(game, onRestart, context, pause.isPaused);
+	useCue(context.sound, "failure", isOver);
 
 	return (
 		<PlayArea

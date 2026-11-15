@@ -1,6 +1,7 @@
 import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
 import { useState } from "react";
+import { useCue } from "../../hooks/useCue";
 import { dealWatch, initialWatch, type WatchSession } from "../../lessons/opener/watchSession";
 import { BoardNotes } from "../Board/BoardNotes";
 import { PlayArea } from "../Board/PlayArea";
@@ -20,12 +21,16 @@ interface LearnDemoViewProps {
 	readonly context: AppContext;
 }
 
-const LearnDemoView = scope<LearnDemoViewProps>(({ session, notes, pause, context }) => (
-	<PlayArea game={session.game} control="demo" context={context} pause={pause}>
-		<BoardNotes notes={notes} />
-		{session.clears > 0 && <SuccessFlash key={session.clears} />}
-	</PlayArea>
-));
+const LearnDemoView = scope<LearnDemoViewProps>(({ session, notes, pause, context }) => {
+	useCue(context.sound, "success", session.clears);
+
+	return (
+		<PlayArea game={session.game} control="demo" context={context} pause={pause}>
+			<BoardNotes notes={notes} />
+			{session.clears > 0 && <SuccessFlash key={session.clears} />}
+		</PlayArea>
+	);
+});
 
 interface LearnDemoProps {
 	readonly opener: Opener;

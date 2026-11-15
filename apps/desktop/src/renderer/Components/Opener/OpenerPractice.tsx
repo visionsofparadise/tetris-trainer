@@ -2,6 +2,7 @@ import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
 import { useCallback, useMemo, useState } from "react";
 import { useContinueKey } from "../../hooks/useContinueKey";
+import { useCue } from "../../hooks/useCue";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
 import { useKeyPress } from "../../hooks/useKeyPress";
 import { PAUSE_HINT, usePause } from "../../hooks/usePause";
@@ -103,6 +104,8 @@ const PracticeView = scope<PracticeViewProps>(
 		useGameKeyboard(session.game, handleRetry, context, pause.isPaused);
 		useContinueKey(isMistake, handleRetry, context);
 		useKeyPress(IMPOSSIBLE_CODE, canCallImpossible && !pause.isPaused, onImpossible);
+		useCue(context.sound, "success", clears);
+		useCue(context.sound, "failure", isMistake);
 
 		return (
 			<Shell

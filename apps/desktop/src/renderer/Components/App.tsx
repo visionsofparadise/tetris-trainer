@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { TKI } from "../lessons/tki";
 import { mainEvents } from "../models/mainEventsOfWindow";
 import { createSettings } from "../models/Settings";
+import { createSound } from "../utils/createSound";
 import { START, toward, type Navigation } from "../utils/navigation";
 import { OpenerLearn } from "./Opener/OpenerLearn";
 import { OpenerPractice } from "./Opener/OpenerPractice";
@@ -10,9 +11,16 @@ import { Play } from "./Play";
 import type { AppContext } from "../models/AppContext";
 import type { View } from "../models/View";
 
-export function App() {
-	const [settings] = useState(() => createSettings(localStorage));
-	const context = useMemo<AppContext>(() => ({ main: window.main, mainEvents, settings }), [settings]);
+interface AppProps {
+	readonly savedSettings: string | null;
+}
+
+export function App({ savedSettings }: AppProps) {
+	const [context] = useState<AppContext>(() => {
+		const settings = createSettings(savedSettings, window.main.writeSettings);
+
+		return { main: window.main, mainEvents, settings, sound: createSound(settings) };
+	});
 	const [{ view }, setNavigation] = useState<Navigation>(START);
 	const navigate = useCallback((next: View) => setNavigation((current) => toward(current, next)), []);
 

@@ -1,5 +1,6 @@
 import { useGameInput } from "../../hooks/useGameInput";
 import { useGameReadout } from "../../hooks/useGameReadout";
+import { usePlaceSounds } from "../../hooks/usePlaceSounds";
 import { keyLabel } from "../../utils/keyLabel";
 import { BoardWell } from "./BoardWell";
 import { HoldColumn } from "./HoldColumn";
@@ -41,6 +42,8 @@ export function PlayArea({
 	const readout = useGameReadout(game);
 	const pressed = useGameInput(game);
 	const active = pause?.isPaused ? "none" : control;
+
+	usePlaceSounds(game, context.sound);
 
 	return (
 		<section className="flex flex-col items-center gap-[18px]" aria-label="Play area">

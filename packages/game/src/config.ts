@@ -68,7 +68,9 @@ export const DEFAULT_CONFIG: TetrioConfig = {
 	},
 };
 
-export const parseTetrioConfig = (text: string): TetrioConfig => tetrioConfigSchema.parse(JSON.parse(text));
+export const readTetrioConfig = (value: unknown): TetrioConfig => tetrioConfigSchema.parse(value);
+
+export const parseTetrioConfig = (text: string): TetrioConfig => readTetrioConfig(JSON.parse(text));
 
 export const findAction = (config: TetrioConfig, code: string): Action | undefined => {
 	const key = code.toUpperCase();

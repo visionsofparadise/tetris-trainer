@@ -2,6 +2,7 @@ import { useCellSize } from "../hooks/useCellSize";
 import { stageVariables } from "../utils/stageLayout";
 import { Decorations } from "./Chrome/Decorations";
 import { Header } from "./Chrome/Header";
+import { VolumeReadout } from "./Chrome/VolumeReadout";
 import type { AppContext } from "../models/AppContext";
 import type { View } from "../models/View";
 import type { ReactNode } from "react";
@@ -33,6 +34,7 @@ export function Shell({ view, onNavigate, context, aside, actions, hints = NO_HI
 			</main>
 			<footer className="pointer-events-none absolute inset-x-8 bottom-[22px] flex justify-between">
 				<span className="caption">{hints.join(" · ")}</span>
+				<VolumeReadout context={context} />
 			</footer>
 		</div>
 	);
