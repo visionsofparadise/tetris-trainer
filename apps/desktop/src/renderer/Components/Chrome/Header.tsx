@@ -36,7 +36,7 @@ export function Header({ view, onNavigate, actions, context }: HeaderProps) {
 					className="no-drag icon-button"
 					aria-label="Settings"
 					aria-pressed={isSettings}
-					onClick={() => onNavigate(isSettings ? "free-play" : "settings")}
+					onClick={() => onNavigate("settings")}
 				>
 					<SettingsIcon />
 				</button>

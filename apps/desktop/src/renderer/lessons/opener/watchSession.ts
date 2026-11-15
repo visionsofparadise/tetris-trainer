@@ -17,6 +17,7 @@ export interface WatchSession {
 	speed: number;
 	round: number;
 	isDone: boolean;
+	clears: number;
 }
 
 export const initialWatch = (opener: Opener): WatchSession => {
@@ -36,6 +37,7 @@ export const initialWatch = (opener: Opener): WatchSession => {
 		speed: 1,
 		round: 0,
 		isDone: false,
+		clears: 0,
 	};
 };
 
@@ -62,17 +64,15 @@ export const dealWatch = (session: WatchSession, opener: Opener, pool: OrderPool
 		};
 	} else {
 		const handleDecision = () => {
+			if (session.game !== game) return;
+
 			session.index++;
 
 			if (session.index < decisions.length) return;
 
 			game.pause();
-			session.isDone = true;
-			session.banner = {
-				tone: "success",
-				title: `${opener.name} built`,
-				detail: "The T-spin double clears two lines.",
-			};
+			session.clears++;
+			dealWatch(session, opener, pool);
 		};
 
 		session.banner = null;

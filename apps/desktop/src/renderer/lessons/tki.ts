@@ -44,7 +44,10 @@ const POSITIONS: ReadonlyArray<Position> = [
 		after: [Mino.L, Mino.I, Mino.Z, Mino.S, Mino.O],
 		description: "Spin the T into the slot for a T-spin double.",
 		keys: [
-			...finesseSteps({ mino: Mino.T, orientation: "right", column: 1 }),
+			{ tap: "rotateCW" },
+			{ tap: "moveLeft" },
+			{ tap: "moveLeft" },
+			{ tap: "moveLeft" },
 			{ hold: "softDrop", frames: 20 },
 			{ tap: "rotateCW" },
 			{ tap: "hardDrop" },

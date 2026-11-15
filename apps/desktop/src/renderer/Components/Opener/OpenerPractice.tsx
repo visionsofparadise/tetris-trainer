@@ -3,7 +3,8 @@ import { scope } from "opshot/react";
 import { useCallback, useMemo, useState } from "react";
 import { useContinueKey } from "../../hooks/useContinueKey";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
-import { usePause } from "../../hooks/usePause";
+import { useKeyPress } from "../../hooks/useKeyPress";
+import { PAUSE_HINT, usePause } from "../../hooks/usePause";
 import { pieceCount, placedCount, plan } from "../../lessons/opener/planner";
 import {
 	dealPractice,
@@ -34,6 +35,8 @@ import type { Opener } from "../../lessons/opener/Opener";
 import type { OrderFilter } from "../../lessons/opener/orders";
 import type { AppContext } from "../../models/AppContext";
 import type { View } from "../../models/View";
+
+const IMPOSSIBLE_CODE = "Backspace";
 
 type Guide = "off" | "on";
 
@@ -99,6 +102,7 @@ const PracticeView = scope<PracticeViewProps>(
 
 		useGameKeyboard(session.game, handleRetry, context, pause.isPaused);
 		useContinueKey(isMistake, handleRetry, context);
+		useKeyPress(IMPOSSIBLE_CODE, canCallImpossible && !pause.isPaused, onImpossible);
 
 		return (
 			<Shell
@@ -108,16 +112,18 @@ const PracticeView = scope<PracticeViewProps>(
 				actions={<PauseButton pause={pause} />}
 				hints={[
 					...(isMistake ? [`${keyLabel(config.controls.custom.hardDrop[0])} to retry`] : []),
+					...(canCallImpossible ? [`${keyLabel(IMPOSSIBLE_CODE)} to call impossible`] : []),
 					...retryHints(config, "restart the order"),
+					PAUSE_HINT,
 				]}
 				aside={
 					<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
-						<div className="flex flex-col gap-3">
+						<div className="flex flex-col gap-4">
 							<Segmented label="Stage" options={ORDER_OPTIONS} value={filter} onChange={onFilter} />
 							<p className="text-sm leading-snug text-muted">{STAGE_TEXT[filter]}</p>
 							<Segmented label="Guide" options={GUIDE_OPTIONS} value={guide} onChange={setGuide} />
 						</div>
-						<div className="flex flex-col gap-3">
+						<div className="flex flex-col gap-4">
 							<LabelRow label="Progress" detail={`${placed} / ${pieces}`} tone={isMistake ? "pink" : "lime"} />
 							<ProgressSegments total={pieces} done={placed} label="Pieces placed" isFailed={isMistake} />
 						</div>

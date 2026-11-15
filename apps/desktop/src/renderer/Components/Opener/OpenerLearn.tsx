@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { PAUSE_HINT, usePause } from "../../hooks/usePause";
 import { slideNotes } from "../../utils/slideNotes";
+import { PauseButton } from "../Chrome/PauseButton";
 import { PieceText } from "../Pieces/PieceText";
 import { Shell } from "../Shell";
 import { IconButton, PrimaryIconButton } from "../UI/IconButton";
@@ -12,7 +14,11 @@ import type { Opener } from "../../lessons/opener/Opener";
 import type { AppContext } from "../../models/AppContext";
 import type { View } from "../../models/View";
 
-const HINTS = ["← → to change slides"];
+const SLIDE_HINT = "← → to change slides";
+
+const SLIDE_HINTS = [SLIDE_HINT];
+
+const DEMO_HINTS = [SLIDE_HINT, PAUSE_HINT];
 
 const SLIDE_STEPS: Partial<Record<string, number>> = { ArrowLeft: -1, ArrowRight: 1 };
 
@@ -29,6 +35,11 @@ export function OpenerLearn({ opener, view, onNavigate, context }: OpenerLearnPr
 	const slide = slides[index] ?? slides[0];
 	const notes = useMemo(() => (slide ? slideNotes(slide) : []), [slide]);
 	const last = slides.length - 1;
+	const isDemo = slide?.isDemo === true;
+	const pause = usePause(context, isDemo);
+	const { resume } = pause;
+
+	useEffect(() => resume(), [index, resume]);
 
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
@@ -50,10 +61,11 @@ export function OpenerLearn({ opener, view, onNavigate, context }: OpenerLearnPr
 			view={view}
 			onNavigate={onNavigate}
 			context={context}
-			hints={HINTS}
+			actions={isDemo ? <PauseButton pause={pause} /> : undefined}
+			hints={isDemo ? DEMO_HINTS : SLIDE_HINTS}
 			aside={
 				<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
-					<ol className="-mr-2 flex min-h-28 flex-1 flex-col gap-2 overflow-y-auto pr-2" aria-label="Slides">
+					<ol className="-mr-2 flex min-h-28 flex-1 flex-col gap-3 overflow-y-auto pr-2" aria-label="Slides">
 						{slides.map(({ title }, slideIndex) => (
 							<ListRowButton
 								key={title}
@@ -75,8 +87,8 @@ export function OpenerLearn({ opener, view, onNavigate, context }: OpenerLearnPr
 				</LessonPanel>
 			}
 		>
-			{slide?.isDemo ? (
-				<LearnDemo opener={opener} notes={notes} context={context} />
+			{isDemo ? (
+				<LearnDemo opener={opener} notes={notes} pause={pause} context={context} />
 			) : (
 				slide && <SlideBoard slide={slide} notes={notes} context={context} />
 			)}

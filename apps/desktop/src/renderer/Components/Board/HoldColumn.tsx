@@ -26,7 +26,7 @@ export function HoldColumn({ readout, holdKey }: HoldColumnProps) {
 			>
 				{readout.hold && <PieceIcon mino={readout.hold} />}
 			</div>
-			<section className="flex flex-col gap-3 bg-panel p-3" aria-label="Stats">
+			<section className="flex flex-col gap-3 pt-2" aria-label="Stats">
 				<LabelRow label="Stats" />
 				<dl className="flex flex-col gap-2.5">
 					<StatRow label="Pieces" value={pad(readout.pieces)} />

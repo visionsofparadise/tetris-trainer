@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { usePause } from "../../hooks/usePause";
+import { PAUSE_HINT, usePause } from "../../hooks/usePause";
 import { retryHints } from "../../utils/retryHints";
 import { PauseButton } from "../Chrome/PauseButton";
 import { LessonList } from "../Lessons/LessonList";
@@ -30,7 +30,7 @@ export function Play({ view, onNavigate, context }: PlayProps) {
 			view={view}
 			onNavigate={onNavigate}
 			context={context}
-			hints={retryHints(context.settings.config, "restart")}
+			hints={[...retryHints(context.settings.config, "restart"), PAUSE_HINT]}
 			actions={
 				<>
 					<PauseButton pause={pause} />

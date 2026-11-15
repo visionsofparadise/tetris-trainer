@@ -6,7 +6,6 @@ import { keyLabel } from "../../utils/keyLabel";
 import { StatRow } from "../Board/StatRow";
 import { LabelRow } from "../UI/LabelRow";
 import { SidePanel } from "../UI/SidePanel";
-import { TitleRule } from "../UI/TitleRule";
 import type { AppContext } from "../../models/AppContext";
 
 const ACTION_LABELS: ReadonlyArray<readonly [Action, string]> = [
@@ -50,13 +49,9 @@ export const SettingsPanel = scope<SettingsPanelProps>(({ onLoad, context }) => 
 	};
 
 	return (
-		<SidePanel label="Settings" detail={settings.configName ?? "Defaults"}>
-			<div className="flex flex-col gap-3">
-				<h2 className="display text-[40px]">Settings</h2>
-				<TitleRule />
-			</div>
-			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
-				<section className="flex flex-col gap-2.5" aria-label="Config">
+		<SidePanel title="Settings">
+			<div className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto">
+				<section className="flex flex-col gap-4" aria-label="Config">
 					<LabelRow label="Config" detail={settings.configName ?? "TETR.IO defaults"} />
 					<p className="text-sm leading-snug text-muted">
 						Load your TETR.IO config export (.ttc) to play with your own handling and keys.
@@ -65,10 +60,10 @@ export const SettingsPanel = scope<SettingsPanelProps>(({ onLoad, context }) => 
 						{error}
 					</p>
 				</section>
-				<section className="flex flex-col gap-2.5" aria-label="Handling">
+				<section className="flex flex-col gap-4" aria-label="Handling">
 					<LabelRow label="Handling" detail={handlingLines(handling).join(" · ")} tone="muted" />
 				</section>
-				<section className="flex flex-col gap-2.5 bg-raised p-3.5" aria-label="Keys">
+				<section className="flex flex-col gap-4 bg-raised p-4" aria-label="Keys">
 					<LabelRow label="Keys" />
 					<dl className="grid grid-cols-2 gap-x-6 gap-y-2.5">
 						{ACTION_LABELS.map(([action, label]) => (

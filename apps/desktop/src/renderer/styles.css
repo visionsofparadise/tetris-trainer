@@ -101,6 +101,25 @@
 		background: repeating-conic-gradient(var(--color-pink) 0 25%, transparent 0 50%) 0 0 / 8px 8px;
 	}
 
+	.panel-title-strip {
+		--title-chars: 8;
+		--title-size: min(96px, calc(var(--well-height) * 0.72 / var(--title-chars) / 0.95));
+
+		width: calc(var(--title-size) * 0.74);
+	}
+
+	.title-stripes {
+		background: repeating-linear-gradient(-45deg, rgb(238 241 255 / 12%) 0 28px, transparent 28px 50px);
+	}
+
+	.panel-title {
+		font-size: var(--title-size);
+		line-height: 0.74;
+		color: rgb(238 241 255 / 20%);
+		white-space: nowrap;
+		writing-mode: vertical-rl;
+	}
+
 	.board-dots {
 		background-image: radial-gradient(circle at center, rgb(255 255 255 / 16%) 0 1px, transparent 1.5px);
 		background-size: var(--cell) var(--cell);
@@ -246,6 +265,37 @@
 
 	.window-button-close:hover {
 		background: var(--color-pink);
+	}
+
+	.step-slider {
+		height: 28px;
+		appearance: none;
+		cursor: pointer;
+		background: transparent;
+	}
+
+	.step-slider::-webkit-slider-runnable-track {
+		height: 6px;
+		background:
+			repeating-linear-gradient(
+				to right,
+				transparent 0 calc(100% / var(--segments) - 3px),
+				var(--color-panel) 0 calc(100% / var(--segments))
+			),
+			linear-gradient(to right, var(--color-lime) var(--fill), rgb(255 255 255 / 15%) var(--fill));
+	}
+
+	.step-slider::-webkit-slider-thumb {
+		width: 14px;
+		height: 22px;
+		margin-top: -8px;
+		appearance: none;
+		background: var(--color-lime);
+		clip-path: polygon(0 0, 100% 0, 100% 17px, 9px 100%, 0 100%);
+	}
+
+	.step-slider:hover::-webkit-slider-thumb {
+		filter: brightness(1.12);
 	}
 
 	.list-row {

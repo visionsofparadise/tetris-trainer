@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 interface StepSliderProps {
 	readonly label: string;
 	readonly steps: ReadonlyArray<number>;
@@ -8,6 +10,9 @@ interface StepSliderProps {
 
 export function StepSlider({ label, steps, value, format, onChange }: StepSliderProps) {
 	const text = format(value);
+	const index = Math.max(0, steps.indexOf(value));
+	const last = Math.max(1, steps.length - 1);
+	const track = { "--fill": `${(index / last) * 100}%`, "--segments": last } as CSSProperties;
 
 	return (
 		<label className="flex items-center justify-between gap-4">
@@ -15,11 +20,12 @@ export function StepSlider({ label, steps, value, format, onChange }: StepSlider
 			<span className="flex flex-1 items-center justify-end gap-3">
 				<input
 					type="range"
-					className="h-7 max-w-52 flex-1 cursor-pointer accent-lime"
+					className="step-slider max-w-52 flex-1"
+					style={track}
 					min={0}
-					max={steps.length - 1}
+					max={last}
 					step={1}
-					value={Math.max(0, steps.indexOf(value))}
+					value={index}
 					aria-valuetext={text}
 					onChange={(event) => onChange(steps[Number(event.currentTarget.value)] ?? value)}
 				/>

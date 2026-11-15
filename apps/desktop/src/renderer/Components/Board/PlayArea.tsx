@@ -46,7 +46,7 @@ export function PlayArea({
 				<HoldColumn readout={readout} holdKey={keyLabel(config.controls.custom.hold[0])} />
 				<BoardWell game={game} marks={marks} display={display} isPaused={pause?.isPaused} onGameOver={onGameOver}>
 					{children}
-					{pause?.isPaused && <PausedCard onResume={pause.resume} />}
+					{pause?.isPaused && <PausedCard />}
 				</BoardWell>
 				<NextColumn
 					next={display === "play" ? readout.next : NO_PIECES}

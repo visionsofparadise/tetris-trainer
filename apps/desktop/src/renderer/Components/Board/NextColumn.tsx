@@ -30,7 +30,7 @@ export function NextColumn({ next, height, holes }: NextColumnProps) {
 					);
 				})}
 			</ol>
-			<section className="flex flex-col gap-3 bg-panel p-3" aria-label="Board">
+			<section className="flex flex-col gap-3" aria-label="Board">
 				<LabelRow label="Board" />
 				<dl className="flex flex-col gap-2.5">
 					<StatRow label="Height" value={pad(height)} />
