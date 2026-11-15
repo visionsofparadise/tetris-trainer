@@ -111,7 +111,7 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, o
 				</LessonPanel>
 			}
 		>
-			<PlayArea game={session.game} context={context} marks={marks} pause={pause} inputLabel="Demo input">
+			<PlayArea game={session.game} control={isDone ? "none" : "demo"} context={context} marks={marks} pause={pause}>
 				{banner && <BannerCard banner={banner} />}
 				{clears > 0 && <SuccessFlash key={clears} />}
 			</PlayArea>

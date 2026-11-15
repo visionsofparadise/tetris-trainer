@@ -153,7 +153,13 @@ const PracticeView = scope<PracticeViewProps>(
 					</LessonPanel>
 				}
 			>
-				<PlayArea game={session.game} context={context} marks={mistakeBoardMarks ?? guideMarks} pause={pause}>
+				<PlayArea
+					game={session.game}
+					control={isMistake ? "none" : "user"}
+					context={context}
+					marks={mistakeBoardMarks ?? guideMarks}
+					pause={pause}
+				>
 					{notes && <BoardNotes notes={notes} />}
 					{clears > 0 && <SuccessFlash key={clears} />}
 				</PlayArea>

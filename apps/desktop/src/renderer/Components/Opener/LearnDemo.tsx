@@ -21,7 +21,7 @@ interface LearnDemoViewProps {
 }
 
 const LearnDemoView = scope<LearnDemoViewProps>(({ session, notes, pause, context }) => (
-	<PlayArea game={session.game} context={context} pause={pause} inputLabel="Demo input">
+	<PlayArea game={session.game} control="demo" context={context} pause={pause}>
 		<BoardNotes notes={notes} />
 		{session.clears > 0 && <SuccessFlash key={session.clears} />}
 	</PlayArea>

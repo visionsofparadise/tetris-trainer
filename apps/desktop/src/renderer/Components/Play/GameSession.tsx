@@ -21,7 +21,13 @@ export function GameSession({ pause, onRestart, context }: GameSessionProps) {
 	useGameKeyboard(game, onRestart, context, pause.isPaused);
 
 	return (
-		<PlayArea game={game} context={context} pause={pause} onGameOver={handleGameOver}>
+		<PlayArea
+			game={game}
+			control={isOver ? "none" : "user"}
+			context={context}
+			pause={pause}
+			onGameOver={handleGameOver}
+		>
 			{isOver && <GameOver onRestart={onRestart} />}
 		</PlayArea>
 	);
