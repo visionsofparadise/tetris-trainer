@@ -1,5 +1,15 @@
-import { VISIBLE_ROWS, type Block, type Game, type Mino } from "@tetris-trainer/game";
-import { blockFace, exposedSides, LIME, MINO_COLORS, PINK, shadeOf, type Sides } from "./blockStyle";
+import { VISIBLE_ROWS, type Block, type BoardTile, type Game, type Mino } from "@tetris-trainer/game";
+import {
+	blockFace,
+	exposedSides,
+	LIME,
+	MINO_COLORS,
+	PINK,
+	shadeOf,
+	shapeEdges,
+	type BlockEdges,
+	type Sides,
+} from "./blockStyle";
 import { SPAWN_ROWS, type Layout } from "./gameLayout";
 import type { BoardMark } from "../models/BoardMark";
 import type { GameDisplay } from "../models/GameDisplay";
@@ -35,18 +45,28 @@ const sidesOf = ([x, y]: Block, isMember: (x: number, y: number) => boolean): Si
 
 const edgeWidth = (cellSize: number): number => Math.max(1, Math.round(cellSize * EDGE_RATIO));
 
-const drawBlock = (
-	graphics: Graphics,
-	cell: Cell,
-	mino: Mino,
-	[x, y]: Block,
-	isMember: (x: number, y: number) => boolean,
-	cellSize: number,
-): void => {
+const shapeEdgesOf = ([x, y]: Block, isMember: (x: number, y: number) => boolean): BlockEdges =>
+	shapeEdges(x, -y, (column, row) => isMember(column, -row));
+
+const tileEdgesOf = (
+	{ edges }: BoardTile,
+	left: BoardTile | null | undefined,
+	right: BoardTile | null | undefined,
+): BlockEdges => ({
+	sides: edges,
+	corners: {
+		topLeft: !edges.left && !edges.top && left?.edges.top === true,
+		topRight: !edges.right && !edges.top && right?.edges.top === true,
+		bottomLeft: !edges.left && !edges.bottom && left?.edges.bottom === true,
+		bottomRight: !edges.right && !edges.bottom && right?.edges.bottom === true,
+	},
+});
+
+const drawBlock = (graphics: Graphics, cell: Cell, mino: Mino, edges: BlockEdges, cellSize: number): void => {
 	const color = MINO_COLORS[mino];
 	const shade = shadeOf(color);
 	const box = { left: cell.left, top: cell.top, size: cellSize, line: edgeWidth(cellSize) };
-	const { inner, notches } = blockFace(box, x, -y, (column, row) => isMember(column, -row));
+	const { inner, notches } = blockFace(box, edges);
 
 	graphics.rect(cell.left, cell.top, cellSize, cellSize).fill(shade);
 	graphics.rect(inner.x, inner.y, inner.width, inner.height).fill(color);
@@ -102,14 +122,13 @@ const drawOutline = (graphics: Graphics, blocks: ReadonlyArray<Block>, color: nu
 };
 
 const drawStack = (graphics: Graphics, game: Game, layout: Layout): void => {
-	const board = game.board.slice(0, VISIBLE_ROWS + SPAWN_ROWS);
-	const isSame = (mino: Mino) => (x: number, y: number) => board[y]?.[x] === mino;
+	game.tiles.slice(0, VISIBLE_ROWS + SPAWN_ROWS).forEach((row, y) => {
+		row.forEach((tile, x) => {
+			if (tile === null) return;
 
-	board.forEach((row, y) => {
-		row.forEach((mino, x) => {
-			if (mino === null) return;
+			const edges = tileEdgesOf(tile, row[x - 1], row[x + 1]);
 
-			drawBlock(graphics, cellAt([x, y], layout), mino, [x, y], isSame(mino), layout.cellSize);
+			drawBlock(graphics, cellAt([x, y], layout), tile.mino, edges, layout.cellSize);
 		});
 	});
 };
@@ -120,7 +139,8 @@ const drawFalling = (graphics: Graphics, game: Game, layout: Layout): void => {
 
 	drawHatched(graphics, game.ghost, MINO_COLORS[mino], GHOST_ALPHA, layout);
 
-	for (const block of blocks) drawBlock(graphics, cellAt(block, layout), mino, block, isMember, layout.cellSize);
+	for (const block of blocks)
+		drawBlock(graphics, cellAt(block, layout), mino, shapeEdgesOf(block, isMember), layout.cellSize);
 };
 
 export const drawGame = (

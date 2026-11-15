@@ -31,7 +31,7 @@ export interface Sides {
 	readonly bottom: boolean;
 }
 
-export interface Rect {
+interface Rect {
 	readonly x: number;
 	readonly y: number;
 	readonly width: number;
@@ -68,31 +68,58 @@ export interface CellBox {
 	readonly line: number;
 }
 
+interface Corners {
+	readonly topLeft: boolean;
+	readonly topRight: boolean;
+	readonly bottomLeft: boolean;
+	readonly bottomRight: boolean;
+}
+
+export interface BlockEdges {
+	readonly sides: Sides;
+	readonly corners: Corners;
+}
+
 export interface BlockFace {
 	readonly inner: Rect;
 	readonly notches: ReadonlyArray<Rect>;
 }
 
-const DIAGONALS: ReadonlyArray<readonly [number, number]> = [
-	[-1, -1],
-	[1, -1],
-	[-1, 1],
-	[1, 1],
-];
-
-export const blockFace = (
-	{ left, top, size, line }: CellBox,
+export const shapeEdges = (
 	column: number,
 	row: number,
 	isMember: (column: number, row: number) => boolean,
-): BlockFace => ({
-	inner: insetRect(left, top, size, exposedSides(column, row, isMember), line),
-	notches: DIAGONALS.filter(
-		([dx, dy]) => isMember(column + dx, row) && isMember(column, row + dy) && !isMember(column + dx, row + dy),
-	).map(([dx, dy]) => ({
-		x: dx < 0 ? left : left + size - line,
-		y: dy < 0 ? top : top + size - line,
+): BlockEdges => {
+	const sides = exposedSides(column, row, isMember);
+	const turns = (horizontal: boolean, vertical: boolean, dx: number, dy: number): boolean =>
+		!horizontal && !vertical && !isMember(column + dx, row + dy);
+
+	return {
+		sides,
+		corners: {
+			topLeft: turns(sides.left, sides.top, -1, -1),
+			topRight: turns(sides.right, sides.top, 1, -1),
+			bottomLeft: turns(sides.left, sides.bottom, -1, 1),
+			bottomRight: turns(sides.right, sides.bottom, 1, 1),
+		},
+	};
+};
+
+export const blockFace = ({ left, top, size, line }: CellBox, { sides, corners }: BlockEdges): BlockFace => {
+	const notch = (isRight: boolean, isBottom: boolean): Rect => ({
+		x: isRight ? left + size - line : left,
+		y: isBottom ? top + size - line : top,
 		width: line,
 		height: line,
-	})),
-});
+	});
+
+	return {
+		inner: insetRect(left, top, size, sides, line),
+		notches: [
+			...(corners.topLeft ? [notch(false, false)] : []),
+			...(corners.topRight ? [notch(true, false)] : []),
+			...(corners.bottomLeft ? [notch(false, true)] : []),
+			...(corners.bottomRight ? [notch(true, true)] : []),
+		],
+	};
+};

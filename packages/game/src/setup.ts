@@ -2,6 +2,7 @@ import { legal, Mino, type Board, type Tile } from "@haelp/teto/engine";
 import { bagRemainder, type DrawnPiece } from "./bag";
 import { placementCells, type Block, type Piece, type Placement } from "./pieces";
 import { SetupError } from "./SetupError";
+import { pieceConnections } from "./tiles";
 
 export interface Garbage {
 	readonly column: number;
@@ -67,7 +68,12 @@ const addPlacement = (board: Board, placement: Placement, validate: boolean, ind
 
 	if (validate && legal(lowered(cells), board.state)) throw new SetupError(`${label} is floating`);
 
-	board.add(...cells.map(([x, y]): [Tile, number, number] => [{ mino: placement.mino, connections: 0 }, x, y]));
+	board.add(
+		...cells.map((cell): [Tile, number, number] => [
+			{ mino: placement.mino, connections: pieceConnections(cells, cell) },
+			...cell,
+		]),
+	);
 	board.clearLines();
 };
 

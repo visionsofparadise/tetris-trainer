@@ -13,12 +13,14 @@ import {
 	type Garbage,
 	type GameSetup,
 } from "./setup";
+import { boardTile, type BoardTile } from "./tiles";
 import type { Handling } from "./config";
 import type { GameEvents, InputEvent, PlaceEvent, SpawnEvent } from "./events";
 
 export interface GameStats {
 	pieces: number;
 	lines: number;
+	attack: number;
 	frames: number;
 }
 
@@ -85,6 +87,10 @@ export class Game {
 		return this.#engine.board.state.map((row) => row.map((tile) => tile?.mino ?? null));
 	}
 
+	get tiles(): ReadonlyArray<ReadonlyArray<BoardTile | null>> {
+		return this.#engine.board.state.map((row) => row.map(boardTile));
+	}
+
 	get falling(): { mino: Mino; blocks: Array<Block> } {
 		const { falling } = this.#engine;
 
@@ -111,7 +117,7 @@ export class Game {
 	get stats(): GameStats {
 		const { stats, frame } = this.#engine;
 
-		return { pieces: stats.pieces, lines: stats.lines, frames: frame };
+		return { pieces: stats.pieces, lines: stats.lines, attack: stats.garbage.attack, frames: frame };
 	}
 
 	on<K extends keyof GameEvents>(event: K, handler: (data: GameEvents[K]) => void): () => void {
@@ -314,9 +320,17 @@ export class Game {
 		this.#spawnAfterLock = null;
 
 		if (locked !== null) {
-			const { lines, spin, stats } = lock;
+			const { lines, spin, stats, rawGarbage } = lock;
 
-			this.#events.emit("place", { ...locked, lines, spin, combo: stats.combo, b2b: stats.b2b });
+			this.#events.emit("place", {
+				...locked,
+				lines,
+				spin,
+				combo: stats.combo,
+				b2b: stats.b2b,
+				attack: rawGarbage.reduce((total, amount) => total + amount, 0),
+				isPerfectClear: lines > 0 && this.#engine.board.perfectClear,
+			});
 		}
 
 		if (lock.topout) this.#topOut();

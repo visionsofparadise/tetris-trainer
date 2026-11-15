@@ -1,4 +1,4 @@
-import { CUE_LAYERS, type CueLayer, type Envelope } from "./cueLayers";
+import { clearLayers, CUE_LAYERS, type CueLayer, type Envelope } from "./cueLayers";
 import type { Settings } from "../models/Settings";
 import type { Sound } from "../models/Sound";
 
@@ -74,19 +74,22 @@ const playLayer = (output: Output, start: number, layer: CueLayer) => {
 export const createSound = (settings: Pick<Settings, "volume">): Sound => {
 	let output: Output | null = null;
 
+	const playLayers = (layers: ReadonlyArray<CueLayer>) => {
+		if (settings.volume <= 0) return;
+
+		output ??= openOutput();
+
+		if (output.audio.state === "suspended") void output.audio.resume();
+
+		output.master.gain.value = settings.volume ** 2;
+
+		const start = output.audio.currentTime;
+
+		for (const layer of layers) playLayer(output, start, layer);
+	};
+
 	return {
-		play: (cue) => {
-			if (settings.volume <= 0) return;
-
-			output ??= openOutput();
-
-			if (output.audio.state === "suspended") void output.audio.resume();
-
-			output.master.gain.value = settings.volume ** 2;
-
-			const start = output.audio.currentTime;
-
-			for (const layer of CUE_LAYERS[cue]) playLayer(output, start, layer);
-		},
+		play: (cue) => playLayers(CUE_LAYERS[cue]),
+		playClear: (clear) => playLayers(clearLayers(clear)),
 	};
 };

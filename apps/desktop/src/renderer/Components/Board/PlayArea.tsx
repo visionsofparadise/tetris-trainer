@@ -1,5 +1,6 @@
 import { useGameInput } from "../../hooks/useGameInput";
 import { useGameReadout } from "../../hooks/useGameReadout";
+import { useLastClear } from "../../hooks/useLastClear";
 import { usePlaceSounds } from "../../hooks/usePlaceSounds";
 import { keyLabel } from "../../utils/keyLabel";
 import { BoardWell } from "./BoardWell";
@@ -40,6 +41,7 @@ export function PlayArea({
 }: PlayAreaProps) {
 	const { config } = context.settings;
 	const readout = useGameReadout(game);
+	const clear = useLastClear(game);
 	const pressed = useGameInput(game);
 	const active = pause?.isPaused ? "none" : control;
 
@@ -48,7 +50,7 @@ export function PlayArea({
 	return (
 		<section className="flex flex-col items-center gap-[18px]" aria-label="Play area">
 			<div className="flex items-start gap-[22px]">
-				<HoldColumn readout={readout} holdKey={keyLabel(config.controls.custom.hold[0])} />
+				<HoldColumn readout={readout} clear={clear} holdKey={keyLabel(config.controls.custom.hold[0])} />
 				<BoardWell
 					game={game}
 					control={active}

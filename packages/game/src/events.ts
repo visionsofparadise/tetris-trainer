@@ -18,6 +18,8 @@ export interface PlaceEvent {
 	readonly spin: SpinType;
 	readonly combo: number;
 	readonly b2b: number;
+	readonly attack: number;
+	readonly isPerfectClear: boolean;
 }
 
 export interface InputEvent {

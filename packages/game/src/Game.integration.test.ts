@@ -230,3 +230,23 @@ describe("Game", () => {
 		expect(game.board[0]?.[0]).toBe(Mino.GARBAGE);
 	});
 });
+
+describe("tiles", () => {
+	it("keeps touching pieces of the same type distinct", () => {
+		const game = loaded({
+			board: [
+				{ mino: Mino.O, orientation: "spawn", column: 0, row: 0 },
+				{ mino: Mino.O, orientation: "spawn", column: 2, row: 0 },
+			],
+			queue: { pieces: [Mino.O, Mino.O], mode: "any" },
+		});
+
+		hardDrop(game);
+		hardDrop(game);
+
+		expect(game.tiles[0]?.[1]?.edges).toMatchObject({ right: true, top: false });
+		expect(game.tiles[0]?.[2]?.edges).toMatchObject({ left: true });
+		expect(game.tiles[1]?.[4]?.edges).toMatchObject({ top: true, bottom: false });
+		expect(game.tiles[2]?.[4]?.edges).toMatchObject({ bottom: true });
+	});
+});

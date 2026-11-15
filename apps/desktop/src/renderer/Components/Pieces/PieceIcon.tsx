@@ -1,5 +1,5 @@
 import { piecePreview, type Mino } from "@tetris-trainer/game";
-import { blockFace, cssColor, MINO_COLORS, shadeOf } from "../../utils/blockStyle";
+import { blockFace, cssColor, MINO_COLORS, shadeOf, shapeEdges } from "../../utils/blockStyle";
 
 const CELL = 14;
 const EDGE = 1;
@@ -24,9 +24,7 @@ export function PieceIcon({ mino }: PieceIconProps) {
 			{blocks.map(([x, y]) => {
 				const { inner, notches } = blockFace(
 					{ left: x * CELL, top: y * CELL, size: CELL, line: EDGE },
-					x,
-					y,
-					isMember,
+					shapeEdges(x, y, isMember),
 				);
 
 				return (

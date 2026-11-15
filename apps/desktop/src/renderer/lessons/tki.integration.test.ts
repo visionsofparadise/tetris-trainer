@@ -31,12 +31,12 @@ describe("TKI", () => {
 		expect(openerProblems(TKI)).toEqual([]);
 	});
 
-	it("finishes every buildable order with a T-spin double", () => {
+	it("finishes every buildable order with a T-spin double worth 4 attack", () => {
 		const { "no-hold": noHold, hold } = ordersByCategory(TKI);
 		const misses = [...noHold, ...hold].filter((order) => {
 			const spin = playPlan(TKI, order).find(({ placement }) => placement.mino === Mino.T);
 
-			return spin?.lines !== 2 || spin.spin !== "normal";
+			return spin?.lines !== 2 || spin.spin !== "normal" || spin.attack !== 4;
 		});
 
 		expect(misses).toEqual([]);

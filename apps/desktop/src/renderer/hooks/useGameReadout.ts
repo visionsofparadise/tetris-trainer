@@ -9,6 +9,7 @@ export interface GameReadout {
 	readonly next: ReadonlyArray<Mino>;
 	readonly pieces: number;
 	readonly lines: number;
+	readonly attack: number;
 	readonly frames: number;
 	readonly height: number;
 	readonly holes: number;
@@ -21,8 +22,8 @@ const readGame = (game: Game): GameReadout => ({
 	...boardMetrics(game.board),
 });
 
-const keyOf = ({ hold, next, pieces, lines, frames, height, holes }: GameReadout): string =>
-	[hold, next.join(""), pieces, lines, Math.floor(frames / FRAMES_PER_SECOND), height, holes].join("|");
+const keyOf = ({ hold, next, pieces, lines, attack, frames, height, holes }: GameReadout): string =>
+	[hold, next.join(""), pieces, lines, attack, Math.floor(frames / FRAMES_PER_SECOND), height, holes].join("|");
 
 export const useGameReadout = (game: Game): GameReadout => {
 	const [readout, setReadout] = useState(() => readGame(game));

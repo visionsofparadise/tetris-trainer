@@ -26,3 +26,4 @@ export type { GameKey, InputType, ScriptStep, ShiftKey } from "./script";
 export { piecePreview, type PiecePreview } from "./piecePreview";
 export type { BoardItem, Garbage, GameSetup, Hold, QueueMode } from "./setup";
 export { SetupError } from "./SetupError";
+export type { BoardTile, TileEdges } from "./tiles";
