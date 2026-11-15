@@ -8,6 +8,10 @@ export class ToggleMaximizeWindowRendererIpc extends AsyncRendererIpc<"toggleMax
 	readonly action = "toggleMaximizeWindow";
 }
 
+export class IsWindowMaximizedRendererIpc extends AsyncRendererIpc<"isWindowMaximized", [], boolean> {
+	readonly action = "isWindowMaximized";
+}
+
 export class CloseWindowRendererIpc extends AsyncRendererIpc<"closeWindow", [], void> {
 	readonly action = "closeWindow";
 }

@@ -1,4 +1,5 @@
-import { LESSON_GROUPS } from "./lessonCatalog";
+import { findLessonPlace, lessonStart } from "./lessonViews";
+import type { LessonGroup } from "../models/Lesson";
 import type { View } from "../models/View";
 
 export interface Crumb {
@@ -11,21 +12,19 @@ const PAGE_CRUMBS: Partial<Record<View, ReadonlyArray<Crumb>>> = {
 	settings: [{ label: "Settings", view: "settings" }],
 };
 
-const lessonCrumbs = (view: View): ReadonlyArray<Crumb> => {
-	for (const { lessons } of LESSON_GROUPS)
-		for (const { title, sections } of lessons) {
-			const section = sections.find((candidate) => candidate.view === view);
-			const [first] = sections;
+const lessonCrumbs = (groups: ReadonlyArray<LessonGroup>, view: View): ReadonlyArray<Crumb> => {
+	const place = findLessonPlace(groups, view);
 
-			if (section && first)
-				return [
-					{ label: "Lessons", view: "free-play" },
-					{ label: title, view: first.view },
-					{ label: section.title, view },
-				];
-		}
+	if (!place) return [];
 
-	return [];
+	const { lesson, section } = place;
+	const crumbs: Array<Crumb> = [
+		{ label: "Lessons", view: "free-play" },
+		{ label: lesson.title, view: lessonStart(lesson) },
+	];
+
+	return lesson.sections.length > 1 ? [...crumbs, { label: section.title, view }] : crumbs;
 };
 
-export const viewCrumbs = (view: View): ReadonlyArray<Crumb> => PAGE_CRUMBS[view] ?? lessonCrumbs(view);
+export const viewCrumbs = (groups: ReadonlyArray<LessonGroup>, view: View): ReadonlyArray<Crumb> =>
+	PAGE_CRUMBS[view] ?? lessonCrumbs(groups, view);

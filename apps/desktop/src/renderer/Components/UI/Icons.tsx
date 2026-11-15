@@ -69,6 +69,23 @@ export function MinimiseIcon() {
 	);
 }
 
+export function RestoreIcon() {
+	return (
+		<svg
+			width="12"
+			height="12"
+			viewBox="0 0 12 12"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.4"
+			aria-hidden="true"
+		>
+			<rect x="1.5" y="3.5" width="7" height="7" />
+			<path d="M3.5 3.5V1.5h7v7h-2" />
+		</svg>
+	);
+}
+
 export function MaximiseIcon() {
 	return (
 		<svg

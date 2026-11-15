@@ -1,5 +1,5 @@
 import { VISIBLE_ROWS, type Block, type Game, type Mino } from "@tetris-trainer/game";
-import { exposedSides, insetRect, LIME, MINO_COLORS, PINK, shadeOf, type Sides } from "./blockStyle";
+import { blockFace, exposedSides, LIME, MINO_COLORS, PINK, shadeOf, type Sides } from "./blockStyle";
 import { SPAWN_ROWS, type Layout } from "./gameLayout";
 import type { BoardMark } from "../models/BoardMark";
 import type { GameDisplay } from "../models/GameDisplay";
@@ -35,12 +35,23 @@ const sidesOf = ([x, y]: Block, isMember: (x: number, y: number) => boolean): Si
 
 const edgeWidth = (cellSize: number): number => Math.max(1, Math.round(cellSize * EDGE_RATIO));
 
-const drawBlock = (graphics: Graphics, cell: Cell, mino: Mino, sides: Sides, cellSize: number): void => {
+const drawBlock = (
+	graphics: Graphics,
+	cell: Cell,
+	mino: Mino,
+	[x, y]: Block,
+	isMember: (x: number, y: number) => boolean,
+	cellSize: number,
+): void => {
 	const color = MINO_COLORS[mino];
-	const inner = insetRect(cell.left, cell.top, cellSize, sides, edgeWidth(cellSize));
+	const shade = shadeOf(color);
+	const box = { left: cell.left, top: cell.top, size: cellSize, line: edgeWidth(cellSize) };
+	const { inner, notches } = blockFace(box, x, -y, (column, row) => isMember(column, -row));
 
-	graphics.rect(cell.left, cell.top, cellSize, cellSize).fill(shadeOf(color));
+	graphics.rect(cell.left, cell.top, cellSize, cellSize).fill(shade);
 	graphics.rect(inner.x, inner.y, inner.width, inner.height).fill(color);
+
+	for (const notch of notches) graphics.rect(notch.x, notch.y, notch.width, notch.height).fill(shade);
 };
 
 const drawHatch = (graphics: Graphics, { left, top }: Cell, cellSize: number): void => {
@@ -98,7 +109,7 @@ const drawStack = (graphics: Graphics, game: Game, layout: Layout): void => {
 		row.forEach((mino, x) => {
 			if (mino === null) return;
 
-			drawBlock(graphics, cellAt([x, y], layout), mino, sidesOf([x, y], isSame(mino)), layout.cellSize);
+			drawBlock(graphics, cellAt([x, y], layout), mino, [x, y], isSame(mino), layout.cellSize);
 		});
 	});
 };
@@ -109,8 +120,7 @@ const drawFalling = (graphics: Graphics, game: Game, layout: Layout): void => {
 
 	drawHatched(graphics, game.ghost, MINO_COLORS[mino], GHOST_ALPHA, layout);
 
-	for (const block of blocks)
-		drawBlock(graphics, cellAt(block, layout), mino, sidesOf(block, isMember), layout.cellSize);
+	for (const block of blocks) drawBlock(graphics, cellAt(block, layout), mino, block, isMember, layout.cellSize);
 };
 
 export const drawGame = (

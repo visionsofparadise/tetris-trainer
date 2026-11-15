@@ -1,6 +1,7 @@
 import { ReadSettingsRendererIpc, WriteSettingsRendererIpc } from "./settingsRendererIpcs";
 import {
 	CloseWindowRendererIpc,
+	IsWindowMaximizedRendererIpc,
 	MinimizeWindowRendererIpc,
 	ToggleMaximizeWindowRendererIpc,
 } from "./windowRendererIpcs";
@@ -9,6 +10,7 @@ import type { IpcHandlerAction, IpcHandlerParameters, IpcHandlerReturn } from ".
 export const ASYNC_RENDERER_IPCS = [
 	MinimizeWindowRendererIpc,
 	ToggleMaximizeWindowRendererIpc,
+	IsWindowMaximizedRendererIpc,
 	CloseWindowRendererIpc,
 	ReadSettingsRendererIpc,
 	WriteSettingsRendererIpc,

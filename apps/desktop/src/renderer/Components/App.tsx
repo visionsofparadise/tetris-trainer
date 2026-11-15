@@ -1,12 +1,10 @@
-import { useCallback, useState } from "react";
-import { TKI } from "../lessons/tki";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { LESSON_GROUPS } from "../lessons/catalog";
 import { mainEvents } from "../models/mainEventsOfWindow";
 import { createSettings } from "../models/Settings";
 import { createSound } from "../utils/createSound";
-import { START, toward, type Navigation } from "../utils/navigation";
-import { OpenerLearn } from "./Opener/OpenerLearn";
-import { OpenerPractice } from "./Opener/OpenerPractice";
-import { OpenerWatch } from "./Opener/OpenerWatch";
+import { findLessonPlace } from "../utils/lessonViews";
+import { restoreNavigation, toward, type Navigation } from "../utils/navigation";
 import { Play } from "./Play";
 import type { AppContext } from "../models/AppContext";
 import type { View } from "../models/View";
@@ -19,20 +17,24 @@ export function App({ savedSettings }: AppProps) {
 	const [context] = useState<AppContext>(() => {
 		const settings = createSettings(savedSettings, window.main.writeSettings);
 
-		return { main: window.main, mainEvents, settings, sound: createSound(settings) };
+		return { main: window.main, mainEvents, settings, sound: createSound(settings), lessons: LESSON_GROUPS };
 	});
-	const [{ view }, setNavigation] = useState<Navigation>(START);
+	const [{ view }, setNavigation] = useState<Navigation>(() =>
+		restoreNavigation(context.lessons, window.location.hash),
+	);
 	const navigate = useCallback((next: View) => setNavigation((current) => toward(current, next)), []);
 
-	switch (view) {
-		case "free-play":
-		case "settings":
-			return <Play view={view} onNavigate={navigate} context={context} />;
-		case "tki-learn":
-			return <OpenerLearn opener={TKI} view={view} onNavigate={navigate} context={context} />;
-		case "tki-watch":
-			return <OpenerWatch opener={TKI} view={view} onNavigate={navigate} context={context} />;
-		case "tki-practice":
-			return <OpenerPractice opener={TKI} view={view} onNavigate={navigate} context={context} />;
-	}
+	useEffect(() => window.history.replaceState(null, "", `#${view}`), [view]);
+
+	if (view === "free-play" || view === "settings") return <Play view={view} onNavigate={navigate} context={context} />;
+
+	const place = findLessonPlace(context.lessons, view);
+
+	if (!place) return <Play view="free-play" onNavigate={navigate} context={context} />;
+
+	return (
+		<Fragment key={view}>
+			{place.section.render({ lesson: place.lesson, view, onNavigate: navigate, context })}
+		</Fragment>
+	);
 }

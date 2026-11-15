@@ -27,7 +27,7 @@ export function Header({ view, onNavigate, actions, context }: HeaderProps) {
 				<span className="display text-xl tracking-[0.01em] text-text">Trainer</span>
 			</button>
 			<div className="absolute left-1/2 -translate-x-1/2">
-				<Breadcrumbs view={view} onNavigate={onNavigate} />
+				<Breadcrumbs lessons={context.lessons} view={view} onNavigate={onNavigate} />
 			</div>
 			<div className="flex items-center gap-2">
 				{actions}

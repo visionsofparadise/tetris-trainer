@@ -29,7 +29,7 @@ export interface Slide {
 	readonly board: ReadonlyArray<BoardItem>;
 	readonly marks: ReadonlyArray<Placement>;
 	readonly queue?: ReadonlyArray<Piece>;
-	readonly isDemo?: boolean;
+	readonly isLive?: boolean;
 }
 
 export interface Opener {

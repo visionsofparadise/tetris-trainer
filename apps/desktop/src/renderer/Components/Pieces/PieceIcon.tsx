@@ -1,5 +1,5 @@
 import { piecePreview, type Mino } from "@tetris-trainer/game";
-import { cssColor, exposedSides, insetRect, MINO_COLORS, shadeOf } from "../../utils/blockStyle";
+import { blockFace, cssColor, MINO_COLORS, shadeOf } from "../../utils/blockStyle";
 
 const CELL = 14;
 const EDGE = 1;
@@ -22,12 +22,27 @@ export function PieceIcon({ mino }: PieceIconProps) {
 			aria-hidden="true"
 		>
 			{blocks.map(([x, y]) => {
-				const inner = insetRect(x * CELL, y * CELL, CELL, exposedSides(x, y, isMember), EDGE);
+				const { inner, notches } = blockFace(
+					{ left: x * CELL, top: y * CELL, size: CELL, line: EDGE },
+					x,
+					y,
+					isMember,
+				);
 
 				return (
 					<g key={`${x},${y}`}>
 						<rect x={x * CELL} y={y * CELL} width={CELL} height={CELL} fill={cssColor(shadeOf(color))} />
 						<rect x={inner.x} y={inner.y} width={inner.width} height={inner.height} fill={cssColor(color)} />
+						{notches.map((notch) => (
+							<rect
+								key={`${notch.x},${notch.y}`}
+								x={notch.x}
+								y={notch.y}
+								width={notch.width}
+								height={notch.height}
+								fill={cssColor(shadeOf(color))}
+							/>
+						))}
 					</g>
 				);
 			})}

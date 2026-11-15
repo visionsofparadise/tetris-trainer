@@ -49,7 +49,7 @@ export const exposedSides = (
 	bottom: !isMember(column, row + 1),
 });
 
-export const insetRect = (left: number, top: number, size: number, sides: Sides, line: number): Rect => {
+const insetRect = (left: number, top: number, size: number, sides: Sides, line: number): Rect => {
 	const x = left + (sides.left ? line : 0);
 	const y = top + (sides.top ? line : 0);
 
@@ -60,3 +60,39 @@ export const insetRect = (left: number, top: number, size: number, sides: Sides,
 		height: top + size - (sides.bottom ? line : 0) - y,
 	};
 };
+
+export interface CellBox {
+	readonly left: number;
+	readonly top: number;
+	readonly size: number;
+	readonly line: number;
+}
+
+export interface BlockFace {
+	readonly inner: Rect;
+	readonly notches: ReadonlyArray<Rect>;
+}
+
+const DIAGONALS: ReadonlyArray<readonly [number, number]> = [
+	[-1, -1],
+	[1, -1],
+	[-1, 1],
+	[1, 1],
+];
+
+export const blockFace = (
+	{ left, top, size, line }: CellBox,
+	column: number,
+	row: number,
+	isMember: (column: number, row: number) => boolean,
+): BlockFace => ({
+	inner: insetRect(left, top, size, exposedSides(column, row, isMember), line),
+	notches: DIAGONALS.filter(
+		([dx, dy]) => isMember(column + dx, row) && isMember(column, row + dy) && !isMember(column + dx, row + dy),
+	).map(([dx, dy]) => ({
+		x: dx < 0 ? left : left + size - line,
+		y: dy < 0 ? top : top + size - line,
+		width: line,
+		height: line,
+	})),
+});

@@ -43,7 +43,7 @@ export function Play({ view, onNavigate, context }: PlayProps) {
 				view === "settings" ? (
 					<SettingsPanel onLoad={handleRestart} context={context} />
 				) : (
-					<LessonList onNavigate={onNavigate} />
+					<LessonList onNavigate={onNavigate} context={context} />
 				)
 			}
 		>

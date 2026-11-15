@@ -1,1 +1,3 @@
-export type View = "free-play" | "settings" | "tki-learn" | "tki-watch" | "tki-practice";
+export type LessonView = `lesson/${string}/${string}`;
+
+export type View = "free-play" | "settings" | LessonView;

@@ -15,6 +15,7 @@ import { CATEGORY_SHORT_LABELS, ORDER_OPTIONS } from "../../utils/orderOptions";
 import { PlayArea } from "../Board/PlayArea";
 import { SuccessFlash } from "../Board/SuccessFlash";
 import { PauseButton } from "../Chrome/PauseButton";
+import { LessonPanel } from "../Lesson/LessonPanel";
 import { OrderGlyphs } from "../Pieces/OrderGlyphs";
 import { PieceText } from "../Pieces/PieceText";
 import { Shell } from "../Shell";
@@ -25,9 +26,9 @@ import { LabelRow } from "../UI/LabelRow";
 import { ListRow } from "../UI/ListRow";
 import { Segmented } from "../UI/Segmented";
 import { StepSlider } from "../UI/StepSlider";
-import { LessonPanel } from "./LessonPanel";
 import type { Opener } from "../../lessons/opener/Opener";
 import type { AppContext } from "../../models/AppContext";
+import type { Lesson, LessonScreenProps } from "../../models/Lesson";
 import type { View } from "../../models/View";
 
 const SPEED_STEPS: ReadonlyArray<number> = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
@@ -43,13 +44,13 @@ interface WatchViewProps {
 	readonly onDeal: () => void;
 	readonly onFilter: (filter: WatchSession["filter"]) => void;
 	readonly onSpeed: (speed: number) => void;
-	readonly opener: Opener;
+	readonly lesson: Lesson;
 	readonly view: View;
 	readonly onNavigate: (view: View) => void;
 	readonly context: AppContext;
 }
 
-const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, opener, view, onNavigate, context }) => {
+const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, lesson, view, onNavigate, context }) => {
 	const { isDone, round, category, decisions, index, banner, clears } = session;
 	const current = decisions[index];
 
@@ -74,7 +75,7 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, o
 			actions={<PauseButton pause={pause} />}
 			hints={WATCH_HINTS}
 			aside={
-				<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
+				<LessonPanel lesson={lesson} view={view} onNavigate={onNavigate}>
 					<div className="flex flex-col gap-4">
 						<Segmented label="Orders" options={ORDER_OPTIONS} value={session.filter} onChange={onFilter} />
 						<StepSlider
@@ -122,14 +123,11 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, o
 	);
 });
 
-interface OpenerWatchProps {
+interface OpenerWatchProps extends LessonScreenProps {
 	readonly opener: Opener;
-	readonly view: View;
-	readonly onNavigate: (view: View) => void;
-	readonly context: AppContext;
 }
 
-export function OpenerWatch({ opener, view, onNavigate, context }: OpenerWatchProps) {
+export function OpenerWatch({ opener, lesson, view, onNavigate, context }: OpenerWatchProps) {
 	const [session] = useState(() => {
 		const created = createMutableState<WatchSession>(initialWatch(opener));
 
@@ -153,7 +151,7 @@ export function OpenerWatch({ opener, view, onNavigate, context }: OpenerWatchPr
 			onDeal={handleDeal}
 			onFilter={handleFilter}
 			onSpeed={handleSpeed}
-			opener={opener}
+			lesson={lesson}
 			view={view}
 			onNavigate={onNavigate}
 			context={context}

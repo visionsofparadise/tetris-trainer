@@ -3,7 +3,7 @@ import { cellSizeFor, windowCellSize } from "./stageLayout";
 
 describe("cellSizeFor", () => {
 	it("fits the board to the height of a wide stage", () => {
-		expect(cellSizeFor({ width: 1376, height: 758 })).toBe(31);
+		expect(cellSizeFor({ width: 1376, height: 758 })).toBe(32);
 	});
 
 	it("fits the board to the width of a narrow stage", () => {
@@ -11,7 +11,7 @@ describe("cellSizeFor", () => {
 	});
 
 	it("keeps growing on a large screen", () => {
-		expect(cellSizeFor({ width: 3008, height: 1560 })).toBe(68);
+		expect(cellSizeFor({ width: 3008, height: 1560 })).toBe(65);
 	});
 
 	it("keeps cells readable on a tiny stage", () => {

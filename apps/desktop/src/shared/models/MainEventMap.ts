@@ -1,1 +1,1 @@
-export type MainEventMap = Record<never, Array<unknown>>;
+export type MainEventMap = Record<"maximizedChanged", [isMaximized: boolean]>;

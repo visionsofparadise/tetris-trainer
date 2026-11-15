@@ -17,6 +17,14 @@ export class ToggleMaximizeWindowMainIpc extends AsyncMainIpc<[], void> {
 	}
 }
 
+export class IsWindowMaximizedMainIpc extends AsyncMainIpc<[], boolean> {
+	readonly action = "isWindowMaximized";
+
+	handler({ browserWindow }: IpcHandlerDependencies): boolean {
+		return browserWindow.isMaximized();
+	}
+}
+
 export class CloseWindowMainIpc extends AsyncMainIpc<[], void> {
 	readonly action = "closeWindow";
 

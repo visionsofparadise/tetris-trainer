@@ -13,6 +13,7 @@ describe("MainEvents", () => {
 			minimizeWindow: vi.fn(),
 			toggleMaximizeWindow: vi.fn(),
 			closeWindow: vi.fn(),
+			isWindowMaximized: vi.fn(),
 			readSettings: vi.fn(),
 			writeSettings: vi.fn(),
 			events: {

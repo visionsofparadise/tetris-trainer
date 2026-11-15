@@ -1,13 +1,15 @@
 import { viewCrumbs } from "../../utils/viewCrumbs";
+import type { LessonGroup } from "../../models/Lesson";
 import type { View } from "../../models/View";
 
 interface BreadcrumbsProps {
+	readonly lessons: ReadonlyArray<LessonGroup>;
 	readonly view: View;
 	readonly onNavigate: (view: View) => void;
 }
 
-export function Breadcrumbs({ view, onNavigate }: BreadcrumbsProps) {
-	const crumbs = viewCrumbs(view);
+export function Breadcrumbs({ lessons, view, onNavigate }: BreadcrumbsProps) {
+	const crumbs = viewCrumbs(lessons, view);
 
 	return (
 		<nav aria-label="Breadcrumbs">

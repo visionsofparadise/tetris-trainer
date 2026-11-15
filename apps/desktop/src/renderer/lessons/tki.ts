@@ -70,7 +70,7 @@ export const TKI: Opener = {
 			],
 			board: [],
 			marks: [],
-			isDemo: true,
+			isLive: true,
 		},
 		{
 			title: "The slot",

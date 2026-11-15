@@ -1,3 +1,4 @@
+import type { LessonGroup } from "./Lesson";
 import type { Main } from "./Main";
 import type { MainEvents } from "./MainEvents";
 import type { Settings } from "./Settings";
@@ -8,4 +9,5 @@ export interface AppContext {
 	readonly mainEvents: MainEvents;
 	readonly settings: Settings;
 	readonly sound: Sound;
+	readonly lessons: ReadonlyArray<LessonGroup>;
 }

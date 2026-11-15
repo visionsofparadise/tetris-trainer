@@ -25,16 +25,17 @@ import { BoardNotes } from "../Board/BoardNotes";
 import { PlayArea } from "../Board/PlayArea";
 import { SuccessFlash } from "../Board/SuccessFlash";
 import { PauseButton } from "../Chrome/PauseButton";
+import { LessonPanel } from "../Lesson/LessonPanel";
 import { Shell } from "../Shell";
 import { IconButton, PrimaryIconButton } from "../UI/IconButton";
 import { ArrowIcon, CrossIcon, PreviousIcon, ReplayIcon } from "../UI/Icons";
 import { LabelRow } from "../UI/LabelRow";
 import { ProgressSegments } from "../UI/ProgressSegments";
 import { Segmented, type SegmentedOption } from "../UI/Segmented";
-import { LessonPanel } from "./LessonPanel";
 import type { Opener } from "../../lessons/opener/Opener";
 import type { OrderFilter } from "../../lessons/opener/orders";
 import type { AppContext } from "../../models/AppContext";
+import type { Lesson, LessonScreenProps } from "../../models/Lesson";
 import type { View } from "../../models/View";
 
 const IMPOSSIBLE_CODE = "Backspace";
@@ -61,13 +62,14 @@ interface PracticeViewProps {
 	readonly onRestart: () => void;
 	readonly onImpossible: () => void;
 	readonly opener: Opener;
+	readonly lesson: Lesson;
 	readonly view: View;
 	readonly onNavigate: (view: View) => void;
 	readonly context: AppContext;
 }
 
 const PracticeView = scope<PracticeViewProps>(
-	({ session, onDeal, onFilter, onRetry, onRestart, onImpossible, opener, view, onNavigate, context }) => {
+	({ session, onDeal, onFilter, onRetry, onRestart, onImpossible, opener, lesson, view, onNavigate, context }) => {
 		const { status, filter, mistake, clears } = session;
 		const { config } = context.settings;
 		const pieces = pieceCount(opener);
@@ -120,7 +122,7 @@ const PracticeView = scope<PracticeViewProps>(
 					PAUSE_HINT,
 				]}
 				aside={
-					<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
+					<LessonPanel lesson={lesson} view={view} onNavigate={onNavigate}>
 						<div className="flex flex-col gap-4">
 							<Segmented label="Stage" options={ORDER_OPTIONS} value={filter} onChange={onFilter} />
 							<p className="text-sm leading-snug text-muted">{STAGE_TEXT[filter]}</p>
@@ -171,14 +173,11 @@ const PracticeView = scope<PracticeViewProps>(
 	},
 );
 
-interface OpenerPracticeProps {
+interface OpenerPracticeProps extends LessonScreenProps {
 	readonly opener: Opener;
-	readonly view: View;
-	readonly onNavigate: (view: View) => void;
-	readonly context: AppContext;
 }
 
-export function OpenerPractice({ opener, view, onNavigate, context }: OpenerPracticeProps) {
+export function OpenerPractice({ opener, lesson, view, onNavigate, context }: OpenerPracticeProps) {
 	const { settings } = context;
 
 	const [session] = useState(() => {
@@ -220,6 +219,7 @@ export function OpenerPractice({ opener, view, onNavigate, context }: OpenerPrac
 			onRestart={handleRestart}
 			onImpossible={handleImpossible}
 			opener={opener}
+			lesson={lesson}
 			view={view}
 			onNavigate={onNavigate}
 			context={context}

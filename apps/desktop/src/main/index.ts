@@ -1,6 +1,7 @@
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { ASYNC_MAIN_IPCS } from "../shared/ipc/asyncMainIpcs";
+import type { MainEventMap } from "../shared/models/MainEventMap";
 
 const createWindow = () => {
 	const window = new BrowserWindow({
@@ -19,6 +20,12 @@ const createWindow = () => {
 	});
 
 	for (const Ipc of ASYNC_MAIN_IPCS) new Ipc().register({ browserWindow: window });
+
+	const sendMaximized = () =>
+		window.webContents.send("maximizedChanged" satisfies keyof MainEventMap, window.isMaximized());
+
+	window.on("maximize", sendMaximized);
+	window.on("unmaximize", sendMaximized);
 
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		void window.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);

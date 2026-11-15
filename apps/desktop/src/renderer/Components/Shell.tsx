@@ -26,8 +26,8 @@ export function Shell({ view, onNavigate, context, aside, actions, hints = NO_HI
 		<div className="backdrop relative isolate flex h-dvh flex-col overflow-hidden">
 			<Decorations context={context} />
 			<Header view={view} onNavigate={onNavigate} actions={actions} context={context} />
-			<main className="flex min-h-0 flex-1 items-center justify-center px-8 pt-6 pb-12">
-				<div className="flex items-start gap-[52px] pt-(--spawn-height)" style={stageVariables(cell)}>
+			<main className="flex min-h-0 flex-1 items-center justify-center px-8 py-9">
+				<div className="flex items-start gap-[52px] pt-(--label-band)" style={stageVariables(cell)}>
 					{children}
 					{aside}
 				</div>

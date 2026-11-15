@@ -19,9 +19,11 @@ const ASIDE_WIDTH = 440;
 const MIN_CELL = 14;
 const HEADER_HEIGHT = 72;
 const STAGE_PADDING_X = 2 * 32;
-const STAGE_PADDING_Y = 24 + 48;
+const STAGE_PADDING_Y = 2 * 36;
 
-const VERTICAL_CHROME = WELL_PADDING + INPUT_GAP + INPUT_ROW;
+const INPUT_BAND = INPUT_GAP + INPUT_ROW;
+const LABEL_BAND = 16 + 10;
+const SPAWN_OVERLAP = 36 - 12;
 const HORIZONTAL_CHROME = 2 * COLUMN_GAP + WELL_PADDING + ASIDE_GAP + ASIDE_WIDTH;
 
 const scaled = (cell: number, ratio: number, minimum: number): number => Math.max(minimum, Math.round(cell * ratio));
@@ -35,7 +37,9 @@ const widthFit = (width: number): number => {
 };
 
 export const cellSizeFor = ({ width, height }: Size): number => {
-	const fit = Math.floor(Math.min((height - VERTICAL_CHROME) / (VISIBLE_ROWS + SPAWN_ROWS), widthFit(width)));
+	const visible = height - WELL_PADDING - LABEL_BAND - INPUT_BAND;
+	const withSpawnRoom = (visible + 2 * (LABEL_BAND + SPAWN_OVERLAP)) / (VISIBLE_ROWS + 2 * SPAWN_ROWS);
+	const fit = Math.floor(Math.min(visible / VISIBLE_ROWS, withSpawnRoom, widthFit(width)));
 
 	return Math.max(MIN_CELL, fit);
 };
@@ -45,6 +49,7 @@ export const windowCellSize = ({ width, height }: Size): number =>
 
 export const stageVariables = (cell: number): CSSProperties =>
 	({
+		"--label-band": `${LABEL_BAND}px`,
 		"--cell": `${cell}px`,
 		"--side-width": `${scaled(cell, SIDE_CELLS, MIN_SIDE)}px`,
 		"--preview-cell": `${scaled(cell, PREVIEW_RATIO, MIN_PREVIEW)}px`,

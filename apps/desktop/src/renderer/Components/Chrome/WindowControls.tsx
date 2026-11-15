@@ -1,4 +1,5 @@
-import { CloseIcon, MaximiseIcon, MinimiseIcon } from "../UI/Icons";
+import { useIsMaximized } from "../../hooks/useIsMaximized";
+import { CloseIcon, MaximiseIcon, MinimiseIcon, RestoreIcon } from "../UI/Icons";
 import type { AppContext } from "../../models/AppContext";
 
 interface WindowControlsProps {
@@ -7,6 +8,7 @@ interface WindowControlsProps {
 
 export function WindowControls({ context }: WindowControlsProps) {
 	const { main } = context;
+	const isMaximized = useIsMaximized(context);
 
 	return (
 		<div className="no-drag ml-4 flex border-l border-white/15 pl-4">
@@ -21,10 +23,10 @@ export function WindowControls({ context }: WindowControlsProps) {
 			<button
 				type="button"
 				className="window-button"
-				aria-label="Maximise"
+				aria-label={isMaximized ? "Restore" : "Maximise"}
 				onClick={() => void main.toggleMaximizeWindow()}
 			>
-				<MaximiseIcon />
+				{isMaximized ? <RestoreIcon /> : <MaximiseIcon />}
 			</button>
 			<button
 				type="button"
