@@ -19,7 +19,7 @@ export const DEMO_HANDLING: Handling = { ...DEFAULT_CONFIG.handling, sdf: 41 };
 export const DEMO_PACING: ScriptPacing = { keyWait: 6, decisionWait: 30 };
 
 const decisionKeys = (decision: Decision): ReadonlyArray<ScriptStep> =>
-	decision.kind === "hold" ? [{ tap: "hold" }] : (decision.home.keys ?? dropSteps(decision.home.placement));
+	decision.kind === "hold" ? [{ tap: "hold" }] : (decision.keys ?? dropSteps(decision.position.placement));
 
 export const planScript = (
 	decisions: ReadonlyArray<Decision>,

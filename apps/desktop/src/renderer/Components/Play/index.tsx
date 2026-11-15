@@ -1,32 +1,53 @@
-import { useCallback, useState, type ReactNode } from "react";
-import { ConfigPicker } from "../ConfigPicker";
+import { useCallback, useState } from "react";
+import { usePause } from "../../hooks/usePause";
+import { retryHints } from "../../utils/retryHints";
+import { PauseButton } from "../Chrome/PauseButton";
+import { LessonList } from "../Lessons/LessonList";
+import { SettingsPanel } from "../Settings/SettingsPanel";
 import { Shell } from "../Shell";
+import { ReplayIcon } from "../UI/Icons";
 import { GameSession } from "./GameSession";
 import type { AppContext } from "../../models/AppContext";
+import type { View } from "../../models/View";
 
 interface PlayProps {
-	readonly navigation: ReactNode;
+	readonly view: View;
+	readonly onNavigate: (view: View) => void;
 	readonly context: AppContext;
 }
 
-export function Play({ navigation, context }: PlayProps) {
+export function Play({ view, onNavigate, context }: PlayProps) {
 	const [run, setRun] = useState(0);
-	const handleRestart = useCallback(() => setRun((count) => count + 1), []);
+	const pause = usePause(context);
+	const { resume } = pause;
+	const handleRestart = useCallback(() => {
+		resume();
+		setRun((count) => count + 1);
+	}, [resume]);
 
 	return (
 		<Shell
-			navigation={navigation}
-			controls={
+			view={view}
+			onNavigate={onNavigate}
+			context={context}
+			hints={retryHints(context.settings.config, "restart")}
+			actions={
 				<>
-					<h1 className="text-2xl font-bold">Free play</h1>
-					<button className="button-secondary self-start" type="button" onClick={handleRestart}>
-						Restart
+					<PauseButton pause={pause} />
+					<button type="button" className="no-drag icon-button" aria-label="Restart" onClick={handleRestart}>
+						<ReplayIcon />
 					</button>
-					<ConfigPicker onLoad={handleRestart} context={context} />
 				</>
 			}
+			aside={
+				view === "settings" ? (
+					<SettingsPanel onLoad={handleRestart} context={context} />
+				) : (
+					<LessonList onNavigate={onNavigate} />
+				)
+			}
 		>
-			<GameSession key={run} onRestart={handleRestart} context={context} />
+			<GameSession key={run} pause={pause} onRestart={handleRestart} context={context} />
 		</Shell>
 	);
 }

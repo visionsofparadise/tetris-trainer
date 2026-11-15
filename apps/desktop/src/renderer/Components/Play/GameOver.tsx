@@ -1,26 +1,17 @@
-import { formatGameTime } from "../../utils/formatGameTime";
-import type { GameStats } from "@tetris-trainer/game";
+import { BoardCard } from "../UI/BoardCard";
+import { PrimaryIconButton } from "../UI/IconButton";
+import { CrossIcon, ReplayIcon } from "../UI/Icons";
 
 interface GameOverProps {
-	readonly stats: GameStats;
 	readonly onRestart: () => void;
 }
 
-export function GameOver({ stats, onRestart }: GameOverProps) {
+export function GameOver({ onRestart }: GameOverProps) {
 	return (
-		<div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-surface/80">
-			<h2 className="text-3xl font-bold">Game over</h2>
-			<dl className="grid grid-cols-2 gap-x-8 gap-y-1 tabular-nums">
-				<dt className="text-muted">Pieces</dt>
-				<dd className="text-right">{stats.pieces}</dd>
-				<dt className="text-muted">Lines</dt>
-				<dd className="text-right">{stats.lines}</dd>
-				<dt className="text-muted">Time</dt>
-				<dd className="text-right">{formatGameTime(stats.frames)}</dd>
-			</dl>
-			<button className="button" type="button" onClick={onRestart}>
-				Restart
-			</button>
-		</div>
+		<BoardCard tone="pink" icon={<CrossIcon size={20} />} title="Game over">
+			<PrimaryIconButton label="Restart" className="pointer-events-auto" onClick={onRestart}>
+				<ReplayIcon size={22} />
+			</PrimaryIconButton>
+		</BoardCard>
 	);
 }

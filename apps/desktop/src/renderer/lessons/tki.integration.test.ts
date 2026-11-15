@@ -36,17 +36,17 @@ const practice = (filter: PracticeSession["filter"]): PracticeSession => {
 };
 
 describe("TKI", () => {
-	it("plays every planned order into its homes and ends on a T-spin double", () => {
+	it("plays every planned order into its positions and ends on a T-spin double", () => {
 		const failures = sampled.filter((order) => {
 			const decisions = plan(TKI, startState(order)) ?? [];
-			const homes = decisions.flatMap((decision) => (decision.kind === "place" ? [decision.home] : []));
+			const positions = decisions.flatMap((decision) => (decision.kind === "place" ? [decision.position] : []));
 			const game = loadOrder(DEMO_HANDLING, order);
 			const placed: Array<PlaceEvent> = [];
 
 			game.on("place", (event) => {
 				placed.push(event);
 
-				if (placed.length === homes.length) game.pause();
+				if (placed.length === positions.length) game.pause();
 			});
 			game.input(planScript(decisions, FAST));
 			playUntilPaused(game);
@@ -54,8 +54,10 @@ describe("TKI", () => {
 			const last = placed.at(-1);
 
 			return (
-				placed.length !== homes.length ||
-				!placed.every(({ placement }, index) => homes[index] && samePlacement(placement, homes[index].placement)) ||
+				placed.length !== positions.length ||
+				!placed.every(
+					({ placement }, index) => positions[index] && samePlacement(placement, positions[index].placement),
+				) ||
 				last?.lines !== 2 ||
 				last.spin !== "normal"
 			);
@@ -74,7 +76,7 @@ describe("TKI", () => {
 		playUntilPaused(session.game);
 
 		expect(session.status).toBe("mistake");
-		expect(session.banner?.title).toBe(`That isn't a home for the ${first.toUpperCase()}.`);
+		expect(session.banner?.title).toBe(`That isn't where the ${first.toUpperCase()} goes.`);
 		expect(session.marks.map(({ tone }) => tone)).toContain("mistake");
 
 		retryMistake(session);

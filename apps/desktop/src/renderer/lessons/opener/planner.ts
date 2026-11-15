@@ -1,5 +1,5 @@
-import { samePlacement, type Piece, type Placement } from "@tetris-trainer/game";
-import type { Home, Opener } from "./Opener";
+import { samePlacement, type Piece, type Placement, type ScriptStep } from "@tetris-trainer/game";
+import type { Position, Opener } from "./Opener";
 
 const NEXT_BAG = "next-bag";
 
@@ -15,7 +15,12 @@ export interface PlanState {
 }
 
 export type Decision =
-	| { readonly kind: "place"; readonly home: Home; readonly reason: string }
+	| {
+			readonly kind: "place";
+			readonly position: Position;
+			readonly reason: string;
+			readonly keys?: ReadonlyArray<ScriptStep>;
+	  }
 	| { readonly kind: "hold"; readonly reason: string };
 
 export type Move = { readonly kind: "place"; readonly placement: Placement } | { readonly kind: "hold" };
@@ -32,13 +37,14 @@ const list = (pieces: ReadonlyArray<Piece>): string => {
 	return names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1) ?? ""}`;
 };
 
-const pieceCount = ({ homes }: Opener): number => new Set(homes.map(({ placement }) => placement.mino)).size;
+export const pieceCount = ({ positions }: Opener): number =>
+	new Set(positions.map(({ placement }) => placement.mino)).size;
 
-const homesOf = ({ homes }: Opener, hand: Hand): Array<Home> =>
-	homes.filter(({ placement }) => placement.mino === hand);
+const positionsOf = ({ positions }: Opener, hand: Hand): Array<Position> =>
+	positions.filter(({ placement }) => placement.mino === hand);
 
-const missing = (home: Home, placed: ReadonlyArray<Piece>): Array<Piece> =>
-	home.after.filter((piece) => !placed.includes(piece));
+const missing = (position: Position, placed: ReadonlyArray<Piece>): Array<Piece> =>
+	position.after.filter((piece) => !placed.includes(piece));
 
 const draw = ({ order, drawn }: PlanState): Pick<PlanState, "current" | "drawn"> => {
 	const next = order[drawn];
@@ -69,15 +75,15 @@ export const afterHold = (state: PlanState): PlanState =>
 
 export const isComplete = (opener: Opener, { placed }: PlanState): boolean => placed.length === pieceCount(opener);
 
-const readyHomes = (opener: Opener, { current, placed }: PlanState): Array<Home> =>
+const readyPositions = (opener: Opener, { current, placed }: PlanState): Array<Position> =>
 	current === NEXT_BAG || placed.includes(current)
 		? []
-		: homesOf(opener, current).filter((home) => missing(home, placed).length === 0);
+		: positionsOf(opener, current).filter((position) => missing(position, placed).length === 0);
 
 const whyNotNow = (opener: Opener, { current, placed }: PlanState): string => {
 	if (current === NEXT_BAG) return "this piece belongs to the next bag";
 
-	const [closest] = homesOf(opener, current).sort(
+	const [closest] = positionsOf(opener, current).sort(
 		(first, second) => missing(first, placed).length - missing(second, placed).length,
 	);
 	const needs = closest === undefined ? [] : missing(closest, placed);
@@ -89,7 +95,13 @@ const whyNotNow = (opener: Opener, { current, placed }: PlanState): string => {
 	return `the ${name(current)} needs ${list(needs)} placed first`;
 };
 
-const placeDecision = (home: Home): Decision => ({ kind: "place", home, reason: home.description });
+const placeDecision = (position: Position, placed: ReadonlyArray<Piece>): Decision => {
+	const { tuck } = position;
+
+	return tuck?.under.some((piece) => placed.includes(piece))
+		? { kind: "place", position, reason: tuck.description, keys: tuck.keys }
+		: { kind: "place", position, reason: position.description, keys: position.keys };
+};
 
 const holdDecision = (opener: Opener, state: PlanState): Decision => {
 	const why = whyNotNow(opener, state);
@@ -106,10 +118,10 @@ const holdDecision = (opener: Opener, state: PlanState): Decision => {
 export const plan = (opener: Opener, state: PlanState, allowHold = true): Array<Decision> | null => {
 	if (isComplete(opener, state)) return [];
 
-	for (const home of readyHomes(opener, state)) {
-		const rest = plan(opener, afterPlace(state, home.placement.mino), allowHold);
+	for (const position of readyPositions(opener, state)) {
+		const rest = plan(opener, afterPlace(state, position.placement.mino), allowHold);
 
-		if (rest) return [placeDecision(home), ...rest];
+		if (rest) return [placeDecision(position, state.placed), ...rest];
 	}
 
 	if (!allowHold || state.holdLocked) return null;
@@ -121,7 +133,7 @@ export const plan = (opener: Opener, state: PlanState, allowHold = true): Array<
 
 const earlyPieces = (opener: Opener, order: ReadonlyArray<Piece>): Array<Piece> =>
 	order.filter((piece, index) =>
-		homesOf(opener, piece).every((home) => missing(home, order.slice(0, index)).length > 0),
+		positionsOf(opener, piece).every((position) => missing(position, order.slice(0, index)).length > 0),
 	);
 
 export const impossibleReason = (opener: Opener, order: ReadonlyArray<Piece>): string => {
@@ -141,11 +153,11 @@ const judgePlace = (opener: Opener, state: PlanState, placement: Placement): Ver
 
 	if (current === NEXT_BAG) return mistake(opener, state, "That piece belongs to the next bag.");
 
-	const home = homesOf(opener, current).find((candidate) => samePlacement(candidate.placement, placement));
+	const position = positionsOf(opener, current).find((candidate) => samePlacement(candidate.placement, placement));
 
-	if (home === undefined) return mistake(opener, state, `That isn't a home for the ${name(current)}.`);
+	if (position === undefined) return mistake(opener, state, `That isn't where the ${name(current)} goes.`);
 
-	const needs = missing(home, placed);
+	const needs = missing(position, placed);
 
 	if (needs.length > 0) return mistake(opener, state, `The ${name(current)} needs ${list(needs)} placed first.`);
 

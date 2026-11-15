@@ -34,6 +34,19 @@ const hardDrop = (game: Game): void => {
 const filledColumns = (game: Game, y: number): Array<number> =>
 	(game.board[y] ?? []).flatMap((mino, x) => (mino === null ? [] : [x]));
 
+describe("spawning", () => {
+	it("shows a new piece on the row it falls to in play", () => {
+		const game = new Game(DEFAULT_CONFIG.handling, 1);
+		const topRow = (): number => Math.max(...game.falling.blocks.map(([, y]) => y));
+		const atSpawn = topRow();
+
+		game.step(2);
+
+		expect(atSpawn).toBe(21);
+		expect(topRow()).toBe(atSpawn);
+	});
+});
+
 describe("Game", () => {
 	it("locks the falling piece where its ghost shows on a hard drop", () => {
 		const game = new Game(DEFAULT_CONFIG.handling, 1);

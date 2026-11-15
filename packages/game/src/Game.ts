@@ -41,6 +41,8 @@ const randomSeed = (): number => Math.floor(Math.random() * 2 ** 31);
 
 const isPiece = (mino: Mino): mino is Piece => BAG.some((piece) => piece === mino);
 
+const SPAWN_SETTLE = 1e-6;
+
 export class Game {
 	readonly #engine: Engine;
 	readonly #handling: Handling;
@@ -63,8 +65,12 @@ export class Game {
 		this.#engine = new Engine(createEngineOptions(handling, seed));
 		this.#idleInput = structuredClone(this.#engine.input);
 		this.#engine.events.on("falling.lock.pre", () => this.#handleLockStart());
-		this.#engine.events.on("falling.new", ({ piece, isHold }) => this.#handleSpawn(piece, isHold));
+		this.#engine.events.on("falling.new", ({ piece, isHold }) => {
+			this.#settleSpawn();
+			this.#handleSpawn(piece, isHold);
+		});
 		this.#engine.events.on("falling.lock", (lock) => this.#handleLock(lock));
+		this.#settleSpawn();
 	}
 
 	get isOver(): boolean {
@@ -277,6 +283,16 @@ export class Game {
 			},
 			cells,
 		};
+	}
+
+	#settleSpawn(): void {
+		const { falling, board } = this.#engine;
+		const row = falling.y;
+
+		if (!legal(falling.absoluteAt({ y: row - 1 }), board.state)) return;
+
+		falling.location[1] = row - SPAWN_SETTLE;
+		falling.highestY = row - 1;
 	}
 
 	#handleSpawn(mino: Mino, fromHold: boolean): void {

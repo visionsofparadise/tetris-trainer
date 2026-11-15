@@ -12,9 +12,9 @@ interface SegmentedProps<T> {
 
 export function Segmented<T extends string | number>({ label, options, value, onChange }: SegmentedProps<T>) {
 	return (
-		<div className="flex flex-col gap-1.5">
-			<span className="text-xs font-semibold tracking-wider text-muted uppercase">{label}</span>
-			<div className="flex flex-wrap gap-1 rounded-md bg-panel p-1" role="group" aria-label={label}>
+		<div className="flex items-center justify-between gap-3">
+			<span className="caption">{label}</span>
+			<div className="flex gap-0.5" role="group" aria-label={label}>
 				{options.map((option) => (
 					<button
 						key={option.value}

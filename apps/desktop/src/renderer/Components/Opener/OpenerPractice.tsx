@@ -1,8 +1,11 @@
+import { placementCells } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useContinueKey } from "../../hooks/useContinueKey";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
+import { usePause } from "../../hooks/usePause";
+import { pieceCount, plan } from "../../lessons/opener/planner";
 import {
 	dealPractice,
 	declareImpossible,
@@ -12,22 +15,35 @@ import {
 	setPracticeFilter,
 	type PracticeSession,
 } from "../../lessons/opener/practiceSession";
+import { keyLabel } from "../../utils/keyLabel";
 import { ORDER_OPTIONS } from "../../utils/orderOptions";
-import { GameCanvas } from "../Play/GameCanvas";
+import { retryHints } from "../../utils/retryHints";
+import { PlayArea } from "../Board/PlayArea";
+import { PauseButton } from "../Chrome/PauseButton";
 import { Shell } from "../Shell";
-import { BannerOverlay } from "./BannerOverlay";
-import { Segmented } from "./Segmented";
+import { BannerCard } from "../UI/BannerCard";
+import { IconButton, PrimaryIconButton } from "../UI/IconButton";
+import { ArrowIcon, CrossIcon, PreviousIcon, ReplayIcon } from "../UI/Icons";
+import { LabelRow } from "../UI/LabelRow";
+import { ProgressSegments } from "../UI/ProgressSegments";
+import { Segmented, type SegmentedOption } from "../UI/Segmented";
+import { LessonPanel } from "./LessonPanel";
 import type { Opener } from "../../lessons/opener/Opener";
 import type { OrderFilter } from "../../lessons/opener/orders";
 import type { AppContext } from "../../models/AppContext";
+import type { BoardMark } from "../../models/BoardMark";
+import type { View } from "../../models/View";
 
 const NEXT_ORDER_DELAY_MS = 1500;
 
-const CONTINUE_HINTS: Record<PracticeSession["status"], string | undefined> = {
-	playing: undefined,
-	mistake: "Press Space or hard drop to retry from the mistake.",
-	cleared: "Press Space or hard drop for the next order.",
-};
+type Guide = "off" | "on";
+
+const GUIDE_OPTIONS: ReadonlyArray<SegmentedOption<Guide>> = [
+	{ value: "off", label: "Off" },
+	{ value: "on", label: "On" },
+];
+
+const NO_MARKS: ReadonlyArray<BoardMark> = [];
 
 const STAGE_TEXT: Record<OrderFilter, string> = {
 	"no-hold": "Every order can be built by placing each piece as it comes.",
@@ -44,13 +60,47 @@ interface PracticeViewProps {
 	readonly onRestart: () => void;
 	readonly onImpossible: () => void;
 	readonly opener: Opener;
-	readonly navigation: ReactNode;
+	readonly view: View;
+	readonly onNavigate: (view: View) => void;
 	readonly context: AppContext;
 }
 
 const PracticeView = scope<PracticeViewProps>(
-	({ session, onDeal, onFilter, onRetry, onRestart, onImpossible, opener, navigation, context }) => {
-		const { status, filter } = session;
+	({ session, onDeal, onFilter, onRetry, onRestart, onImpossible, opener, view, onNavigate, context }) => {
+		const { status, filter, banner } = session;
+		const { config } = context.settings;
+		const pieces = pieceCount(opener);
+		const placed = session.state.placed.length;
+		const isMistake = status === "mistake";
+		const canCallImpossible = status === "playing" && (filter === "mixed" || filter === "impossible");
+		const pause = usePause(context);
+		const { resume } = pause;
+		const [guide, setGuide] = useState<Guide>("off");
+
+		const guideMarks = useMemo((): ReadonlyArray<BoardMark> => {
+			if (guide === "off" || status !== "playing") return NO_MARKS;
+
+			const [next] = plan(opener, session.state) ?? [];
+
+			return next?.kind === "place"
+				? [{ cells: placementCells(next.position.placement), tone: "target" }]
+				: NO_MARKS;
+		}, [guide, status, opener, session.state]);
+
+		const handleDeal = useCallback(() => {
+			resume();
+			onDeal();
+		}, [resume, onDeal]);
+
+		const handleRestart = useCallback(() => {
+			resume();
+			onRestart();
+		}, [resume, onRestart]);
+
+		const handleRetry = useCallback(() => {
+			resume();
+			onRetry();
+		}, [resume, onRetry]);
 
 		useEffect(() => {
 			if (status !== "cleared") return;
@@ -60,42 +110,67 @@ const PracticeView = scope<PracticeViewProps>(
 			return () => clearTimeout(timeout);
 		}, [status, onDeal]);
 
-		const handleContinue = status === "mistake" ? onRetry : onDeal;
+		const handleContinue = isMistake ? handleRetry : handleDeal;
 
-		useGameKeyboard(session.game, onRetry, context);
+		useGameKeyboard(session.game, handleRetry, context, pause.isPaused);
 		useContinueKey(status !== "playing", handleContinue, context);
 
 		return (
 			<Shell
-				navigation={navigation}
-				controls={
-					<>
-						<h1 className="text-2xl font-bold">{opener.name}: Practice</h1>
-						<Segmented label="Stage" options={ORDER_OPTIONS} value={filter} onChange={onFilter} />
-						<p className="text-sm text-muted">{STAGE_TEXT[filter]}</p>
-						<div className="flex flex-wrap gap-2">
-							{status === "mistake" && (
-								<button className="button" type="button" onClick={onRetry}>
-									Retry from mistake
-								</button>
-							)}
-							{(filter === "mixed" || filter === "impossible") && status === "playing" && (
-								<button className="button" type="button" onClick={onImpossible}>
-									Impossible
-								</button>
-							)}
-							<button className="button-secondary" type="button" onClick={onRestart}>
-								Restart order
-							</button>
-							<button className="button-secondary" type="button" onClick={onDeal}>
-								New order
-							</button>
+				view={view}
+				onNavigate={onNavigate}
+				context={context}
+				actions={<PauseButton pause={pause} />}
+				hints={[
+					...(isMistake ? [`${keyLabel(config.controls.custom.hardDrop[0])} to retry`] : []),
+					...retryHints(config, "restart the order"),
+				]}
+				aside={
+					<LessonPanel opener={opener} view={view} onNavigate={onNavigate}>
+						<div className="flex flex-col gap-2.5">
+							<Segmented label="Stage" options={ORDER_OPTIONS} value={filter} onChange={onFilter} />
+							<p className="text-[13px] leading-snug text-muted">{STAGE_TEXT[filter]}</p>
+							<Segmented label="Guide" options={GUIDE_OPTIONS} value={guide} onChange={setGuide} />
 						</div>
-					</>
+						<div className="flex flex-col gap-2.5">
+							<LabelRow label="Progress" detail={`${placed} / ${pieces}`} tone={isMistake ? "pink" : "lime"} />
+							<ProgressSegments total={pieces} done={placed} label="Pieces placed" isFailed={isMistake} />
+						</div>
+						<div className="mt-auto flex justify-between gap-2">
+							<div className="flex gap-2">
+								<IconButton label="Restart the order" onClick={handleRestart}>
+									<ReplayIcon size={22} />
+								</IconButton>
+								{isMistake && (
+									<PrimaryIconButton label="Retry from the mistake" onClick={handleRetry}>
+										<PreviousIcon size={22} />
+									</PrimaryIconButton>
+								)}
+							</div>
+							<div className="flex gap-2">
+								{canCallImpossible && (
+									<button className="button-primary" type="button" onClick={onImpossible}>
+										<CrossIcon />
+										Impossible
+									</button>
+								)}
+								<IconButton label="New order" onClick={handleDeal}>
+									<ArrowIcon size={22} />
+								</IconButton>
+							</div>
+						</div>
+					</LessonPanel>
 				}
 			>
-				<GameCanvas game={session.game} marks={session.marks} />
-				{session.banner && <BannerOverlay banner={session.banner} hint={CONTINUE_HINTS[status]} />}
+				<PlayArea
+					game={session.game}
+					handling={config.handling}
+					context={context}
+					marks={isMistake ? session.marks : guideMarks}
+					pause={pause}
+				>
+					{banner && <BannerCard banner={banner} />}
+				</PlayArea>
 			</Shell>
 		);
 	},
@@ -103,11 +178,12 @@ const PracticeView = scope<PracticeViewProps>(
 
 interface OpenerPracticeProps {
 	readonly opener: Opener;
-	readonly navigation: ReactNode;
+	readonly view: View;
+	readonly onNavigate: (view: View) => void;
 	readonly context: AppContext;
 }
 
-export function OpenerPractice({ opener, navigation, context }: OpenerPracticeProps) {
+export function OpenerPractice({ opener, view, onNavigate, context }: OpenerPracticeProps) {
 	const { settings } = context;
 
 	const [session] = useState(() => {
@@ -146,7 +222,8 @@ export function OpenerPractice({ opener, navigation, context }: OpenerPracticePr
 			onRestart={handleRestart}
 			onImpossible={handleImpossible}
 			opener={opener}
-			navigation={navigation}
+			view={view}
+			onNavigate={onNavigate}
 			context={context}
 		/>
 	);

@@ -1,10 +1,17 @@
 import type { Piece, Placement, ScriptStep } from "@tetris-trainer/game";
 
-export interface Home {
+interface Tuck {
+	readonly under: ReadonlyArray<Piece>;
+	readonly description: string;
+	readonly keys: ReadonlyArray<ScriptStep>;
+}
+
+export interface Position {
 	readonly placement: Placement;
 	readonly after: ReadonlyArray<Piece>;
 	readonly description: string;
 	readonly keys?: ReadonlyArray<ScriptStep>;
+	readonly tuck?: Tuck;
 }
 
 interface Slide {
@@ -16,6 +23,6 @@ interface Slide {
 
 export interface Opener {
 	readonly name: string;
-	readonly homes: ReadonlyArray<Home>;
+	readonly positions: ReadonlyArray<Position>;
 	readonly slides: ReadonlyArray<Slide>;
 }

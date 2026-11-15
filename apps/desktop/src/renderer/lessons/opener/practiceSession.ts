@@ -79,7 +79,7 @@ const fail = (session: PracticeSession, problem: string, best: Decision | null, 
 	session.banner = { tone: "mistake", title: problem, detail: best ? `Instead: ${best.reason}` : "" };
 	session.marks = [
 		...(cells.length > 0 ? [{ cells, tone: "mistake" as const }] : []),
-		...(best?.kind === "place" ? [{ cells: placementCells(best.home.placement), tone: "target" as const }] : []),
+		...(best?.kind === "place" ? [{ cells: placementCells(best.position.placement), tone: "target" as const }] : []),
 	];
 };
 

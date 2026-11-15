@@ -24,6 +24,7 @@ export default tseslint.config(
 			"**/tailwind.config.*",
 			"**/postcss.config.*",
 			"**/__fixtures__/**",
+			"**/designs/**",
 			"**/*.test.ts",
 			"**/*.test.tsx",
 		],

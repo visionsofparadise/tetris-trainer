@@ -1,6 +1,15 @@
+import {
+	CloseWindowRendererIpc,
+	MinimizeWindowRendererIpc,
+	ToggleMaximizeWindowRendererIpc,
+} from "./windowRendererIpcs";
 import type { IpcHandlerAction, IpcHandlerParameters, IpcHandlerReturn } from "../models/AsyncRendererIpc";
 
-export const ASYNC_RENDERER_IPCS = [] as const;
+export const ASYNC_RENDERER_IPCS = [
+	MinimizeWindowRendererIpc,
+	ToggleMaximizeWindowRendererIpc,
+	CloseWindowRendererIpc,
+] as const;
 
 export type AsyncIpcAction = IpcHandlerAction<InstanceType<(typeof ASYNC_RENDERER_IPCS)[number]>>;
 export type AsyncIpcParameters<A extends AsyncIpcAction> = IpcHandlerParameters<

@@ -10,6 +10,9 @@ describe("MainEvents", () => {
 		const unsubscribe = vi.fn();
 		const subscribe = vi.fn();
 		const main: Main = {
+			minimizeWindow: vi.fn(),
+			toggleMaximizeWindow: vi.fn(),
+			closeWindow: vi.fn(),
 			events: {
 				on: (channel, listener) => {
 					subscribe(channel);

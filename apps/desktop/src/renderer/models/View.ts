@@ -1,1 +1,1 @@
-export type View = "free-play" | "tki-rules" | "tki-watch" | "tki-practice";
+export type View = "free-play" | "settings" | "tki-rules" | "tki-watch" | "tki-practice";

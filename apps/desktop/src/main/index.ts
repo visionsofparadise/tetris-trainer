@@ -4,8 +4,12 @@ import { ASYNC_MAIN_IPCS } from "../shared/ipc/asyncMainIpcs";
 
 const createWindow = () => {
 	const window = new BrowserWindow({
-		width: 900,
-		height: 860,
+		width: 1440,
+		height: 900,
+		minWidth: 1100,
+		minHeight: 720,
+		frame: false,
+		backgroundColor: "#5f6166",
 		webPreferences: {
 			preload: path.join(__dirname, "preload.cjs"),
 			contextIsolation: true,

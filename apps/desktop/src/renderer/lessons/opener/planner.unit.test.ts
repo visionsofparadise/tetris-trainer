@@ -20,12 +20,12 @@ describe("plan", () => {
 	});
 
 	it("finds no plan when two pieces must wait at once", () => {
-		expect(plan(TKI, startState([Z, S, L, O, I, J, T]))).toBeNull();
+		expect(plan(TKI, startState([Z, T, L, O, I, S, J]))).toBeNull();
 	});
 
 	it("is impossible exactly when two drawn pieces would wait at the same time", () => {
 		const canGo = (piece: Piece, placed: ReadonlyArray<Piece>) =>
-			TKI.homes.some(
+			TKI.positions.some(
 				({ placement, after }) => placement.mino === piece && after.every((needed) => placed.includes(needed)),
 			);
 
@@ -61,7 +61,7 @@ describe("plan", () => {
 describe("judge", () => {
 	const state = startState([I, L, O, Z, S, J, T]);
 
-	it("names the right home when a piece lands somewhere else", () => {
+	it("names the right position when a piece lands somewhere else", () => {
 		const verdict = judge(TKI, state, {
 			kind: "place",
 			placement: { mino: I, orientation: "spawn", column: 0, row: 0 },
@@ -69,19 +69,29 @@ describe("judge", () => {
 
 		expect(verdict).toMatchObject({
 			ok: false,
-			problem: "That isn't a home for the I.",
+			problem: "That isn't where the I goes.",
 			best: { kind: "place", reason: "Lay the I flat on the floor, right of the slot." },
 		});
 	});
 
-	it("rejects a piece placed in its home before what it rests on", () => {
-		const sFirst = startState([S, I, L, O, Z, J, T]);
-		const verdict = judge(TKI, sFirst, {
+	it("rejects a piece placed in its position before what it rests on", () => {
+		const zFirst = startState([Z, I, L, O, S, J, T]);
+		const verdict = judge(TKI, zFirst, {
 			kind: "place",
-			placement: { mino: S, orientation: "right", column: 6, row: 0 },
+			placement: { mino: Z, orientation: "spawn", column: 3, row: 1 },
 		});
 
-		expect(verdict).toMatchObject({ ok: false, problem: "The S needs the I placed first." });
+		expect(verdict).toMatchObject({ ok: false, problem: "The Z needs the I placed first." });
+	});
+
+	it("tucks the I under an S that is already in", () => {
+		const sFirst = startState([S, I, L, O, Z, J, T]);
+		const [, tucked] = plan(TKI, sFirst) ?? [];
+
+		expect(tucked).toMatchObject({
+			kind: "place",
+			reason: "Slide the I under the S.",
+		});
 	});
 
 	it("accepts any route that can still finish", () => {

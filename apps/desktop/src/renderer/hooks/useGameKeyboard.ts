@@ -2,7 +2,7 @@ import { findAction, type Game } from "@tetris-trainer/game";
 import { useEffect } from "react";
 import type { AppContext } from "../models/AppContext";
 
-export const useGameKeyboard = (game: Game, onRetry: () => void, context: AppContext): void => {
+export const useGameKeyboard = (game: Game, onRetry: () => void, context: AppContext, isPaused = false): void => {
 	const { settings } = context;
 
 	useEffect(() => {
@@ -18,7 +18,7 @@ export const useGameKeyboard = (game: Game, onRetry: () => void, context: AppCon
 			if (event.repeat) return;
 
 			if (action === "retry") onRetry();
-			else if (action !== "exit") game.press(action);
+			else if (action !== "exit" && !isPaused) game.press(action);
 		};
 
 		const handleKeyUp = (event: KeyboardEvent) => {
@@ -38,5 +38,5 @@ export const useGameKeyboard = (game: Game, onRetry: () => void, context: AppCon
 			window.removeEventListener("keydown", handleKeyDown);
 			window.removeEventListener("keyup", handleKeyUp);
 		};
-	}, [game, onRetry, settings]);
+	}, [game, onRetry, settings, isPaused]);
 };
