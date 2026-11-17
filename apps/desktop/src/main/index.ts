@@ -34,6 +34,10 @@ const createWindow = () => {
 	}
 };
 
+const userData = process.env.TETRIS_TRAINER_USER_DATA;
+
+if (!app.isPackaged && userData) app.setPath("userData", path.resolve(userData));
+
 void app.whenReady().then(() => {
 	createWindow();
 	app.on("activate", () => {
