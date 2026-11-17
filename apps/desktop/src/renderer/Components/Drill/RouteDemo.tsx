@@ -1,11 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { loadDemo, type Demo } from "../../utils/loadDemo";
 import { PlayArea } from "../Board/PlayArea";
 import type { AppContext } from "../../models/AppContext";
 import type { PauseControl } from "../../models/PauseControl";
+import type { Game } from "@tetris-trainer/game";
 import type { ReactNode } from "react";
 
 const READ_MS = 1400;
+
+interface Shown {
+	readonly round: number;
+	readonly demo: Demo | undefined;
+	readonly game: Game | null;
+}
+
+const showRound = (demos: ReadonlyArray<Demo>, round: number): Shown => {
+	const demo = demos[round % demos.length];
+
+	return { round, demo, game: demo ? loadDemo(demo) : null };
+};
 
 interface RouteDemoProps {
 	readonly demos: ReadonlyArray<Demo>;
@@ -15,29 +28,28 @@ interface RouteDemoProps {
 }
 
 export function RouteDemo({ demos, pause, children, context }: RouteDemoProps) {
-	const [round, setRound] = useState(0);
-	const [placedRound, setPlacedRound] = useState<number | null>(null);
-	const demo = demos[round % demos.length];
-	const game = useMemo(() => demo && loadDemo(demo), [demo, round]);
-	const isPlaced = placedRound === round;
+	const [shown, setShown] = useState(() => showRound(demos, 0));
+	const [placed, setPlaced] = useState<Game | null>(null);
+	const { demo, game, round } = shown;
+	const isPlaced = game !== null && placed === game;
 	const { isPaused } = pause;
 
 	useEffect(
 		() =>
 			game?.on("place", () => {
 				game.pause();
-				setPlacedRound(round);
+				setPlaced(game);
 			}),
-		[game, round],
+		[game],
 	);
 
 	useEffect(() => {
 		if (!isPlaced || isPaused) return;
 
-		const timeout = setTimeout(() => setRound(round + 1), READ_MS);
+		const timeout = setTimeout(() => setShown(showRound(demos, round + 1)), READ_MS);
 
 		return () => clearTimeout(timeout);
-	}, [isPlaced, isPaused, round]);
+	}, [isPlaced, isPaused, demos, round]);
 
 	if (!demo || !game) return null;
 

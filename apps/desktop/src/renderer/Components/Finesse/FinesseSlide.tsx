@@ -35,7 +35,7 @@ export function FinesseSlide({ slide, pause, context }: FinesseSlideProps) {
 	);
 
 	return (
-		<RouteDemo key={slide.title} demos={demos} pause={pause} context={context}>
+		<RouteDemo key={`${slide.title} ${allow180}`} demos={demos} pause={pause} context={context}>
 			<BoardNotes notes={notes} />
 		</RouteDemo>
 	);
