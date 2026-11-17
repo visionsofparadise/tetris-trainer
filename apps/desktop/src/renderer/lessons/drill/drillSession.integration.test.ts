@@ -5,7 +5,6 @@ import {
 	continueDrill,
 	createDrillSession,
 	dealDrill,
-	redealRound,
 	retryMistake,
 	setStage,
 	type DrillSession,
@@ -37,7 +36,7 @@ const isRoundOver = ({ placed }: FakeState): boolean => placed === ROUND.length;
 const FAKE: Drill<FakeState> = {
 	stages: [PAUSE, RESTART],
 	start: (stage) => ({ stage: stage.id, round: 0, placed: 0, passes: 0, failures: 0 }),
-	deal: (state, player) => {
+	deal: (state, player, round) => {
 		const game = new Game(player.handling);
 
 		game.load({
@@ -47,7 +46,7 @@ const FAKE: Drill<FakeState> = {
 			holdEnabled: false,
 		});
 
-		return { game, state: { ...state, round: isRoundOver(state) ? state.round + 1 : state.round, placed: 0 } };
+		return { game, state: { ...state, round: round === "next" ? state.round + 1 : state.round, placed: 0 } };
 	},
 	judge: (state, { placement, cells }) => {
 		const target = ROUND[state.placed];
@@ -156,6 +155,21 @@ describe("drill session", () => {
 		expect(session.clears).toBe(1);
 	});
 
+	it("deals the same round again on a redeal and the next round on a pause-mode continue", () => {
+		const session = started();
+
+		play(session.game, WRONG);
+		retryMistake(session);
+		dealDrill(session, FAKE, PLAYER);
+
+		expect(session.state).toMatchObject({ round: 0, failures: 1 });
+
+		play(session.game, WRONG);
+		continueDrill(session, FAKE, PLAYER);
+
+		expect(session.state).toMatchObject({ round: 1, failures: 2 });
+	});
+
 	it("resets the state on a restart-mode continue", () => {
 		const session = started();
 
@@ -181,7 +195,7 @@ describe("drill session", () => {
 		const session = started();
 		const stale = session.game;
 
-		redealRound(session, FAKE, PLAYER);
+		dealDrill(session, FAKE, PLAYER);
 		play(stale, WRONG);
 
 		expect(session.game).not.toBe(stale);

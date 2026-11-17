@@ -1,9 +1,10 @@
-import { DEFAULT_CONFIG, Game } from "@tetris-trainer/game";
 import { ignore } from "opshot";
+import { pausedGame } from "./pausedGame";
 import type { Player, WatchRound } from "./Drill";
 import type { BoardMark } from "../../models/BoardMark";
+import type { Game } from "@tetris-trainer/game";
 
-export type DealWatch = (player: Player, round: number) => WatchRound;
+export type DealWatch = (player: Player) => WatchRound;
 
 export interface DrillWatchSession {
 	game: Game;
@@ -16,16 +17,13 @@ export interface DrillWatchSession {
 }
 
 export const createDrillWatch = (): DrillWatchSession => {
-	const game = new Game(DEFAULT_CONFIG.handling);
-
-	game.pause();
+	const game = pausedGame();
 
 	return { game: ignore(game), round: 0, marks: [], narration: [], speed: 1, isDone: false, clears: 0 };
 };
 
 export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, player: Player): void => {
-	const round = session.round + 1;
-	const { game, steps, locks, marks, narration } = watch(player, round);
+	const { game, steps, locks, marks, narration } = watch(player);
 	let placed = 0;
 
 	game.setSpeed(session.speed);
@@ -43,7 +41,7 @@ export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, pla
 		session.clears++;
 	});
 
-	session.round = round;
+	session.round++;
 	session.marks = ignore(marks);
 	session.narration = narration;
 	session.isDone = false;

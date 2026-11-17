@@ -1,39 +1,20 @@
-import { Game, type GameSetup, type ScriptStep } from "@tetris-trainer/game";
 import { useEffect, useMemo, useState } from "react";
-import { DEMO_HANDLING } from "../../lessons/opener/openerScript";
+import { loadDemo, type Demo } from "../../utils/loadDemo";
 import { PlayArea } from "../Board/PlayArea";
 import type { AppContext } from "../../models/AppContext";
-import type { BoardMark } from "../../models/BoardMark";
 import type { PauseControl } from "../../models/PauseControl";
 import type { ReactNode } from "react";
 
 const READ_MS = 1400;
 
-interface Demo {
-	readonly setup: GameSetup;
-	readonly steps: ReadonlyArray<ScriptStep>;
-	readonly marks: ReadonlyArray<BoardMark>;
-}
-
-const loadDemo = ({ setup, steps }: Demo): Game => {
-	const game = new Game(DEMO_HANDLING);
-
-	game.setGravity(0);
-	game.load(setup);
-	game.setUserInput(false);
-	game.input(steps);
-
-	return game;
-};
-
 interface RouteDemoProps {
 	readonly demos: ReadonlyArray<Demo>;
-	readonly context: AppContext;
 	readonly pause: PauseControl;
 	readonly children?: ReactNode;
+	readonly context: AppContext;
 }
 
-export function RouteDemo({ demos, context, pause, children }: RouteDemoProps) {
+export function RouteDemo({ demos, pause, children, context }: RouteDemoProps) {
 	const [round, setRound] = useState(0);
 	const [placedRound, setPlacedRound] = useState<number | null>(null);
 	const demo = demos[round % demos.length];

@@ -1,6 +1,5 @@
+import { formatSpeed } from "../../utils/formatSpeed";
 import { StepSlider } from "../UI/StepSlider";
-
-const formatSpeed = (speed: number): string => `${speed}×`;
 
 interface SpeedSliderProps {
 	readonly steps: ReadonlyArray<number>;

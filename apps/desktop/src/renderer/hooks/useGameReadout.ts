@@ -5,6 +5,7 @@ import type { Game, Mino } from "@tetris-trainer/game";
 const FRAMES_PER_SECOND = 60;
 
 export interface GameReadout {
+	readonly isHoldEnabled: boolean;
 	readonly hold: Mino | null;
 	readonly next: ReadonlyArray<Mino>;
 	readonly pieces: number;
@@ -16,14 +17,25 @@ export interface GameReadout {
 }
 
 const readGame = (game: Game): GameReadout => ({
+	isHoldEnabled: game.isHoldEnabled,
 	hold: game.hold,
 	next: game.next,
 	...game.stats,
 	...boardMetrics(game.board),
 });
 
-const keyOf = ({ hold, next, pieces, lines, attack, frames, height, holes }: GameReadout): string =>
-	[hold, next.join(""), pieces, lines, attack, Math.floor(frames / FRAMES_PER_SECOND), height, holes].join("|");
+const keyOf = ({ isHoldEnabled, hold, next, pieces, lines, attack, frames, height, holes }: GameReadout): string =>
+	[
+		isHoldEnabled,
+		hold,
+		next.join(""),
+		pieces,
+		lines,
+		attack,
+		Math.floor(frames / FRAMES_PER_SECOND),
+		height,
+		holes,
+	].join("|");
 
 export const useGameReadout = (game: Game): GameReadout => {
 	const [readout, setReadout] = useState(() => readGame(game));

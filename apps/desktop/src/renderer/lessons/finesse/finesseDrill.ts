@@ -23,7 +23,6 @@ interface Result {
 export interface FinesseState {
 	readonly stage: FinesseStageId;
 	readonly target: PieceTarget;
-	readonly isRoundOver: boolean;
 	readonly seed: number;
 	readonly results: ReadonlyArray<Result>;
 }
@@ -114,7 +113,7 @@ const draw = (state: FinesseState): FinesseState => {
 	const pool = isPerPiece(state.stage) ? (TARGETS_BY_PIECE.get(currentPiece(state)) ?? []) : FINESSE_TARGETS;
 	const target = pool[Math.floor((seed / MODULUS) * pool.length)] ?? state.target;
 
-	return { ...state, seed, target, isRoundOver: false };
+	return { ...state, seed, target };
 };
 
 export const startFinesse = (stage: FinesseStageId, seed = randomSeed()): FinesseState =>
@@ -122,7 +121,6 @@ export const startFinesse = (stage: FinesseStageId, seed = randomSeed()): Finess
 		stage,
 		seed,
 		target: FINESSE_TARGETS[0] ?? { mino: Mino.O, orientation: "spawn", column: 0 },
-		isRoundOver: true,
 		results: [],
 	});
 
@@ -180,11 +178,11 @@ const randomTarget = (): PieceTarget =>
 		column: 3,
 	};
 
-export const FINESSE_DRILL: Drill<FinesseState> = {
+export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	stages: FINESSE_STAGES,
-	start: (stage) => startFinesse(FINESSE_STAGES.find(({ id }) => id === stage.id)?.id ?? "cells"),
-	deal: (state, player) => {
-		const next = state.isRoundOver ? draw(state) : state;
+	start: (stage) => startFinesse(stage.id),
+	deal: (state, player, round) => {
+		const next = round === "next" ? draw(state) : state;
 
 		return { game: loadTarget(next.target, player.handling, next.stage === "gravity"), state: next };
 	},
@@ -198,7 +196,6 @@ export const FINESSE_DRILL: Drill<FinesseState> = {
 				: findFault(attempt, player);
 		const next: FinesseState = {
 			...state,
-			isRoundOver: true,
 			results: [...state.results, { mino: target.mino, ok: fault === null }],
 		};
 
@@ -209,7 +206,7 @@ export const FINESSE_DRILL: Drill<FinesseState> = {
 			next,
 		};
 	},
-	isRoundOver: ({ isRoundOver }) => isRoundOver,
+	isRoundOver: () => true,
 	isPassed: isFinessePassed,
 	progress: progressOf,
 	marks: ({ target }) => targetMarks(target),

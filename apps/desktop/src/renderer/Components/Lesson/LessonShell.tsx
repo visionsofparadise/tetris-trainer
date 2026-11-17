@@ -12,7 +12,7 @@ interface LessonShellProps extends LessonScreenProps {
 	readonly children: ReactNode;
 }
 
-export function LessonShell({ pause, hints, panel, lesson, view, onNavigate, context, children }: LessonShellProps) {
+export function LessonShell({ pause, hints, panel, lesson, view, onNavigate, children, context }: LessonShellProps) {
 	return (
 		<Shell
 			view={view}

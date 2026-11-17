@@ -11,7 +11,7 @@ import {
 } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
 import { describe, expect, it } from "vitest";
-import { continueDrill, createDrillSession, dealDrill, setStage } from "../drill/drillSession";
+import { continueDrill, createDrillSession, dealDrill, retryMistake, setStage } from "../drill/drillSession";
 import { playerOf } from "../drill/player";
 import { DEMO_HANDLING } from "../opener/openerScript";
 import { FINESSE_DRILL, FINESSE_STAGES, type FinesseStageId } from "./finesseDrill";
@@ -63,8 +63,8 @@ const playKeys = (game: Game, steps: ReadonlyArray<ScriptStep>): void => {
 };
 
 const judged = (stage: FinesseStageId, target: PieceTarget, play: (game: Game) => void) => {
-	const state = { ...FINESSE_DRILL.start(stageOf(stage)), target, isRoundOver: false };
-	const { game, state: dealt } = FINESSE_DRILL.deal(state, PLAYER);
+	const state = { ...FINESSE_DRILL.start(stageOf(stage)), target };
+	const { game, state: dealt } = FINESSE_DRILL.deal(state, PLAYER, "same");
 	let event: PlaceEvent | null = null;
 
 	game.on("place", (placed) => (event = placed));
@@ -167,6 +167,31 @@ describe("Finesse", () => {
 		expect(kindOf(verdict)).toBe("partial-das");
 	});
 
+	it("restarts the same piece after a retry and draws a new one for the next piece", () => {
+		const session = createMutableState(createDrillSession(FINESSE_DRILL));
+
+		dealDrill(session, FINESSE_DRILL, PLAYER);
+		setStage(session, FINESSE_DRILL, PLAYER, stageOf("mixed"));
+
+		const { target, seed } = session.state;
+		const wrong: ReadonlyArray<ScriptStep> = target.column === 0 ? [{ das: "moveRight" }] : [{ das: "moveLeft" }];
+
+		playKeys(session.game, wrong);
+		retryMistake(session);
+		dealDrill(session, FINESSE_DRILL, PLAYER);
+
+		expect(session.state).toMatchObject({ target, seed });
+
+		playKeys(session.game, wrong);
+		continueDrill(session, FINESSE_DRILL, PLAYER);
+
+		expect(session.state.seed).not.toBe(seed);
+		expect(session.state.results).toEqual([
+			{ mino: target.mino, ok: false },
+			{ mino: target.mino, ok: false },
+		]);
+	});
+
 	it("restarts the reset run on a fault", () => {
 		const session = createMutableState(createDrillSession(FINESSE_DRILL));
 
@@ -194,7 +219,7 @@ describe("Finesse", () => {
 	});
 
 	it("plays a Watch round onto its target and narrates it", () => {
-		const round = FINESSE_DRILL.watch?.(PLAYER, 1);
+		const round = FINESSE_DRILL.watch?.(PLAYER);
 
 		if (!round) throw new Error("Finesse has a Watch section");
 

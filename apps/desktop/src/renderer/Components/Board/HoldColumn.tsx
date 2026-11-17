@@ -18,13 +18,17 @@ const streak = (count: number, prefix = ""): string => (count > 0 ? `${prefix}${
 interface HoldColumnProps {
 	readonly readout: GameReadout;
 	readonly clear: ClearReadout;
-	readonly holdKey: string;
+	readonly holdKey: string | null;
 }
 
 export function HoldColumn({ readout, clear, holdKey }: HoldColumnProps) {
 	return (
 		<div className="relative flex w-(--side-width) shrink-0 flex-col gap-2.5">
-			<LabelRow label="Hold" detail={`[${holdKey}]`} className="absolute inset-x-0 bottom-full mb-2.5" />
+			<LabelRow
+				label="Hold"
+				detail={holdKey === null ? undefined : `[${holdKey}]`}
+				className="absolute inset-x-0 bottom-full mb-2.5"
+			/>
 			<div
 				className="flex h-(--hold-height) items-center justify-center bg-panel text-(length:--preview-cell)"
 				data-anchor="hold"

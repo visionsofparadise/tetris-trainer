@@ -9,7 +9,6 @@ import {
 	continueDrill,
 	createDrillSession,
 	dealDrill,
-	redealRound,
 	retryMistake,
 	setStage,
 	type DrillSession,
@@ -32,9 +31,9 @@ import type { AppContext } from "../../models/AppContext";
 import type { Lesson, LessonScreenProps } from "../../models/Lesson";
 import type { View } from "../../models/View";
 
-interface PracticeViewProps<S> {
-	readonly session: DrillSession<S>;
-	readonly drill: Drill<S>;
+interface PracticeViewProps<S, T extends DrillStage> {
+	readonly session: DrillSession<S, T>;
+	readonly drill: Drill<S, T>;
 	readonly showNext: boolean;
 	readonly onRetry: () => void;
 	readonly onContinue: () => void;
@@ -45,7 +44,7 @@ interface PracticeViewProps<S> {
 	readonly context: AppContext;
 }
 
-function PracticeView<S>({
+function PracticeView<S, T extends DrillStage>({
 	session,
 	drill,
 	showNext,
@@ -56,7 +55,7 @@ function PracticeView<S>({
 	view,
 	onNavigate,
 	context,
-}: PracticeViewProps<S>) {
+}: PracticeViewProps<S, T>) {
 	const { game, state, stage, status, mistake, clears, passed } = session;
 	const { config } = context.settings;
 	const isMistake = status === "mistake";
@@ -96,12 +95,17 @@ function PracticeView<S>({
 	useCue(context.sound, "success", clears);
 	useCue(context.sound, "failure", isMistake);
 
+	const isRestartMistake = isMistake && isRestart;
 	const retryLabel = isMistake ? (isRestart ? "Restart the run" : "Retry the piece") : "Restart the piece";
-	const hints = [
-		...(isMistake ? [`${keyLabel(config.controls.custom.hardDrop[0])} for the next piece`] : []),
-		...retryHints(config, retryLabel.toLowerCase()),
-		PAUSE_HINT,
-	];
+
+	const hints = useMemo(
+		() => [
+			...(isMistake && !isRestart ? [`${keyLabel(config.controls.custom.hardDrop[0])} for the next piece`] : []),
+			...retryHints(config, retryLabel.toLowerCase()),
+			PAUSE_HINT,
+		],
+		[isMistake, isRestart, config, retryLabel],
+	);
 
 	return (
 		<LessonShell
@@ -131,13 +135,21 @@ function PracticeView<S>({
 						</output>
 					)}
 					<div className="mt-auto flex justify-between gap-2">
-						<IconButton label={retryLabel} onClick={handleRetry}>
-							{isMistake && !isRestart ? <PreviousIcon size={22} /> : <ReplayIcon size={22} />}
-						</IconButton>
-						{isMistake && (
-							<PrimaryIconButton label="Next piece" onClick={handleContinue}>
-								<ArrowIcon size={22} />
+						{isRestartMistake ? (
+							<PrimaryIconButton label={retryLabel} className="ml-auto" onClick={handleRetry}>
+								<ReplayIcon size={22} />
 							</PrimaryIconButton>
+						) : (
+							<>
+								<IconButton label={retryLabel} onClick={handleRetry}>
+									{isMistake ? <PreviousIcon size={22} /> : <ReplayIcon size={22} />}
+								</IconButton>
+								{isMistake && (
+									<PrimaryIconButton label="Next piece" onClick={handleContinue}>
+										<ArrowIcon size={22} />
+									</PrimaryIconButton>
+								)}
+							</>
 						)}
 					</div>
 				</>
@@ -161,16 +173,23 @@ function PracticeView<S>({
 
 const ScopedPracticeView = scope(PracticeView) as typeof PracticeView;
 
-interface DrillPracticeProps<S> extends LessonScreenProps {
-	readonly drill: Drill<S>;
+interface DrillPracticeProps<S, T extends DrillStage> extends LessonScreenProps {
+	readonly drill: Drill<S, T>;
 	readonly showNext: boolean;
 }
 
-export function DrillPractice<S>({ drill, showNext, lesson, view, onNavigate, context }: DrillPracticeProps<S>) {
+export function DrillPractice<S, T extends DrillStage>({
+	drill,
+	showNext,
+	lesson,
+	view,
+	onNavigate,
+	context,
+}: DrillPracticeProps<S, T>) {
 	const { settings } = context;
 
 	const [session] = useState(() => {
-		const created = createMutableState<DrillSession<S>>(createDrillSession(drill));
+		const created = createMutableState<DrillSession<S, T>>(createDrillSession(drill));
 
 		dealDrill(created, drill, playerOf(settings.config));
 
@@ -180,7 +199,7 @@ export function DrillPractice<S>({ drill, showNext, lesson, view, onNavigate, co
 	const handleRetry = useCallback(() => {
 		const player = playerOf(settings.config);
 
-		if (session.status === "playing") redealRound(session, drill, player);
+		if (session.status === "playing") dealDrill(session, drill, player);
 		else if (session.stage.onMistake === "restart") continueDrill(session, drill, player);
 		else retryMistake(session);
 	}, [session, drill, settings]);
@@ -191,7 +210,7 @@ export function DrillPractice<S>({ drill, showNext, lesson, view, onNavigate, co
 
 	const handleStage = useCallback(
 		(id: string) => {
-			const stage = drill.stages.find((candidate: DrillStage) => candidate.id === id);
+			const stage = drill.stages.find((candidate) => candidate.id === id);
 
 			if (stage) setStage(session, drill, playerOf(settings.config), stage);
 		},

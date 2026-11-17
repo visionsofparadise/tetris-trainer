@@ -26,6 +26,8 @@ export interface DrillStage {
 	readonly onMistake: "pause" | "restart";
 }
 
+export type DrillRound = "same" | "next";
+
 interface DrillDeal<S> {
 	readonly game: Game;
 	readonly state: S;
@@ -39,10 +41,10 @@ export interface WatchRound {
 	readonly narration: ReadonlyArray<string>;
 }
 
-export interface Drill<S> {
-	readonly stages: ReadonlyArray<DrillStage>;
-	readonly start: (stage: DrillStage) => S;
-	readonly deal: (state: S, player: Player) => DrillDeal<S>;
+export interface Drill<S, T extends DrillStage = DrillStage> {
+	readonly stages: ReadonlyArray<T>;
+	readonly start: (stage: T) => S;
+	readonly deal: (state: S, player: Player, round: DrillRound) => DrillDeal<S>;
 	readonly judge: (
 		state: S,
 		event: PlaceEvent,
@@ -53,5 +55,5 @@ export interface Drill<S> {
 	readonly progress: (state: S) => { readonly label: string; readonly value: string };
 	readonly marks: (state: S) => ReadonlyArray<BoardMark>;
 	readonly describe: (state: S, player: Player) => string;
-	readonly watch?: (player: Player, round: number) => WatchRound;
+	readonly watch?: (player: Player) => WatchRound;
 }

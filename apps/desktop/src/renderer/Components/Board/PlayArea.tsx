@@ -52,7 +52,11 @@ export function PlayArea({
 	return (
 		<section className="flex flex-col items-center gap-[18px]" aria-label="Play area">
 			<div className="flex items-start gap-[22px]">
-				<HoldColumn readout={readout} clear={clear} holdKey={keyLabel(config.controls.custom.hold[0])} />
+				<HoldColumn
+					readout={readout}
+					clear={clear}
+					holdKey={readout.isHoldEnabled ? keyLabel(config.controls.custom.hold[0]) : null}
+				/>
 				<BoardWell
 					game={game}
 					control={active}

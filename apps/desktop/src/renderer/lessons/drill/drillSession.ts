@@ -1,13 +1,14 @@
-import { DEFAULT_CONFIG, Game, type GameSnapshot } from "@tetris-trainer/game";
 import { ignore } from "opshot";
-import type { Drill, DrillMistake, DrillStage, Player } from "./Drill";
+import { pausedGame } from "./pausedGame";
+import type { Drill, DrillMistake, DrillRound, DrillStage, Player } from "./Drill";
+import type { Game, GameSnapshot } from "@tetris-trainer/game";
 
 type DrillStatus = "playing" | "mistake";
 
-export interface DrillSession<S> {
+export interface DrillSession<S, T extends DrillStage = DrillStage> {
 	game: Game;
 	state: S;
-	stage: DrillStage;
+	stage: T;
 	checkpoint: GameSnapshot;
 	status: DrillStatus;
 	mistake: DrillMistake | null;
@@ -17,14 +18,12 @@ export interface DrillSession<S> {
 
 const TOP_OUT: DrillMistake = { kind: "top-out", title: "Top out", placed: null, best: null };
 
-export const createDrillSession = <S>(drill: Drill<S>): DrillSession<S> => {
+export const createDrillSession = <S, T extends DrillStage>(drill: Drill<S, T>): DrillSession<S, T> => {
 	const [stage] = drill.stages;
 
 	if (stage === undefined) throw new Error("A drill needs at least one stage");
 
-	const game = new Game(DEFAULT_CONFIG.handling);
-
-	game.pause();
+	const game = pausedGame();
 
 	return {
 		game: ignore(game),
@@ -38,14 +37,19 @@ export const createDrillSession = <S>(drill: Drill<S>): DrillSession<S> => {
 	};
 };
 
-const fail = <S>(session: DrillSession<S>, mistake: DrillMistake): void => {
+const fail = <S, T extends DrillStage>(session: DrillSession<S, T>, mistake: DrillMistake): void => {
 	session.game.pause();
 	session.status = "mistake";
 	session.mistake = ignore(mistake);
 };
 
-export const dealDrill = <S>(session: DrillSession<S>, drill: Drill<S>, player: Player): void => {
-	const { game, state } = drill.deal(session.state, player);
+const deal = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	drill: Drill<S, T>,
+	player: Player,
+	round: DrillRound,
+): void => {
+	const { game, state } = drill.deal(session.state, player, round);
 
 	const isActive = (): boolean => session.status === "playing" && session.game === game;
 
@@ -72,7 +76,7 @@ export const dealDrill = <S>(session: DrillSession<S>, drill: Drill<S>, player: 
 		if (drill.isRoundOver(next)) {
 			game.pause();
 			session.clears++;
-			dealDrill(session, drill, player);
+			deal(session, drill, player, "next");
 		}
 	});
 	game.on("topout", () => {
@@ -86,23 +90,40 @@ export const dealDrill = <S>(session: DrillSession<S>, drill: Drill<S>, player: 
 	session.game = ignore(game);
 };
 
-export const retryMistake = <S>(session: DrillSession<S>): void => {
+export const dealDrill = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	drill: Drill<S, T>,
+	player: Player,
+): void => deal(session, drill, player, "same");
+
+export const retryMistake = <S, T extends DrillStage>(session: DrillSession<S, T>): void => {
 	session.game.restore(session.checkpoint);
 	session.status = "playing";
 	session.mistake = null;
 	session.game.resume();
 };
 
-export const redealRound = <S>(session: DrillSession<S>, drill: Drill<S>, player: Player): void =>
-	dealDrill(session, drill, player);
+export const continueDrill = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	drill: Drill<S, T>,
+	player: Player,
+): void => {
+	if (session.stage.onMistake === "pause") {
+		deal(session, drill, player, "next");
 
-export const continueDrill = <S>(session: DrillSession<S>, drill: Drill<S>, player: Player): void => {
-	if (session.stage.onMistake === "restart") session.state = ignore(drill.start(session.stage));
+		return;
+	}
 
+	session.state = ignore(drill.start(session.stage));
 	dealDrill(session, drill, player);
 };
 
-export const setStage = <S>(session: DrillSession<S>, drill: Drill<S>, player: Player, stage: DrillStage): void => {
+export const setStage = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	drill: Drill<S, T>,
+	player: Player,
+	stage: T,
+): void => {
 	session.stage = ignore(stage);
 	session.state = ignore(drill.start(stage));
 	dealDrill(session, drill, player);

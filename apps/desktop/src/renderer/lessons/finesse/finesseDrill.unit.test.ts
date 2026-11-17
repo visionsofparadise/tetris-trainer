@@ -69,7 +69,7 @@ describe("finesse drill", () => {
 			FINESSE_PIECES.flatMap((mino) => results(mino, passes(20))),
 		);
 
-		expect(FINESSE_DRILL.deal({ ...unlocked, isRoundOver: true }, PLAYER).state.target.mino).toBe(Mino.I);
+		expect(FINESSE_DRILL.deal(unlocked, PLAYER, "next").state.target.mino).toBe(Mino.I);
 		expect(isFinessePassed(unlocked)).toBe(false);
 		expect(isFinessePassed(allDone)).toBe(true);
 	});
@@ -97,26 +97,25 @@ describe("finesse drill", () => {
 		});
 	});
 
-	it("re-deals the same target until a placement ends the round, then draws a new one", () => {
+	it("re-deals the same target for the same round and draws a new one for the next", () => {
 		const start = { ...startFinesse("mixed", SEED), target: T_FLAT };
-		const again = FINESSE_DRILL.deal(start, PLAYER).state;
+		const again = FINESSE_DRILL.deal(start, PLAYER, "same").state;
 		const { verdict, next } = FINESSE_DRILL.judge(again, placeOn(T_FLAT), PLAYER);
-		const drawn = FINESSE_DRILL.deal(next, PLAYER).state;
+		const drawn = FINESSE_DRILL.deal(next, PLAYER, "next").state;
 
 		expect(again).toEqual(start);
 		expect(verdict).toEqual({ ok: true });
 		expect(next.results).toEqual([{ mino: Mino.T, ok: true }]);
 		expect(drawn.seed).not.toBe(start.seed);
-		expect(drawn.isRoundOver).toBe(false);
 		expect(drawn.results).toEqual(next.results);
 	});
 
-	it("records a wrong spot and ends the round", () => {
+	it("records a wrong spot", () => {
 		const start = { ...startFinesse("cells", SEED), target: T_FLAT };
 		const { verdict, next } = FINESSE_DRILL.judge(start, placeOn({ ...T_FLAT, column: 4 }), PLAYER);
 
 		expect(verdict).toMatchObject({ ok: false, kind: "wrong-spot", best: targetPlacement(T_FLAT) });
-		expect(next).toMatchObject({ isRoundOver: true, results: [{ mino: Mino.T, ok: false }] });
+		expect(next.results).toEqual([{ mino: Mino.T, ok: false }]);
 	});
 
 	it("passes the reset run on 40 in a row and starts it over from nothing", () => {
