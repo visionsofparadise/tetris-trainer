@@ -245,6 +245,23 @@ describe("Game", () => {
 		expect(game.stats.frames).toBe(5);
 	});
 
+	it("stops advancing at the tick that pauses it", () => {
+		const game = loaded({ queue: { pieces: [Mino.T, Mino.I], mode: "fresh-bag" } });
+		let lockFrame = Number.NaN;
+
+		game.on("place", () => {
+			lockFrame = game.stats.frames;
+			game.pause();
+		});
+		game.input([{ tap: "hardDrop" }]);
+		game.advance(FRAME_MS * 10);
+		game.resume();
+		game.advance(FRAME_MS / 2);
+
+		expect(lockFrame).toBe(0);
+		expect(game.stats.frames).toBe(1);
+	});
+
 	it("adds garbage under the stack and removes it from the bottom", () => {
 		const game = loaded({ board: [{ mino: Mino.O, orientation: "spawn", column: 0, row: 0 }] });
 

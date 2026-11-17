@@ -186,6 +186,8 @@ export class Game {
 		while (this.#unplayedMs >= FRAME_MS) {
 			this.#unplayedMs -= FRAME_MS;
 			this.#tick();
+
+			if (this.isPaused) this.#unplayedMs = 0;
 		}
 	}
 
