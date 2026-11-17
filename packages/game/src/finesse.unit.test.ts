@@ -1,8 +1,8 @@
 import { Mino } from "@haelp/teto/engine";
 import { describe, expect, it } from "vitest";
-import { finesseRoutes, finesseSteps, finesseTargets, minimalPresses, type PieceTarget } from "./finesse";
+import { finesseRoutes, finesseSteps, finesseTargets, minimalPresses, stepsMoved, type PieceTarget } from "./finesse";
 import { placementCells } from "./pieces";
-import type { GameKey, ScriptStep } from "./script";
+import { ROTATION_KEYS, type ScriptStep } from "./script";
 
 const WITH_180 = { allow180: true };
 const WITHOUT_180 = { allow180: false };
@@ -14,8 +14,6 @@ const DR: ScriptStep = { das: "moveRight" };
 const CW: ScriptStep = { tap: "rotateCW" };
 const CCW: ScriptStep = { tap: "rotateCCW" };
 const HALF: ScriptStep = { tap: "rotate180" };
-
-const ROTATION_KEYS: ReadonlyArray<GameKey> = ["rotateCW", "rotateCCW", "rotate180"];
 
 const targetName = ({ mino, orientation, column }: PieceTarget): string => `${mino} ${orientation} ${column}`;
 
@@ -159,5 +157,10 @@ describe("finesseRoutes", () => {
 
 		expect(clockwise).toBeDefined();
 		expect(clockwise).toBe((counterClockwise ?? Number.NaN) + 1);
+	});
+
+	it("replays steps from spawn and reports which ones moved the piece", () => {
+		expect(stepsMoved(Mino.J, [DL, L, CW, L, L])).toEqual([true, false, true, true, false]);
+		expect(stepsMoved(Mino.O, [CW, DR, R])).toEqual([false, true, false]);
 	});
 });

@@ -22,6 +22,7 @@ const tap = (key: GameKey, down: number): KeyPress => ({
 	down,
 	up: down + TAP_FRAMES,
 	blocked: false,
+	carried: false,
 });
 
 const das = (key: GameKey, down: number, blocked = true): KeyPress => ({
@@ -30,6 +31,7 @@ const das = (key: GameKey, down: number, blocked = true): KeyPress => ({
 	down,
 	up: down + DAS_FRAMES,
 	blocked,
+	carried: false,
 });
 
 const attempt = (

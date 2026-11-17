@@ -5,6 +5,7 @@ import {
 	ORIENTATIONS,
 	playerPresses,
 	pressesToSteps,
+	SHIFT_KEYS,
 	type GameKey,
 	type KeyPress,
 	type Orientation,
@@ -49,8 +50,6 @@ const KEY_TEXT: Partial<Record<GameKey, string>> = {
 };
 
 const TURN_STEPS: Partial<Record<GameKey, number>> = { rotateCW: 1, rotate180: 2, rotateCCW: 3 };
-
-const SHIFT_KEYS: ReadonlyArray<ShiftKey> = ["moveLeft", "moveRight"];
 
 const THREE_TAPS = 3;
 

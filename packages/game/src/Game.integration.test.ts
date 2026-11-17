@@ -49,12 +49,13 @@ const placed = (game: Game): Array<PlaceEvent> => {
 	return events;
 };
 
-const press = (key: GameKey, down: number, up: number, blocked = false): KeyPress => ({
+const press = (key: GameKey, down: number, up: number, blocked = false, carried = false): KeyPress => ({
 	key,
 	source: "user",
 	down,
 	up,
 	blocked,
+	carried,
 });
 
 const filledColumns = (game: Game, y: number): Array<number> =>
@@ -374,24 +375,30 @@ describe("key timings", () => {
 
 		expect(first?.placement.column).toBe(2);
 		expect(first?.inputs).toEqual([press("moveLeft", 0, 0), press("hardDrop", 0, 0)]);
-		expect(second?.inputs).toEqual([press("moveLeft", 0, 1), press("rotateCW", 0, 1), press("hardDrop", 2, 2)]);
+		expect(second?.inputs).toEqual([press("rotateCW", 0, 1), press("hardDrop", 2, 2)]);
 	});
 
-	it("opens a left key held through a lock at frame 0 on the next piece", () => {
+	it("carries a charged DAS held through a lock to the next piece, and no other held key", () => {
 		const game = tPiece();
 		const places = placed(game);
 
 		game.press("moveLeft");
+		game.press("rotateCW");
 		game.step(20);
 		hardDrop(game);
 		game.release("moveLeft");
+		game.release("rotateCW");
 		game.step();
 		hardDrop(game);
 
 		const [first, second] = places;
 
-		expect(first?.inputs).toEqual([press("moveLeft", 0, 20, true), press("hardDrop", 20, 20)]);
-		expect(second?.inputs).toEqual([press("moveLeft", 0, 2), press("hardDrop", 3, 3)]);
+		expect(first?.inputs).toEqual([
+			press("moveLeft", 0, 20, true),
+			press("rotateCW", 0, 20),
+			press("hardDrop", 20, 20),
+		]);
+		expect(second?.inputs).toEqual([press("moveLeft", 0, 2, false, true), press("hardDrop", 3, 3)]);
 	});
 
 	it("keeps the hard drop's keyup out of the next piece's record", () => {

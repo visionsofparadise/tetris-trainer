@@ -107,6 +107,10 @@ export class Game {
 		return falling.absoluteAt({ y });
 	}
 
+	get isHoldEnabled(): boolean {
+		return this.#engine.misc.allowed.hold;
+	}
+
 	get hold(): Mino | null {
 		return this.#engine.held;
 	}
@@ -264,6 +268,7 @@ export class Game {
 				key,
 				source,
 				blocked: type === "keyup" && isShiftKey(key) && this.#isBlocked(key),
+				carried: false,
 			});
 			this.#events.emit("input", { type, key, source });
 		}
@@ -291,6 +296,13 @@ export class Game {
 			shifted.filter(([x, y]) => !own.some(([ownX, ownY]) => ownX === x && ownY === y)),
 			this.#tickRows,
 		);
+	}
+
+	#isCharged(key: ShiftKey): boolean {
+		const { input } = this.#engine;
+		const shift = key === "moveLeft" ? input.lShift : input.rShift;
+
+		return shift.held && input.lastShift === shift.dir && shift.das >= this.#handling.das - this.#handling.dcd;
 	}
 
 	#topOut(): void {
@@ -323,7 +335,7 @@ export class Game {
 	#handleSpawn(mino: Mino, fromHold: boolean): void {
 		if (this.#isLoading) return;
 
-		if (!fromHold) this.#keys.start(this.#engine.frame);
+		if (!fromHold) this.#keys.start(this.#engine.frame, (key) => this.#isCharged(key));
 
 		const held = this.#engine.held;
 

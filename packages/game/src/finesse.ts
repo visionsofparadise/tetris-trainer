@@ -105,12 +105,17 @@ const routesTo = (position: Position): Array<Array<Move>> =>
 		? [[]]
 		: position.arrivals.flatMap(({ from, move }) => routesTo(from).map((route) => [...route, move]));
 
-const searchPositions = (mino: Piece, moves: ReadonlyArray<Move>): Array<Position> => {
+const spawnEngine = (mino: Piece): Engine => {
 	const engine = new Engine(createEngineOptions(DEFAULT_CONFIG.handling, 1));
 
 	engine.initiatePiece(mino);
 	settleSpawn(engine);
 
+	return engine;
+};
+
+const searchPositions = (mino: Piece, moves: ReadonlyArray<Move>): Array<Position> => {
+	const engine = spawnEngine(mino);
 	const spawn: Position = { snapshot: engine.snapshot(), landing: landingKey(engine), presses: 0, arrivals: [] };
 	const positions = new Map([[positionKey(engine), spawn]]);
 	let layer = [spawn];
@@ -162,17 +167,17 @@ const shortestByLanding = (mino: Piece, options: FinesseOptions): Map<string, Sh
 
 const searched = new Map<string, Map<string, Shortest>>();
 
-const shortestRoutes = (target: PieceTarget, options: FinesseOptions): Array<Array<Move>> => {
+const shortestTo = (target: PieceTarget, options: FinesseOptions): Shortest => {
 	const key = `${target.mino} ${options.allow180}`;
 	const byLanding = searched.get(key) ?? shortestByLanding(target.mino, options);
 
 	searched.set(key, byLanding);
 
-	const routes = byLanding.get(shapeKey(target))?.routes;
+	const shortest = byLanding.get(shapeKey(target));
 
-	if (!routes) throw new Error(`No route reaches ${target.mino} ${target.orientation} at column ${target.column}`);
+	if (!shortest) throw new Error(`No route reaches ${target.mino} ${target.orientation} at column ${target.column}`);
 
-	return routes;
+	return shortest;
 };
 
 const leadingRotations = (route: ReadonlyArray<Move>): number => {
@@ -206,14 +211,32 @@ export const finesseTargets = (): Array<PieceTarget> =>
 export const finesseRoutes = (target: PieceTarget, options: FinesseOptions): Array<Array<ScriptStep>> => {
 	const classic = classicRoute(target);
 
-	return shortestRoutes(target, options)
-		.map((route) => ({ route, key: tieKey(route, classic) }))
+	return shortestTo(target, options)
+		.routes.map((route) => ({ route, key: tieKey(route, classic) }))
 		.sort((first, second) => compareKeys(first.key, second.key))
 		.map(({ route }) => route.map((move) => move.step));
 };
 
 export const minimalPresses = (target: PieceTarget, options: FinesseOptions): number =>
-	shortestRoutes(target, options)[0]?.length ?? 0;
+	shortestTo(target, options).presses;
+
+const isSameMove = (step: ScriptStep, other: ScriptStep): boolean =>
+	("das" in step && "das" in other && step.das === other.das) ||
+	("tap" in step && "tap" in other && step.tap === other.tap);
+
+export const stepsMoved = (mino: Piece, steps: ReadonlyArray<ScriptStep>): Array<boolean> => {
+	const engine = spawnEngine(mino);
+
+	const cells = (): string => cellsKey(engine.falling.absoluteBlocks);
+
+	return steps.map((step) => {
+		const before = cells();
+
+		MOVES.find((move) => isSameMove(move.step, step))?.apply(engine);
+
+		return cells() !== before;
+	});
+};
 
 export const finesseSteps = (target: PieceTarget): Array<ScriptStep> =>
 	finesseRoutes(target, { allow180: true })[0] ?? [];

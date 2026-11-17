@@ -1,6 +1,14 @@
+import {
+	QUARTER_TURN_KEYS,
+	ROTATION_KEYS,
+	SHIFT_KEYS,
+	type GameKey,
+	type InputType,
+	type ScriptStep,
+	type ShiftKey,
+} from "./script";
 import type { Handling } from "./config";
 import type { FinesseOptions } from "./finesse";
-import type { GameKey, InputType, ScriptStep, ShiftKey } from "./script";
 
 export interface KeyPress {
 	readonly key: GameKey;
@@ -8,6 +16,7 @@ export interface KeyPress {
 	readonly down: number;
 	readonly up: number;
 	readonly blocked: boolean;
+	readonly carried: boolean;
 }
 
 export interface RecordedInput {
@@ -16,27 +25,22 @@ export interface RecordedInput {
 	readonly key: GameKey;
 	readonly source: KeyPress["source"];
 	readonly blocked: boolean;
+	readonly carried: boolean;
 }
 
 type Opened = Omit<KeyPress, "up"> & { readonly up?: number };
 
-const SHIFT_KEYS: ReadonlyArray<GameKey> = ["moveLeft", "moveRight"];
-
-const ROTATION_KEYS: ReadonlyArray<GameKey> = ["rotateCW", "rotateCCW", "rotate180"];
-
-const PAIRED_ROTATIONS: ReadonlyArray<GameKey> = ["rotateCW", "rotateCCW"];
-
-export const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.includes(key);
+export const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.some((shift) => shift === key);
 
 const isTurnKey = (key: GameKey): boolean => isShiftKey(key) || ROTATION_KEYS.includes(key);
 
 const openPresses = (inputs: ReadonlyArray<RecordedInput>, spawn: number): Array<Opened> => {
 	const presses: Array<Opened> = [];
 
-	for (const { frame, type, key, source, blocked } of inputs) {
+	for (const { frame, type, key, source, blocked, carried } of inputs) {
 		const open = presses.filter((press) => press.key === key && press.up === undefined).at(-1);
 
-		if (type === "keydown") presses.push({ key, source, down: frame - spawn, blocked: false });
+		if (type === "keydown") presses.push({ key, source, down: frame - spawn, blocked: false, carried });
 		else if (open !== undefined) presses[presses.indexOf(open)] = { ...open, up: frame - spawn, blocked };
 	}
 
@@ -46,7 +50,7 @@ const openPresses = (inputs: ReadonlyArray<RecordedInput>, spawn: number): Array
 export class KeyRecord {
 	#spawn = 0;
 	#inputs: Array<RecordedInput> = [];
-	#held: Array<Pick<KeyPress, "key" | "source">> = [];
+	#held: Array<Pick<KeyPress, "source"> & { readonly key: ShiftKey }> = [];
 
 	reset(frame: number): void {
 		this.#spawn = frame;
@@ -58,14 +62,17 @@ export class KeyRecord {
 		this.#inputs.push(input);
 	}
 
-	start(frame: number): void {
-		const carried = this.#held.map(({ key, source }): RecordedInput => ({
-			frame,
-			type: "keydown",
-			key,
-			source,
-			blocked: false,
-		}));
+	start(frame: number, isCharged: (key: ShiftKey) => boolean): void {
+		const carried = this.#held
+			.filter(({ key }) => isCharged(key))
+			.map(({ key, source }): RecordedInput => ({
+				frame,
+				type: "keydown",
+				key,
+				source,
+				blocked: false,
+				carried: true,
+			}));
 
 		this.#spawn = frame;
 		this.#inputs = [...carried, ...this.#inputs];
@@ -80,7 +87,9 @@ export class KeyRecord {
 		const presses = openPresses(this.#inputs.slice(0, end), this.#spawn);
 
 		this.#inputs = this.#inputs.slice(end);
-		this.#held = presses.filter((press) => press.up === undefined && isTurnKey(press.key));
+		this.#held = presses.flatMap(({ key, source, up }) =>
+			up === undefined && isShiftKey(key) ? [{ key, source }] : [],
+		);
 
 		return presses.map(({ up, ...press }) =>
 			up === undefined
@@ -92,7 +101,7 @@ export class KeyRecord {
 
 const userTurns = (presses: ReadonlyArray<KeyPress>): Array<KeyPress> =>
 	presses
-		.filter((press) => press.source === "user" && isTurnKey(press.key))
+		.filter((press) => press.source === "user" && !press.carried && isTurnKey(press.key))
 		.sort((first, second) => first.down - second.down);
 
 export const isDasPress = (press: KeyPress, handling: Handling): boolean =>
@@ -110,6 +119,6 @@ export const playerPresses = (presses: ReadonlyArray<KeyPress>, { allow180 }: Fi
 		({ count, unpaired }, { key }) =>
 			allow180 && key === unpaired
 				? { count, unpaired: null }
-				: { count: count + 1, unpaired: PAIRED_ROTATIONS.includes(key) ? key : null },
+				: { count: count + 1, unpaired: QUARTER_TURN_KEYS.includes(key) ? key : null },
 		{ count: 0, unpaired: null },
 	).count;

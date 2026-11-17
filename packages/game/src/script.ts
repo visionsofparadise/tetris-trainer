@@ -7,6 +7,12 @@ export type InputType = "keydown" | "keyup";
 
 export type ShiftKey = Extract<GameKey, "moveLeft" | "moveRight">;
 
+export const SHIFT_KEYS: ReadonlyArray<ShiftKey> = ["moveLeft", "moveRight"];
+
+export const QUARTER_TURN_KEYS: ReadonlyArray<GameKey> = ["rotateCW", "rotateCCW"];
+
+export const ROTATION_KEYS: ReadonlyArray<GameKey> = [...QUARTER_TURN_KEYS, "rotate180"];
+
 interface Wait {
 	readonly wait?: number;
 }

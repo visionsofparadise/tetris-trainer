@@ -3,7 +3,8 @@ import {
 	finesseTargets,
 	Mino,
 	placementCells,
-	type GameKey,
+	QUARTER_TURN_KEYS,
+	ROTATION_KEYS,
 	type Piece,
 	type PieceTarget,
 	type Placement,
@@ -47,15 +48,11 @@ export const RULE_TEXT: Record<RouteRule, string> = {
 	verticals: "S, Z and I stand up in two columns, so pick the turn that lands on the target.",
 };
 
-const SIDE_TURNS: ReadonlyArray<GameKey> = ["rotateCW", "rotateCCW"];
-
-const TURNS: ReadonlyArray<GameKey> = [...SIDE_TURNS, "rotate180"];
-
 const UPRIGHT_PIECES: ReadonlyArray<Piece> = [Mino.I, Mino.S, Mino.Z];
 
 const opposite = (key: ShiftKey): ShiftKey => (key === "moveLeft" ? "moveRight" : "moveLeft");
 
-export const isTurn = (step: ScriptStep, turns = TURNS): boolean => "tap" in step && turns.includes(step.tap);
+export const isTurn = (step: ScriptStep, turns = ROTATION_KEYS): boolean => "tap" in step && turns.includes(step.tap);
 
 export const targetPlacement = (target: PieceTarget): Placement => ({ ...target, row: 0 });
 
@@ -78,14 +75,14 @@ const dasRules = (target: PieceTarget, route: ReadonlyArray<ScriptStep>): Array<
 	const wall = das.das;
 	const before = route.slice(0, index);
 	const after = route.slice(index + 1);
-	const turnsAfter = after.some((step) => isTurn(step, SIDE_TURNS));
+	const turnsAfter = after.some((step) => isTurn(step, QUARTER_TURN_KEYS));
 	const isFlush = touchesWall(target, wall);
 
 	return [
 		"das",
 		...(after.some((step) => "tap" in step && step.tap === opposite(wall)) ? ["tap-back" as const] : []),
 		...(turnsAfter && !isFlush ? ["gap" as const] : []),
-		...(before.some((step) => isTurn(step, SIDE_TURNS)) && isFlush ? ["flush" as const] : []),
+		...(before.some((step) => isTurn(step, QUARTER_TURN_KEYS)) && isFlush ? ["flush" as const] : []),
 		...(turnsAfter ? ["toward-travel" as const] : []),
 	];
 };

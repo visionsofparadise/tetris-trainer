@@ -14,6 +14,7 @@ const press = (key: GameKey, down: number, up = down + 1, source: KeyPress["sour
 	down,
 	up,
 	blocked: false,
+	carried: false,
 });
 
 describe("isDasPress", () => {
@@ -73,6 +74,13 @@ describe("playerPresses", () => {
 		];
 
 		expect(playerPresses(presses, WITH_180)).toBe(3);
+	});
+
+	it("leaves out a DAS carried over from the previous piece", () => {
+		const carried = { ...press("moveLeft", 0, 20), carried: true };
+
+		expect(playerPresses([carried, press("rotateCW", 21)], WITH_180)).toBe(1);
+		expect(pressesToSteps([carried, press("rotateCW", 21)], HANDLING)).toEqual([{ tap: "rotateCW" }]);
 	});
 
 	it("counts two same-direction rotation taps as one with 180 bound", () => {
