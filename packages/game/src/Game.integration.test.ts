@@ -2,7 +2,10 @@ import { Mino } from "@haelp/teto/engine";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "./config";
 import { Game } from "./Game";
+import { pressesToSteps, type KeyPress } from "./inputs";
 import { SetupError } from "./SetupError";
+import type { PlaceEvent } from "./events";
+import type { GameKey } from "./script";
 import type { GameSetup } from "./setup";
 
 const FRAME_MS = 1000 / 60;
@@ -30,6 +33,29 @@ const hardDrop = (game: Game): void => {
 	game.release("hardDrop");
 	game.step();
 };
+
+const holdKey = (game: Game, key: GameKey, frames: number): void => {
+	game.press(key);
+	game.step(frames);
+	game.release(key);
+	game.step();
+};
+
+const placed = (game: Game): Array<PlaceEvent> => {
+	const events: Array<PlaceEvent> = [];
+
+	game.on("place", (event) => events.push(event));
+
+	return events;
+};
+
+const press = (key: GameKey, down: number, up: number, blocked = false): KeyPress => ({
+	key,
+	source: "user",
+	down,
+	up,
+	blocked,
+});
 
 const filledColumns = (game: Game, y: number): Array<number> =>
 	(game.board[y] ?? []).flatMap((mino, x) => (mino === null ? [] : [x]));
@@ -248,5 +274,148 @@ describe("tiles", () => {
 		expect(game.tiles[0]?.[2]?.edges).toMatchObject({ left: true });
 		expect(game.tiles[1]?.[4]?.edges).toMatchObject({ top: true, bottom: false });
 		expect(game.tiles[2]?.[4]?.edges).toMatchObject({ bottom: true });
+	});
+});
+
+describe("key timings", () => {
+	const tPiece = (): Game => loaded({ queue: { pieces: [Mino.T, Mino.I], mode: "fresh-bag" } });
+
+	it("reports each press of a piece with its frames, steps and blocked shifts", () => {
+		const game = tPiece();
+		const places = placed(game);
+
+		holdKey(game, "moveRight", 1);
+		holdKey(game, "moveLeft", 20);
+		holdKey(game, "rotateCW", 1);
+		game.press("moveRight");
+		game.step(25);
+		hardDrop(game);
+
+		const [place] = places;
+
+		expect(place?.placement).toEqual({ mino: Mino.T, orientation: "right", column: 8, row: 0 });
+		expect(place?.inputs).toEqual([
+			press("moveRight", 0, 1),
+			press("moveLeft", 2, 22, true),
+			press("rotateCW", 23, 24),
+			press("moveRight", 25, 50, true),
+			press("hardDrop", 50, 50),
+		]);
+		expect(pressesToSteps(place?.inputs ?? [], DEFAULT_CONFIG.handling)).toEqual([
+			{ tap: "moveRight" },
+			{ das: "moveLeft" },
+			{ tap: "rotateCW" },
+			{ das: "moveRight" },
+		]);
+	});
+
+	it("lands T right at column 0 when CW is pressed while DAS left is held", () => {
+		const game = tPiece();
+		const places = placed(game);
+
+		game.press("moveLeft");
+		game.step(20);
+		holdKey(game, "rotateCW", 1);
+		game.step(5);
+		hardDrop(game);
+
+		const [place] = places;
+
+		expect(place?.placement).toEqual({ mino: Mino.T, orientation: "right", column: 0, row: 0 });
+		expect(place?.inputs).toEqual([
+			press("moveLeft", 0, 27, true),
+			press("rotateCW", 20, 21),
+			press("hardDrop", 27, 27),
+		]);
+	});
+
+	it("judges a shift held at lock against the board before the lock clears lines", () => {
+		const game = loaded({
+			board: [
+				{ mino: Mino.I, orientation: "spawn", column: 0, row: 0 },
+				{ mino: Mino.I, orientation: "spawn", column: 4, row: 0 },
+			],
+			queue: { pieces: [Mino.O], mode: "any" },
+		});
+		const places = placed(game);
+
+		game.setGravity(20);
+		holdKey(game, "moveRight", 16);
+		game.press("moveLeft");
+		game.step(2);
+		hardDrop(game);
+
+		const [place] = places;
+
+		expect(place?.placement).toEqual({ mino: Mino.O, orientation: "spawn", column: 8, row: 0 });
+		expect(place?.lines).toBe(1);
+		expect(place?.inputs).toEqual([
+			press("moveRight", 0, 16, true),
+			press("moveLeft", 17, 19, true),
+			press("hardDrop", 19, 19),
+		]);
+	});
+
+	it("gives a key pressed in the hard drop's tick to the locking piece, and one pressed after it to the next", () => {
+		const game = tPiece();
+		const places = placed(game);
+
+		game.press("moveLeft");
+		game.press("hardDrop");
+		game.press("rotateCW");
+		game.step();
+		game.release("moveLeft");
+		game.release("hardDrop");
+		game.release("rotateCW");
+		game.step();
+		hardDrop(game);
+
+		const [first, second] = places;
+
+		expect(first?.placement.column).toBe(2);
+		expect(first?.inputs).toEqual([press("moveLeft", 0, 0), press("hardDrop", 0, 0)]);
+		expect(second?.inputs).toEqual([press("moveLeft", 0, 1), press("rotateCW", 0, 1), press("hardDrop", 2, 2)]);
+	});
+
+	it("opens a left key held through a lock at frame 0 on the next piece", () => {
+		const game = tPiece();
+		const places = placed(game);
+
+		game.press("moveLeft");
+		game.step(20);
+		hardDrop(game);
+		game.release("moveLeft");
+		game.step();
+		hardDrop(game);
+
+		const [first, second] = places;
+
+		expect(first?.inputs).toEqual([press("moveLeft", 0, 20, true), press("hardDrop", 20, 20)]);
+		expect(second?.inputs).toEqual([press("moveLeft", 0, 2), press("hardDrop", 3, 3)]);
+	});
+
+	it("keeps the hard drop's keyup out of the next piece's record", () => {
+		const game = tPiece();
+		const places = placed(game);
+
+		hardDrop(game);
+		hardDrop(game);
+
+		expect(places[1]?.inputs).toEqual([press("hardDrop", 2, 2)]);
+	});
+
+	it("starts a clean record after a restore", () => {
+		const game = tPiece();
+		const places = placed(game);
+		const snapshot = game.snapshot();
+
+		game.press("moveLeft");
+		game.step(3);
+		game.restore(snapshot);
+		game.release("moveLeft");
+		hardDrop(game);
+
+		expect(places[0]?.inputs).toEqual([press("hardDrop", 0, 0)]);
+		expect(places[0]?.placement.column).toBe(3);
 	});
 });

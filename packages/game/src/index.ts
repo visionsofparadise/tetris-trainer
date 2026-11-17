@@ -31,6 +31,7 @@ export { BOARD_COLUMNS, VISIBLE_ROWS } from "./engineOptions";
 export type { GameEvents, HoldEvent, InputEvent, PlaceEvent, SpawnEvent } from "./events";
 export { Game, NEXT_COUNT, type GameSnapshot, type GameStats } from "./Game";
 export type { GameKey, InputType, ScriptStep, ShiftKey } from "./script";
+export { isDasPress, playerPresses, pressesToSteps, type KeyPress } from "./inputs";
 export { piecePreview, type PiecePreview } from "./piecePreview";
 export type { BoardItem, Garbage, GameSetup, Hold, QueueMode } from "./setup";
 export { SetupError } from "./SetupError";

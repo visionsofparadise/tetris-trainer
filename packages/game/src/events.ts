@@ -1,3 +1,4 @@
+import type { KeyPress } from "./inputs";
 import type { Block, Placement } from "./pieces";
 import type { GameKey, InputType } from "./script";
 import type { Mino, SpinType } from "@haelp/teto/engine";
@@ -20,6 +21,7 @@ export interface PlaceEvent {
 	readonly b2b: number;
 	readonly attack: number;
 	readonly isPerfectClear: boolean;
+	readonly inputs: ReadonlyArray<KeyPress>;
 }
 
 export interface InputEvent {

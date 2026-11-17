@@ -1,8 +1,9 @@
 import { Board, Engine, legal, type EngineSnapshot, type LockRes, type Mino } from "@haelp/teto/engine";
 import mitt from "mitt";
 import { BOARD_SIZE, createEngineOptions, DEFAULT_GRAVITY, settleSpawn } from "./engineOptions";
+import { isShiftKey, KeyRecord } from "./inputs";
 import { BAG, leftmost, lowest, ORIENTATIONS, placementCells, type Block, type Piece, type Placement } from "./pieces";
-import { compileScript, type GameKey, type InputType, type ScriptStep } from "./script";
+import { compileScript, type GameKey, type InputType, type ScriptStep, type ShiftKey } from "./script";
 import {
 	buildBoard,
 	cellsSettle,
@@ -33,7 +34,7 @@ interface ScheduledInput extends InputEvent {
 	readonly frame: number;
 }
 
-type LockedPiece = Pick<PlaceEvent, "placement" | "cells">;
+type LockedPiece = Pick<PlaceEvent, "placement" | "cells" | "inputs">;
 
 export const NEXT_COUNT = 5;
 
@@ -48,6 +49,7 @@ export class Game {
 	readonly #handling: Handling;
 	readonly #events = mitt<GameEvents>();
 	readonly #userKeys = new Set<GameKey>();
+	readonly #keys = new KeyRecord();
 	readonly #idleInput: Engine["input"];
 	#scheduled: Array<ScheduledInput> = [];
 	#isOver = false;
@@ -58,6 +60,7 @@ export class Game {
 	#gravity = DEFAULT_GRAVITY;
 	#unplayedMs = 0;
 	#locked: LockedPiece | null = null;
+	#tickRows: Board["state"] = [];
 	#spawnAfterLock: SpawnEvent | null = null;
 
 	constructor(handling: Handling, seed = randomSeed()) {
@@ -247,11 +250,23 @@ export class Game {
 		if (this.#isOver) return;
 
 		const frame = this.#engine.frame;
+
+		this.#tickRows = [...this.#engine.board.state];
+
 		const due = this.#scheduled.filter((input) => input.frame <= frame);
 
 		this.#scheduled = this.#scheduled.filter((input) => input.frame > frame);
 
-		for (const { type, key, source } of due) this.#events.emit("input", { type, key, source });
+		for (const { type, key, source } of due) {
+			this.#keys.add({
+				frame,
+				type,
+				key,
+				source,
+				blocked: type === "keyup" && isShiftKey(key) && this.#isBlocked(key),
+			});
+			this.#events.emit("input", { type, key, source });
+		}
 
 		this.#engine.tick(due.map(({ type, key }) => ({ type, frame, data: { key, subframe: 0 } })));
 	}
@@ -263,7 +278,19 @@ export class Game {
 		this.#unplayedMs = 0;
 		this.#locked = null;
 		this.#spawnAfterLock = null;
+		this.#keys.reset(this.#engine.frame);
 		this.#engine.dynamic.gravity.set(this.#gravity);
+	}
+
+	#isBlocked(key: ShiftKey): boolean {
+		const { falling } = this.#engine;
+		const own = falling.absoluteBlocks;
+		const shifted = falling.absoluteAt({ x: falling.x + (key === "moveLeft" ? -1 : 1) });
+
+		return !legal(
+			shifted.filter(([x, y]) => !own.some(([ownX, ownY]) => ownX === x && ownY === y)),
+			this.#tickRows,
+		);
 	}
 
 	#topOut(): void {
@@ -272,9 +299,12 @@ export class Game {
 	}
 
 	#handleLockStart(): void {
-		const { falling } = this.#engine;
+		const { falling, frame } = this.#engine;
 		const mino = falling.symbol;
 		const cells = falling.absoluteBlocks;
+		const inputs = this.#keys.take(frame, (key) => this.#isBlocked(key));
+
+		this.#tickRows = [...this.#engine.board.state];
 
 		if (!isPiece(mino)) return;
 
@@ -286,11 +316,14 @@ export class Game {
 				row: lowest(cells),
 			},
 			cells,
+			inputs,
 		};
 	}
 
 	#handleSpawn(mino: Mino, fromHold: boolean): void {
 		if (this.#isLoading) return;
+
+		if (!fromHold) this.#keys.start(this.#engine.frame);
 
 		const held = this.#engine.held;
 
