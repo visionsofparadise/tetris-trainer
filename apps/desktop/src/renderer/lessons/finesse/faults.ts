@@ -19,6 +19,7 @@ import type { KeyComparison, Player } from "../drill/Drill";
 type FaultKind =
 	| "wrong-spot"
 	| "partial-das"
+	| "floor-kick"
 	| "wrong-rotation"
 	| "tapped-across"
 	| "three-taps"
@@ -34,6 +35,7 @@ export interface Fault {
 const FAULT_TITLES: Record<FaultKind, string> = {
 	"wrong-spot": "Wrong spot",
 	"partial-das": "Partial DAS",
+	"floor-kick": "Floor kick",
 	"wrong-rotation": "Wrong rotation",
 	"tapped-across": "Tapped across",
 	"three-taps": "Three taps",
@@ -129,6 +131,13 @@ const dasesFirst = (route: ReadonlyArray<ScriptStep>): boolean => {
 	return das < turn && turn !== Infinity;
 };
 
+const isSoftDrop = (press: KeyPress): boolean => press.source === "user" && press.key === "softDrop";
+
+const opposite = (key: GameKey): GameKey => (key === "moveLeft" ? "moveRight" : "moveLeft");
+
+const tapsOf = (route: ReadonlyArray<ScriptStep>, key: GameKey): number =>
+	route.filter((step) => "tap" in step && step.tap === key).length;
+
 export interface Attempt {
 	readonly target: PieceTarget;
 	readonly orientation: Orientation;
@@ -145,6 +154,8 @@ const faultKind = (
 	const user = presses.filter((press) => press.source === "user" && !press.carried);
 
 	if (user.some((press) => isDasPress(press, player.handling) && !press.blocked)) return "partial-das";
+
+	if (playerPresses(user, player) < minimalPresses(target, player)) return "floor-kick";
 
 	if (
 		turnCount(user, player) > nearest.filter((step) => isTurn(step)).length ||
@@ -165,8 +176,19 @@ const faultKind = (
 	const moved = stepsMoved(target.mino, steps);
 	const movingTaps = (key: GameKey): number =>
 		steps.filter((step, index) => "tap" in step && step.tap === key && moved[index]).length;
+	const isThreeTaps = (key: GameKey): boolean => {
+		const taps = movingTaps(key) - movingTaps(opposite(key));
 
-	if (SHIFT_KEYS.some((key) => movingTaps(key) >= THREE_TAPS)) return "three-taps";
+		return (
+			taps >= THREE_TAPS &&
+			routes.some(
+				(route) =>
+					route.some((step) => "das" in step && step.das === key) && 1 + tapsOf(route, opposite(key)) < taps,
+			)
+		);
+	};
+
+	if (SHIFT_KEYS.some(isThreeTaps)) return "three-taps";
 
 	if (
 		steps.some(isDas) &&
@@ -178,11 +200,11 @@ const faultKind = (
 	return "extra-press";
 };
 
-const faultOf = (kind: FaultKind, steps: ReadonlyArray<ScriptStep>, nearest: ReadonlyArray<ScriptStep>): Fault => ({
-	kind,
-	title: FAULT_TITLES[kind],
-	keys: { yours: steps, minimal: nearest },
-});
+const yoursOf = (presses: ReadonlyArray<KeyPress>, player: Player): Array<ScriptStep> =>
+	presses
+		.filter((press) => press.source === "user" && !press.carried)
+		.sort((first, second) => first.down - second.down)
+		.flatMap((press) => (isSoftDrop(press) ? [{ tap: press.key }] : pressesToSteps([press], player.handling)));
 
 const compared = (attempt: Attempt, player: Player) => {
 	const routes = finesseRoutes(attempt.target, player);
@@ -191,16 +213,20 @@ const compared = (attempt: Attempt, player: Player) => {
 	return { routes, steps, nearest: nearestRoute(routes, steps) };
 };
 
-export const wrongSpot = (attempt: Attempt, player: Player): Fault => {
-	const { steps, nearest } = compared(attempt, player);
+const faultOf = (kind: FaultKind, attempt: Attempt, player: Player, nearest: ReadonlyArray<ScriptStep>): Fault => ({
+	kind,
+	title: FAULT_TITLES[kind],
+	keys: { yours: yoursOf(attempt.presses, player), minimal: nearest },
+});
 
-	return faultOf("wrong-spot", steps, nearest);
-};
+export const wrongSpot = (attempt: Attempt, player: Player): Fault =>
+	faultOf("wrong-spot", attempt, player, compared(attempt, player).nearest);
 
 export const findFault = (attempt: Attempt, player: Player): Fault | null => {
 	const { presses, target } = attempt;
 	const isMinimal =
-		playerPresses(presses, player) <= minimalPresses(target, player) &&
+		playerPresses(presses, player) === minimalPresses(target, player) &&
+		!presses.some(isSoftDrop) &&
 		presses.every(
 			(press) => press.source !== "user" || press.carried || !isDasPress(press, player.handling) || press.blocked,
 		);
@@ -209,5 +235,5 @@ export const findFault = (attempt: Attempt, player: Player): Fault | null => {
 
 	const { routes, steps, nearest } = compared(attempt, player);
 
-	return faultOf(faultKind(attempt, player, steps, routes, nearest), steps, nearest);
+	return faultOf(faultKind(attempt, player, steps, routes, nearest), attempt, player, nearest);
 };

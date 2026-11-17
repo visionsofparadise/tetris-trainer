@@ -53,6 +53,7 @@ describe("finesse faults", () => {
 	it("names each fault kind by the first rule that matches", () => {
 		const kinds = [
 			attempt(Mino.T, ["spawn", 1], [das("moveLeft", 0, false)]),
+			attempt(Mino.T, ["right", 3], [tap("rotateCW", 0)]),
 			attempt(Mino.O, ["spawn", 4], [tap("rotateCW", 0)], "right"),
 			attempt(Mino.T, ["spawn", 0], [tap("moveLeft", 0), tap("moveLeft", 5), tap("moveLeft", 10)]),
 			attempt(Mino.T, ["spawn", 6], [tap("moveRight", 0), tap("moveRight", 5), tap("moveRight", 10)]),
@@ -62,6 +63,7 @@ describe("finesse faults", () => {
 
 		expect(kinds).toEqual([
 			"partial-das",
+			"floor-kick",
 			"wrong-rotation",
 			"tapped-across",
 			"three-taps",
@@ -94,6 +96,13 @@ describe("finesse faults", () => {
 				attempt(Mino.J, ["spawn", 0], pressed(["das moveLeft", "moveLeft", "moveLeft", "moveLeft"])),
 				WITH_180,
 			)?.kind,
+		).toBe("extra-press");
+	});
+
+	it("leaves a back-and-forth wiggle that DAS and a tap back would not shorten to Extra press", () => {
+		expect(
+			findFault(attempt(Mino.L, ["spawn", 1], pressed(["moveLeft", "moveLeft", "moveRight", "moveLeft"])), WITH_180)
+				?.kind,
 		).toBe("extra-press");
 	});
 
@@ -133,10 +142,13 @@ describe("finesse faults", () => {
 		expect(findFault(threeTurns, WITH_180)?.kind).toBe("wrong-rotation");
 	});
 
-	it("leaves a DAS carried from the previous piece out of the count", () => {
-		const carried: KeyPress = { ...das("moveLeft", 0), carried: true };
-
-		expect(findFault(attempt(Mino.T, ["right", 1], [carried, tap("rotateCW", 2)]), WITH_180)).toBeNull();
+	it("counts a soft drop as a press and shows it among the player's keys", () => {
+		expect(
+			findFault(attempt(Mino.T, ["spawn", 0], [das("moveLeft", 0), tap("softDrop", 40)]), WITH_180),
+		).toMatchObject({
+			kind: "extra-press",
+			keys: { yours: [{ das: "moveLeft" }, { tap: "softDrop" }], minimal: [{ das: "moveLeft" }] },
+		});
 	});
 
 	it("compares the player's keys with the nearest minimal route", () => {

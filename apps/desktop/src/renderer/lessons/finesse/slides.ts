@@ -48,7 +48,7 @@ export const FINESSE_SLIDES: ReadonlyArray<FinesseSlide> = [
 	{
 		title: "Never three taps",
 		isLive: true,
-		notes: ["One column off the wall is a DAS and a tap back.", "Three taps would cost one press more."],
+		notes: ["A flat piece one column off the wall is a DAS and a tap back.", "Three taps would cost one press more."],
 		demos: [minimal(at(Mino.T, "spawn", 6))],
 		rules: ["tap-back"],
 	},
@@ -65,10 +65,7 @@ export const FINESSE_SLIDES: ReadonlyArray<FinesseSlide> = [
 	{
 		title: "Rotate toward travel",
 		isLive: true,
-		notes: [
-			"After a DAS, CW steps the piece right and CCW steps it left.",
-			"So after a DAS left, CCW keeps the S against the wall.",
-		],
+		notes: ["After a DAS left, CCW keeps the S against the wall."],
 		demos: [
 			{ target: at(Mino.S, "right", 0), route: [{ das: "moveLeft" }, { tap: "rotateCCW" }] },
 			{ target: at(Mino.S, "right", 1), route: [{ das: "moveLeft" }, { tap: "rotateCW" }] },

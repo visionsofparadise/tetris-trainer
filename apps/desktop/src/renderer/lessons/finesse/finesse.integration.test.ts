@@ -1,4 +1,5 @@
 import {
+	cellsKey,
 	DEFAULT_CONFIG,
 	finesseRoutes,
 	Game,
@@ -234,6 +235,25 @@ describe("Finesse", () => {
 		expect(kindOf(verdict)).toBe("pass");
 	});
 
+	it("names a turn kicked off the floor after a soft drop or a fall", () => {
+		const kickedT = at(Mino.T, "right", 3);
+		const softDropped = judged("keys", kickedT, (game) => {
+			game.press("softDrop");
+			game.step(70);
+			game.release("softDrop");
+			game.step(2);
+			playKeys(game, [{ tap: "rotateCW" }]);
+		});
+		const fallen = judged("gravity", kickedT, (game) => {
+			while (lowestRow(game) > 0) game.step();
+
+			playKeys(game, [{ tap: "rotateCW" }]);
+		});
+
+		expect(kindOf(softDropped)).toBe("floor-kick");
+		expect(kindOf(fallen)).toBe("floor-kick");
+	});
+
 	it("names a DAS that stops short of the wall", () => {
 		const verdict = judged("keys", at(Mino.T, "spawn", 1), (game) => {
 			game.press("moveLeft");
@@ -309,13 +329,8 @@ describe("Finesse", () => {
 		if (!round) throw new Error("Finesse has a Watch section");
 
 		const event = placeBy(round.game, round.steps);
-		const key = (cells: ReadonlyArray<readonly [number, number]>) =>
-			cells
-				.map(([x, y]) => `${x},${y}`)
-				.sort()
-				.join(" ");
 
-		expect(key(event.cells)).toBe(key(placementCells(targetPlacement(at(Mino.J, "right", 1)))));
+		expect(cellsKey(event.cells)).toBe(cellsKey(placementCells(targetPlacement(at(Mino.J, "right", 1)))));
 		expect(round.narration).toEqual(["DAS to the wall", "The gap rule", "Rotate toward travel"]);
 	});
 
