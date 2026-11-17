@@ -32,7 +32,7 @@ type Opened = Omit<KeyPress, "up"> & { readonly up?: number };
 
 const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.some((shift) => shift === key);
 
-const isTurnKey = (key: GameKey): boolean => isShiftKey(key) || ROTATION_KEYS.includes(key);
+const isMoveOrTurnKey = (key: GameKey): boolean => isShiftKey(key) || ROTATION_KEYS.includes(key);
 
 const openPresses = (inputs: ReadonlyArray<RecordedInput>, spawn: number): Array<Opened> => {
 	const presses: Array<Opened> = [];
@@ -118,7 +118,7 @@ export class KeyRecord {
 
 const userTurns = (presses: ReadonlyArray<KeyPress>): Array<KeyPress> =>
 	presses
-		.filter((press) => press.source === "user" && !press.carried && isTurnKey(press.key))
+		.filter((press) => press.source === "user" && !press.carried && isMoveOrTurnKey(press.key))
 		.sort((first, second) => first.down - second.down);
 
 export const isDasPress = (press: KeyPress, handling: Handling): boolean =>

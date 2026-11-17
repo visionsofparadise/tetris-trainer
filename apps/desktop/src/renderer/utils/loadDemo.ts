@@ -1,4 +1,4 @@
-import { Game, type GameSetup, type ScriptStep } from "@tetris-trainer/game";
+import { Game, type GameSetup, type Handling, type ScriptStep } from "@tetris-trainer/game";
 import { DEMO_HANDLING } from "../lessons/opener/openerScript";
 import type { BoardMark } from "../models/BoardMark";
 
@@ -8,11 +8,19 @@ export interface Demo {
 	readonly marks: ReadonlyArray<BoardMark>;
 }
 
-export const loadDemo = ({ setup, steps }: Demo): Game => {
-	const game = new Game(DEMO_HANDLING);
+export const loadGame = (setup: GameSetup, handling: Handling, hasGravity = false): Game => {
+	const game = new Game(handling);
 
-	game.setGravity(0);
+	if (!hasGravity) game.setGravity(0);
+
 	game.load(setup);
+
+	return game;
+};
+
+export const loadDemo = ({ setup, steps }: Demo): Game => {
+	const game = loadGame(setup, DEMO_HANDLING);
+
 	game.setUserInput(false);
 	game.input(steps);
 

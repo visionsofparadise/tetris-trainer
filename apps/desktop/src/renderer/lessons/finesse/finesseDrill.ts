@@ -1,10 +1,11 @@
-import { finesseRoutes, Game, Mino, samePlacement, type Piece, type PieceTarget } from "@tetris-trainer/game";
+import { finesseRoutes, Mino, samePlacement, type Piece, type PieceTarget } from "@tetris-trainer/game";
+import { loadGame } from "../../utils/loadDemo";
 import { DEMO_HANDLING } from "../opener/openerScript";
 import { findFault, wrongSpot, type Attempt } from "./faults";
 import { routeScript } from "./routeScript";
 import { slideTitles } from "./slides";
 import { FINESSE_PIECES, FINESSE_TARGETS, pieceSetup, routeRules, targetMarks, targetPlacement } from "./targets";
-import type { Drill, DrillStage, Player } from "../drill/Drill";
+import type { Drill, DrillStage } from "../drill/Drill";
 
 export type FinesseStageId = "cells" | "keys" | "mixed" | "gravity" | "reset";
 
@@ -159,23 +160,13 @@ const progressOf = (state: FinesseState): { readonly label: string; readonly val
 	return { label, value: `${passes} of the last ${size}` };
 };
 
-const loadTarget = (target: PieceTarget, handling: Player["handling"], hasGravity: boolean): Game => {
-	const game = new Game(handling);
-
-	if (!hasGravity) game.setGravity(0);
-
-	game.load(pieceSetup(target.mino));
-
-	return game;
-};
-
 export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	stages: FINESSE_STAGES,
 	start: (stage) => startFinesse(stage.id),
 	deal: (state, player, round) => {
 		const next = round === "next" ? draw(state) : state;
 
-		return { game: loadTarget(next.target, player.handling, next.stage === "gravity"), state: next };
+		return { game: loadGame(pieceSetup(next.target.mino), player.handling, next.stage === "gravity"), state: next };
 	},
 	judge: (state, { placement, cells, inputs }, player) => {
 		const { target, stage } = state;
@@ -208,7 +199,7 @@ export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 		const route = finesseRoutes(target, player)[0] ?? [];
 
 		return {
-			game: loadTarget(target, DEMO_HANDLING, false),
+			game: loadGame(pieceSetup(target.mino), DEMO_HANDLING),
 			steps: routeScript(route),
 			locks: 1,
 			marks: targetMarks(target),

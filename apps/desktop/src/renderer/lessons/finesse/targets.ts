@@ -27,9 +27,9 @@ export type RouteRule =
 	| "south"
 	| "verticals";
 
-export const FINESSE_PIECES: ReadonlyArray<Piece> = [Mino.O, Mino.I, Mino.T, Mino.J, Mino.L, Mino.S, Mino.Z];
-
 export const FINESSE_TARGETS: ReadonlyArray<PieceTarget> = finesseTargets();
+
+export const FINESSE_PIECES: ReadonlyArray<Piece> = [...new Set(FINESSE_TARGETS.map(({ mino }) => mino))];
 
 export const pieceSetup = (mino: Piece): GameSetup => ({
 	board: [],
@@ -40,7 +40,7 @@ export const pieceSetup = (mino: Piece): GameSetup => ({
 
 const UPRIGHT_PIECES: ReadonlyArray<Piece> = [Mino.I, Mino.S, Mino.Z];
 
-const opposite = (key: ShiftKey): ShiftKey => (key === "moveLeft" ? "moveRight" : "moveLeft");
+export const opposite = (key: ShiftKey): ShiftKey => (key === "moveLeft" ? "moveRight" : "moveLeft");
 
 export const isTurn = (step: ScriptStep, turns = ROTATION_KEYS): boolean => "tap" in step && turns.includes(step.tap);
 

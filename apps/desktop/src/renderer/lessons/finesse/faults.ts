@@ -12,8 +12,9 @@ import {
 	type Orientation,
 	type PieceTarget,
 	type ScriptStep,
+	type ShiftKey,
 } from "@tetris-trainer/game";
-import { isTurn, touchesWall } from "./targets";
+import { isTurn, opposite, touchesWall } from "./targets";
 import type { KeyComparison, Player } from "../drill/Drill";
 
 type FaultKind =
@@ -133,8 +134,6 @@ const dasesFirst = (route: ReadonlyArray<ScriptStep>): boolean => {
 
 const isSoftDrop = (press: KeyPress): boolean => press.source === "user" && press.key === "softDrop";
 
-const opposite = (key: GameKey): GameKey => (key === "moveLeft" ? "moveRight" : "moveLeft");
-
 const tapsOf = (route: ReadonlyArray<ScriptStep>, key: GameKey): number =>
 	route.filter((step) => "tap" in step && step.tap === key).length;
 
@@ -174,9 +173,9 @@ const faultKind = (
 		return "tapped-across";
 
 	const moved = stepsMoved(target.mino, steps);
-	const movingTaps = (key: GameKey): number =>
+	const movingTaps = (key: ShiftKey): number =>
 		steps.filter((step, index) => "tap" in step && step.tap === key && moved[index]).length;
-	const isThreeTaps = (key: GameKey): boolean => {
+	const isThreeTaps = (key: ShiftKey): boolean => {
 		const taps = movingTaps(key) - movingTaps(opposite(key));
 
 		return (
