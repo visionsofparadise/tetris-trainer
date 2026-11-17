@@ -116,7 +116,7 @@ export function BoardNotes({ notes }: BoardNotesProps) {
 					>
 						{note.title && <p className="heading text-lg leading-tight">{note.title}</p>}
 						{note.text && (
-							<p className="text-base leading-relaxed text-pretty">
+							<p className="text-base leading-relaxed text-pretty whitespace-pre-line">
 								<PieceText text={note.text} />
 							</p>
 						)}

@@ -14,18 +14,16 @@ import { decisionMarks } from "../../utils/decisionMarks";
 import { CATEGORY_SHORT_LABELS, ORDER_OPTIONS } from "../../utils/orderOptions";
 import { PlayArea } from "../Board/PlayArea";
 import { SuccessFlash } from "../Board/SuccessFlash";
-import { PauseButton } from "../Chrome/PauseButton";
-import { LessonPanel } from "../Lesson/LessonPanel";
+import { LessonShell } from "../Lesson/LessonShell";
+import { SpeedSlider } from "../Lesson/SpeedSlider";
 import { OrderGlyphs } from "../Pieces/OrderGlyphs";
 import { PieceText } from "../Pieces/PieceText";
-import { Shell } from "../Shell";
 import { BannerCard } from "../UI/BannerCard";
 import { IconButton } from "../UI/IconButton";
 import { ArrowIcon } from "../UI/Icons";
 import { LabelRow } from "../UI/LabelRow";
 import { ListRow } from "../UI/ListRow";
 import { Segmented } from "../UI/Segmented";
-import { StepSlider } from "../UI/StepSlider";
 import type { Opener } from "../../lessons/opener/Opener";
 import type { AppContext } from "../../models/AppContext";
 import type { Lesson, LessonScreenProps } from "../../models/Lesson";
@@ -34,8 +32,6 @@ import type { View } from "../../models/View";
 const SPEED_STEPS: ReadonlyArray<number> = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
 
 const WATCH_HINTS = [PAUSE_HINT];
-
-const formatSpeed = (speed: number): string => `${speed}×`;
 
 const IMPOSSIBLE_READ_DELAY_MS = 5000;
 
@@ -68,23 +64,18 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, l
 	const marks = decisionMarks(current);
 
 	return (
-		<Shell
+		<LessonShell
+			lesson={lesson}
 			view={view}
 			onNavigate={onNavigate}
 			context={context}
-			actions={<PauseButton pause={pause} />}
+			pause={pause}
 			hints={WATCH_HINTS}
-			aside={
-				<LessonPanel lesson={lesson} view={view} onNavigate={onNavigate}>
+			panel={
+				<>
 					<div className="flex flex-col gap-4">
 						<Segmented label="Orders" options={ORDER_OPTIONS} value={session.filter} onChange={onFilter} />
-						<StepSlider
-							label="Speed"
-							steps={SPEED_STEPS}
-							value={session.speed}
-							format={formatSpeed}
-							onChange={onSpeed}
-						/>
+						<SpeedSlider steps={SPEED_STEPS} value={session.speed} onChange={onSpeed} />
 					</div>
 					<LabelRow
 						label={`Order · ${CATEGORY_SHORT_LABELS[category]}`}
@@ -112,14 +103,14 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, l
 					<IconButton label="New order" className="shrink-0 self-end" onClick={onDeal}>
 						<ArrowIcon size={22} />
 					</IconButton>
-				</LessonPanel>
+				</>
 			}
 		>
 			<PlayArea game={session.game} control={isDone ? "none" : "demo"} context={context} marks={marks} pause={pause}>
 				{banner && <BannerCard banner={banner} />}
 				{clears > 0 && <SuccessFlash key={clears} />}
 			</PlayArea>
-		</Shell>
+		</LessonShell>
 	);
 });
 

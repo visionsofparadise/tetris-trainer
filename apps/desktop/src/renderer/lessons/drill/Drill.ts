@@ -31,7 +31,7 @@ interface DrillDeal<S> {
 	readonly state: S;
 }
 
-interface WatchRound {
+export interface WatchRound {
 	readonly game: Game;
 	readonly steps: ReadonlyArray<ScriptStep>;
 	readonly locks: number;

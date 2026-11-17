@@ -24,9 +24,7 @@ import { retryHints } from "../../utils/retryHints";
 import { BoardNotes } from "../Board/BoardNotes";
 import { PlayArea } from "../Board/PlayArea";
 import { SuccessFlash } from "../Board/SuccessFlash";
-import { PauseButton } from "../Chrome/PauseButton";
-import { LessonPanel } from "../Lesson/LessonPanel";
-import { Shell } from "../Shell";
+import { LessonShell } from "../Lesson/LessonShell";
 import { IconButton, PrimaryIconButton } from "../UI/IconButton";
 import { ArrowIcon, CrossIcon, PreviousIcon, ReplayIcon } from "../UI/Icons";
 import { LabelRow } from "../UI/LabelRow";
@@ -110,19 +108,20 @@ const PracticeView = scope<PracticeViewProps>(
 		useCue(context.sound, "failure", isMistake);
 
 		return (
-			<Shell
+			<LessonShell
+				lesson={lesson}
 				view={view}
 				onNavigate={onNavigate}
 				context={context}
-				actions={<PauseButton pause={pause} />}
+				pause={pause}
 				hints={[
 					...(isMistake ? [`${keyLabel(config.controls.custom.hardDrop[0])} to retry`] : []),
 					...(canCallImpossible ? [`${keyLabel(IMPOSSIBLE_CODE)} to call impossible`] : []),
 					...retryHints(config, "restart the order"),
 					PAUSE_HINT,
 				]}
-				aside={
-					<LessonPanel lesson={lesson} view={view} onNavigate={onNavigate}>
+				panel={
+					<>
 						<div className="flex flex-col gap-4">
 							<Segmented label="Stage" options={ORDER_OPTIONS} value={filter} onChange={onFilter} />
 							<p className="text-sm leading-snug text-muted">{STAGE_TEXT[filter]}</p>
@@ -155,7 +154,7 @@ const PracticeView = scope<PracticeViewProps>(
 								</IconButton>
 							</div>
 						</div>
-					</LessonPanel>
+					</>
 				}
 			>
 				<PlayArea
@@ -168,7 +167,7 @@ const PracticeView = scope<PracticeViewProps>(
 					{notes && <BoardNotes notes={notes} />}
 					{clears > 0 && <SuccessFlash key={clears} />}
 				</PlayArea>
-			</Shell>
+			</LessonShell>
 		);
 	},
 );

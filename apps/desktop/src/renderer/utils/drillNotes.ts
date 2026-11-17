@@ -28,3 +28,6 @@ export const drillMarks = ({ placed, best }: MarkedMistake): ReadonlyArray<Board
 	...(placed === null ? [] : [{ cells: placed, tone: "mistake" as const }]),
 	...(best === null ? [] : [{ cells: placementCells(best), tone: "target" as const }]),
 ];
+
+export const drillNotes = ({ title, detail, placed, best }: DrillMistake): ReadonlyArray<BoardNote> =>
+	mistakeCard(title, detail, placed, best === null ? null : placementCells(best));

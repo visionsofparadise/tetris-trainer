@@ -25,6 +25,7 @@ interface PlayAreaProps {
 	readonly marks?: ReadonlyArray<BoardMark>;
 	readonly display?: GameDisplay;
 	readonly pause?: PauseControl;
+	readonly showNext?: boolean;
 	readonly onGameOver?: () => void;
 	readonly children?: ReactNode;
 }
@@ -36,6 +37,7 @@ export function PlayArea({
 	marks,
 	display = "play",
 	pause,
+	showNext = true,
 	onGameOver,
 	children,
 }: PlayAreaProps) {
@@ -63,7 +65,7 @@ export function PlayArea({
 					{pause?.isPaused && <PausedCard />}
 				</BoardWell>
 				<NextColumn
-					next={display === "play" ? readout.next : NO_PIECES}
+					next={display === "play" && showNext ? readout.next : NO_PIECES}
 					height={readout.height}
 					holes={readout.holes}
 				/>
