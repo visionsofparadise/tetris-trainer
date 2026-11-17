@@ -10,6 +10,7 @@ import { NextColumn } from "./NextColumn";
 import { PausedCard } from "./PausedCard";
 import type { AppContext } from "../../models/AppContext";
 import type { BoardMark } from "../../models/BoardMark";
+import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { Control } from "../../models/Control";
 import type { GameDisplay } from "../../models/GameDisplay";
 import type { PauseControl } from "../../models/PauseControl";
@@ -23,6 +24,7 @@ interface PlayAreaProps {
 	readonly control?: Control;
 	readonly context: AppContext;
 	readonly marks?: ReadonlyArray<BoardMark>;
+	readonly overlays?: ReadonlyArray<BoardOverlay>;
 	readonly display?: GameDisplay;
 	readonly pause?: PauseControl;
 	readonly showNext?: boolean;
@@ -35,6 +37,7 @@ export function PlayArea({
 	control = "none",
 	context,
 	marks,
+	overlays,
 	display = "play",
 	pause,
 	showNext = true,
@@ -61,6 +64,7 @@ export function PlayArea({
 					game={game}
 					control={active}
 					marks={marks}
+					overlays={overlays}
 					display={display}
 					isPaused={pause?.isPaused}
 					onGameOver={onGameOver}

@@ -1,4 +1,5 @@
 import { Mino } from "@tetris-trainer/game";
+import type { Tone } from "../models/Tone";
 
 export const MINO_COLORS: Record<Mino, number> = {
 	[Mino.I]: 0x4fdce6,
@@ -14,6 +15,9 @@ export const MINO_COLORS: Record<Mino, number> = {
 
 export const LIME = 0xc8ff1f;
 export const PINK = 0xff1f6b;
+export const INK = 0x05060c;
+
+export const TONE_COLORS: Record<Tone, number> = { lime: LIME, pink: PINK, muted: 0xe2e4e8 };
 
 const SHADE = 0.55;
 const CHANNEL_SHIFTS = [16, 8, 0];

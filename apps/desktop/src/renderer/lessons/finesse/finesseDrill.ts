@@ -4,6 +4,7 @@ import { findFault, wrongSpot, type Attempt } from "./faults";
 import { routeScript } from "./routeScript";
 import { slideTitles } from "./slides";
 import { FINESSE_PIECES, FINESSE_TARGETS, pieceSetup, routeRules, targetMarks, targetPlacement } from "./targets";
+import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { Drill, DrillStage } from "../drill/Drill";
 
 export type FinesseStageId = "cells" | "keys" | "mixed" | "gravity" | "reset";
@@ -66,6 +67,8 @@ const STREAK = { cells: 20, reset: 40 } as const;
 const WINDOWS = { keys: { size: 50, passes: 48 }, mixed: { size: 100, passes: 95 } } as const;
 
 const LAST_PIECE: Piece = Mino.Z;
+
+const NO_OVERLAYS: ReadonlyArray<BoardOverlay> = [];
 
 const randomSeed = (): number => 1 + Math.floor(Math.random() * (MODULUS - 1));
 
@@ -191,6 +194,7 @@ export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	isPassed: isFinessePassed,
 	progress: progressOf,
 	marks: ({ target }) => targetMarks(target),
+	overlays: () => NO_OVERLAYS,
 	describe: ({ stage, target }, player) =>
 		JSON.stringify({ stage, target, keys: finesseRoutes(target, player)[0] ?? [] }),
 	watch: (player) => {

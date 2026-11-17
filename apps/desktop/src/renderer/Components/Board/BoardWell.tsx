@@ -1,6 +1,7 @@
 import { cn } from "../../utils/cn";
 import { GameCanvas } from "./GameCanvas";
 import type { BoardMark } from "../../models/BoardMark";
+import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { Control } from "../../models/Control";
 import type { GameDisplay } from "../../models/GameDisplay";
 import type { Game } from "@tetris-trainer/game";
@@ -23,13 +24,14 @@ interface BoardWellProps {
 	readonly game: Game;
 	readonly control: Control;
 	readonly marks?: ReadonlyArray<BoardMark>;
+	readonly overlays?: ReadonlyArray<BoardOverlay>;
 	readonly display?: GameDisplay;
 	readonly isPaused?: boolean;
 	readonly onGameOver?: () => void;
 	readonly children?: ReactNode;
 }
 
-export function BoardWell({ game, control, marks, display, isPaused, onGameOver, children }: BoardWellProps) {
+export function BoardWell({ game, control, marks, overlays, display, isPaused, onGameOver, children }: BoardWellProps) {
 	return (
 		<div className="relative bg-well p-1.5 shadow-[0_0_0_1px_rgb(255_255_255/6%)]">
 			{BRACKETS.map((position) => (
@@ -40,7 +42,14 @@ export function BoardWell({ game, control, marks, display, isPaused, onGameOver,
 				/>
 			))}
 			<div className="board-dots relative h-(--board-height) w-(--board-width)" data-anchor="board">
-				<GameCanvas game={game} marks={marks} display={display} isPaused={isPaused} onGameOver={onGameOver} />
+				<GameCanvas
+					game={game}
+					marks={marks}
+					overlays={overlays}
+					display={display}
+					isPaused={isPaused}
+					onGameOver={onGameOver}
+				/>
 			</div>
 			{children}
 		</div>

@@ -2,11 +2,12 @@ import { Mino } from "@haelp/teto/engine";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "./config";
 import { BOARD_COLUMNS } from "./engineOptions";
-import { dropSteps, finesseRoutes, finesseTargets, type FinesseOptions } from "./finesse";
+import { dropSteps, finesseRoutes, finesseTargets, pathCells, routeCells, type FinesseOptions } from "./finesse";
 import { Game } from "./Game";
 import { BAG, cellsKey, ORIENTATIONS, placementCells, samePlacement, type Piece, type Placement } from "./pieces";
 import type { Handling } from "./config";
-import type { ScriptStep } from "./script";
+import type { KeyPress } from "./inputs";
+import type { GameKey, ScriptStep } from "./script";
 
 const HANDLINGS: ReadonlyArray<[string, Handling]> = [
 	["default handling", DEFAULT_CONFIG.handling],
@@ -129,5 +130,97 @@ describe("finesseRoutes", () => {
 
 			expect(shortest).toEqual(searched);
 		});
+	});
+});
+
+describe("path cells", () => {
+	const tap = (key: GameKey, down: number): KeyPress => ({
+		key,
+		source: "user",
+		down,
+		up: down + 2,
+		blocked: false,
+		carried: false,
+	});
+
+	it("lands the player's three taps, soft drop included and hard drop left out", () => {
+		const presses = [
+			tap("moveRight", 0),
+			tap("moveRight", 5),
+			tap("softDrop", 8),
+			tap("moveRight", 10),
+			tap("hardDrop", 15),
+		];
+
+		expect(pathCells(presses, DEFAULT_CONFIG.handling, Mino.T)).toEqual([
+			[
+				[5, 1],
+				[4, 0],
+				[5, 0],
+				[6, 0],
+			],
+			[
+				[6, 1],
+				[5, 0],
+				[6, 0],
+				[7, 0],
+			],
+			[
+				[6, 1],
+				[5, 0],
+				[6, 0],
+				[7, 0],
+			],
+			[
+				[7, 1],
+				[6, 0],
+				[7, 0],
+				[8, 0],
+			],
+		]);
+	});
+
+	it("replays the key timings, so a DAS stopped short and a floor kick land where they did", () => {
+		const held = (key: GameKey, down: number, up: number): KeyPress => ({ ...tap(key, down), up });
+
+		expect(pathCells([held("moveLeft", 0, 10)], DEFAULT_CONFIG.handling, Mino.L)).toEqual([
+			[
+				[3, 1],
+				[1, 0],
+				[2, 0],
+				[3, 0],
+			],
+		]);
+		expect(pathCells([held("softDrop", 0, 90), tap("rotateCW", 95)], DEFAULT_CONFIG.handling, Mino.T)).toEqual([
+			[
+				[4, 1],
+				[3, 0],
+				[4, 0],
+				[5, 0],
+			],
+			[
+				[4, 1],
+				[3, 2],
+				[3, 1],
+				[3, 0],
+			],
+		]);
+	});
+
+	it("lands each step of a route", () => {
+		expect(routeCells([{ das: "moveRight" }, { tap: "moveLeft" }], Mino.T)).toEqual([
+			[
+				[8, 1],
+				[7, 0],
+				[8, 0],
+				[9, 0],
+			],
+			[
+				[7, 1],
+				[6, 0],
+				[7, 0],
+				[8, 0],
+			],
+		]);
 	});
 });

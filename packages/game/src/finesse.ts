@@ -1,11 +1,13 @@
 import { Engine, Mino, type EngineSnapshot } from "@haelp/teto/engine";
 import { DEFAULT_CONFIG, type Handling } from "./config";
 import { BOARD_COLUMNS, createEngineOptions, settleSpawn } from "./engineOptions";
+import { Game } from "./Game";
 import { isDasPress, isMoveOrTurnKey, isShiftKey, type KeyPress } from "./inputs";
 import {
 	boxBlocks,
 	cellsKey,
 	leftmost,
+	lowest,
 	ORIENTATIONS,
 	pieceShape,
 	placementCells,
@@ -89,12 +91,14 @@ const classicRoute = (target: PieceTarget): Array<Move> => {
 const positionKey = ({ falling }: Engine): string =>
 	`${falling.location[0]},${falling.location[1]},${falling.rotation}`;
 
-const landingKey = ({ falling }: Engine): string => {
+const landingCells = ({ falling }: Engine): Array<Block> => {
 	const cells = falling.absoluteBlocks;
-	const bottom = Math.min(...cells.map(([, y]) => y));
+	const bottom = lowest(cells);
 
-	return cellsKey(cells.map(([x, y]): Block => [x, y - bottom]));
+	return cells.map(([x, y]): Block => [x, y - bottom]);
 };
+
+const landingKey = (engine: Engine): string => cellsKey(landingCells(engine));
 
 const routesTo = (position: Position): Array<Array<Move>> =>
 	position.arrivals.length === 0
@@ -259,6 +263,59 @@ export const pressesReach = (target: PieceTarget, presses: ReadonlyArray<KeyPres
 	}
 
 	return landingKey(engine) === shapeKey(target);
+};
+
+const REPLAY_TAIL = 2;
+
+const replayGame = (handling: Handling, mino: Piece): Game => {
+	const game = new Game(handling, 1);
+
+	game.load({ board: [], validate: true, queue: { pieces: [mino], mode: "fresh-bag" }, holdEnabled: false, seed: 1 });
+	game.setGravity(0);
+
+	return game;
+};
+
+export const pathCells = (
+	presses: ReadonlyArray<KeyPress>,
+	handling: Handling,
+	mino: Piece,
+): Array<ReadonlyArray<Block>> => {
+	const played = presses
+		.filter((press) => press.source === "user" && (isMoveOrTurnKey(press.key) || press.key === "softDrop"))
+		.sort((first, second) => first.down - second.down);
+	const end = Math.max(0, ...played.map((press) => press.up)) + REPLAY_TAIL;
+	const capturedAt = (press: KeyPress): number =>
+		Math.min(end + 1, ...played.filter((other) => other.down > press.down).map((other) => other.down)) - 1;
+	const game = replayGame(handling, mino);
+	const landings = new Map<KeyPress, ReadonlyArray<Block>>();
+	let ghost: ReadonlyArray<Block> = game.ghost;
+
+	for (let frame = 0; frame <= end; frame++) {
+		for (const press of played) if (press.up === frame && press.down < frame) game.release(press.key);
+
+		for (const press of played) if (press.down === frame) game.press(press.key);
+
+		game.step();
+
+		for (const press of played) if (press.up === frame && press.down === frame) game.release(press.key);
+
+		if (game.stats.pieces === 0) ghost = game.ghost;
+
+		for (const press of played) if (capturedAt(press) === frame) landings.set(press, ghost);
+	}
+
+	return played.filter((press) => !press.carried).map((press) => landings.get(press) ?? ghost);
+};
+
+export const routeCells = (route: ReadonlyArray<ScriptStep>, mino: Piece): Array<ReadonlyArray<Block>> => {
+	const engine = spawnEngine(mino);
+
+	return route.map((step) => {
+		applyStep(engine, step);
+
+		return landingCells(engine);
+	});
 };
 
 export const finesseSteps = (target: PieceTarget): Array<ScriptStep> =>

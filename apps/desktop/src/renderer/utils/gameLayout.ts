@@ -17,3 +17,6 @@ export const layoutFor = ({ width, height }: Size): Layout => {
 
 	return { cellSize, boardTop: height - VISIBLE_ROWS * cellSize };
 };
+
+export const rowTop = (row: number, { cellSize, boardTop }: Layout): number =>
+	boardTop + (VISIBLE_ROWS - 1 - row) * cellSize;

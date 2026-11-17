@@ -64,6 +64,7 @@ const FAKE: Drill<FakeState> = {
 	isPassed: ({ passes }) => passes >= ROUND.length * 2,
 	progress: ({ passes }) => ({ label: "Passes", value: String(passes) }),
 	marks: () => [],
+	overlays: () => [],
 	describe: (state) => JSON.stringify(state),
 };
 

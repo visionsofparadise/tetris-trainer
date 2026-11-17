@@ -28,8 +28,11 @@ import { LabelRow } from "../UI/LabelRow";
 import { Segmented, type SegmentedOption } from "../UI/Segmented";
 import type { Drill, DrillStage } from "../../lessons/drill/Drill";
 import type { AppContext } from "../../models/AppContext";
+import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { Lesson, LessonScreenProps } from "../../models/Lesson";
 import type { View } from "../../models/View";
+
+const NO_OVERLAYS: ReadonlyArray<BoardOverlay> = [];
 
 interface PracticeViewProps<S, T extends DrillStage> {
 	readonly session: DrillSession<S, T>;
@@ -71,6 +74,10 @@ function PracticeView<S, T extends DrillStage>({
 
 	const notes = useMemo(() => (mistake ? drillNotes(mistake, config) : null), [mistake, config]);
 	const marks = useMemo(() => (mistake ? drillMarks(mistake) : drill.marks(state)), [mistake, drill, state]);
+	const overlays = useMemo(
+		() => (mistake ? (mistake.overlays ?? NO_OVERLAYS) : drill.overlays(state)),
+		[mistake, drill, state],
+	);
 
 	const handleRetry = useCallback(() => {
 		resume();
@@ -161,6 +168,7 @@ function PracticeView<S, T extends DrillStage>({
 				control={isMistake ? "none" : "user"}
 				context={context}
 				marks={marks}
+				overlays={overlays}
 				display={isMistake ? "board" : "play"}
 				pause={pause}
 				showNext={showNext}

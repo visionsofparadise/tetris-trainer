@@ -1,4 +1,5 @@
 import type { BoardMark } from "../../models/BoardMark";
+import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { Block, Game, Handling, PlaceEvent, Placement, ScriptStep } from "@tetris-trainer/game";
 
 export interface Player {
@@ -19,6 +20,7 @@ export interface DrillMistake extends DrillHint {
 	readonly kind: string;
 	readonly title: string;
 	readonly keys?: KeyComparison;
+	readonly overlays?: ReadonlyArray<BoardOverlay>;
 	readonly placed: ReadonlyArray<Block> | null;
 }
 
@@ -59,6 +61,7 @@ export interface Drill<S, T extends DrillStage = DrillStage> {
 	readonly isPassed: (state: S) => boolean;
 	readonly progress: (state: S) => { readonly label: string; readonly value: string };
 	readonly marks: (state: S) => ReadonlyArray<BoardMark>;
+	readonly overlays: (state: S) => ReadonlyArray<BoardOverlay>;
 	readonly describe: (state: S, player: Player) => string;
 	readonly watch?: (player: Player) => WatchRound;
 }

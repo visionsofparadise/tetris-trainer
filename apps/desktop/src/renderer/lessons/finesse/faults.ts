@@ -1,13 +1,17 @@
 import {
+	cellsKey,
 	finesseRoutes,
 	isDasPress,
 	minimalPresses,
 	ORIENTATIONS,
+	pathCells,
 	playerPresses,
 	pressesReach,
 	pressesToSteps,
+	routeCells,
 	SHIFT_KEYS,
 	stepsMoved,
+	type Block,
 	type GameKey,
 	type KeyPress,
 	type Orientation,
@@ -16,6 +20,8 @@ import {
 	type ShiftKey,
 } from "@tetris-trainer/game";
 import { isTurn, isUprightVertical, opposite, touchesWall } from "./targets";
+import type { BoardOverlay } from "../../models/BoardOverlay";
+import type { Tone } from "../../models/Tone";
 import type { KeyComparison, Player } from "../drill/Drill";
 
 type FaultKind =
@@ -32,6 +38,7 @@ export interface Fault {
 	readonly kind: FaultKind;
 	readonly title: string;
 	readonly keys: KeyComparison;
+	readonly overlays: ReadonlyArray<BoardOverlay>;
 }
 
 const FAULT_TITLES: Record<FaultKind, string> = {
@@ -230,10 +237,34 @@ const compared = (attempt: Attempt, player: Player) => {
 	return { routes, steps, nearest: nearestRoute(routes, steps) };
 };
 
+const numberedGhosts = (path: ReadonlyArray<ReadonlyArray<Block>>, tone: Tone): Array<BoardOverlay> => {
+	const spots = new Map<string, { readonly cells: ReadonlyArray<Block>; readonly numbers: Array<number> }>();
+
+	path.forEach((cells, index) => {
+		const key = cellsKey(cells);
+		const spot = spots.get(key) ?? { cells, numbers: [] };
+
+		spot.numbers.push(index + 1);
+		spots.set(key, spot);
+	});
+
+	return [...spots.values()].map(({ cells, numbers }) => ({ kind: "ghost", cells, tone, label: numbers.join(",") }));
+};
+
+const pathGhosts = (
+	{ target, presses }: Attempt,
+	player: Player,
+	nearest: ReadonlyArray<ScriptStep>,
+): Array<BoardOverlay> => [
+	...numberedGhosts(pathCells(presses, player.handling, target.mino), "pink"),
+	...numberedGhosts(routeCells(nearest, target.mino), "lime"),
+];
+
 const faultOf = (kind: FaultKind, attempt: Attempt, player: Player, nearest: ReadonlyArray<ScriptStep>): Fault => ({
 	kind,
 	title: FAULT_TITLES[kind],
 	keys: { yours: yoursOf(attempt.presses, player), minimal: nearest },
+	overlays: kind === "wrong-spot" ? [] : pathGhosts(attempt, player, nearest),
 });
 
 export const wrongSpot = (attempt: Attempt, player: Player): Fault =>

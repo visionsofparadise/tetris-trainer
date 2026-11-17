@@ -1,4 +1,12 @@
-import { VISIBLE_ROWS, type Block, type BoardTile, type Game, type Mino } from "@tetris-trainer/game";
+import {
+	BOARD_COLUMNS,
+	cellsKey,
+	VISIBLE_ROWS,
+	type Block,
+	type BoardTile,
+	type Game,
+	type Mino,
+} from "@tetris-trainer/game";
 import {
 	blockFace,
 	exposedSides,
@@ -7,11 +15,14 @@ import {
 	PINK,
 	shadeOf,
 	shapeEdges,
+	TONE_COLORS,
 	type BlockEdges,
 	type Sides,
 } from "./blockStyle";
-import { SPAWN_ROWS, type Layout } from "./gameLayout";
+import { rowTop, SPAWN_ROWS, type Layout } from "./gameLayout";
+import { overlayLabels } from "./overlayLabels";
 import type { BoardMark } from "../models/BoardMark";
+import type { BoardOverlay } from "../models/BoardOverlay";
 import type { GameDisplay } from "../models/GameDisplay";
 import type { Graphics } from "pixi.js";
 
@@ -21,6 +32,10 @@ const HATCH_WIDTH_RATIO = 0.04;
 const GHOST_ALPHA = 0.6;
 const TARGET_ALPHA = 0.55;
 const MISTAKE_WIDTH = 2;
+const TINT_ALPHA = 0.14;
+const PATH_ALPHA = 0.9;
+const GHOST_INSET_STEP = 3;
+const ROW_LINE_WIDTH = 2;
 
 interface Cell {
 	readonly left: number;
@@ -35,9 +50,9 @@ const memberOf = (blocks: ReadonlyArray<Block>) => {
 	return (x: number, y: number): boolean => keys.has(blockKey([x, y]));
 };
 
-const cellAt = ([x, y]: Block, { cellSize, boardTop }: Layout): Cell => ({
-	left: x * cellSize,
-	top: boardTop + (VISIBLE_ROWS - 1 - y) * cellSize,
+const cellAt = ([x, y]: Block, layout: Layout): Cell => ({
+	left: x * layout.cellSize,
+	top: rowTop(y, layout),
 });
 
 const sidesOf = ([x, y]: Block, isMember: (x: number, y: number) => boolean): Sides =>
@@ -98,10 +113,16 @@ const drawHatched = (
 	graphics.stroke({ color, alpha, width: Math.max(1, layout.cellSize * HATCH_WIDTH_RATIO) });
 };
 
-const drawOutline = (graphics: Graphics, blocks: ReadonlyArray<Block>, color: number, layout: Layout): void => {
+const drawOutline = (
+	graphics: Graphics,
+	blocks: ReadonlyArray<Block>,
+	color: number,
+	layout: Layout,
+	half = MISTAKE_WIDTH / 2,
+	alpha = 1,
+): void => {
 	const { cellSize } = layout;
 	const isMember = memberOf(blocks);
-	const half = MISTAKE_WIDTH / 2;
 
 	for (const block of blocks) {
 		const { left, top } = cellAt(block, layout);
@@ -118,7 +139,7 @@ const drawOutline = (graphics: Graphics, blocks: ReadonlyArray<Block>, color: nu
 		if (sides.right) graphics.moveTo(right - half, top).lineTo(right - half, bottom);
 	}
 
-	graphics.stroke({ color, width: MISTAKE_WIDTH });
+	graphics.stroke({ color, alpha, width: MISTAKE_WIDTH });
 };
 
 const drawStack = (graphics: Graphics, game: Game, layout: Layout): void => {
@@ -143,19 +164,76 @@ const drawFalling = (graphics: Graphics, game: Game, layout: Layout): void => {
 		drawBlock(graphics, cellAt(block, layout), mino, shapeEdgesOf(block, isMember), layout.cellSize);
 };
 
+const drawTints = (graphics: Graphics, overlays: ReadonlyArray<BoardOverlay>, layout: Layout): void => {
+	for (const overlay of overlays)
+		if (overlay.kind === "tint") {
+			for (const block of overlay.cells) {
+				const { left, top } = cellAt(block, layout);
+
+				graphics.rect(left, top, layout.cellSize, layout.cellSize);
+			}
+
+			graphics.fill({ color: TONE_COLORS[overlay.tone], alpha: TINT_ALPHA });
+		}
+};
+
+const drawRowLines = (graphics: Graphics, overlays: ReadonlyArray<BoardOverlay>, layout: Layout): void => {
+	for (const overlay of overlays)
+		if (overlay.kind === "rowLine") {
+			const y = rowTop(overlay.row, layout);
+
+			graphics
+				.moveTo(0, y)
+				.lineTo(BOARD_COLUMNS * layout.cellSize, y)
+				.stroke({ color: TONE_COLORS[overlay.tone], width: ROW_LINE_WIDTH });
+		}
+};
+
+const drawGhosts = (graphics: Graphics, overlays: ReadonlyArray<BoardOverlay>, layout: Layout): void => {
+	const drawn = new Map<string, number>();
+
+	for (const overlay of overlays)
+		if (overlay.kind === "ghost") {
+			const key = cellsKey(overlay.cells);
+			const repeats = drawn.get(key) ?? 0;
+
+			drawn.set(key, repeats + 1);
+			drawOutline(
+				graphics,
+				overlay.cells,
+				TONE_COLORS[overlay.tone],
+				layout,
+				MISTAKE_WIDTH / 2 + repeats * GHOST_INSET_STEP,
+				PATH_ALPHA,
+			);
+		}
+};
+
+const drawBadges = (graphics: Graphics, overlays: ReadonlyArray<BoardOverlay>, layout: Layout): void => {
+	for (const { badge, tone } of overlayLabels(overlays, layout))
+		if (badge) graphics.rect(badge.left, badge.top, badge.width, badge.height).fill(TONE_COLORS[tone]);
+};
+
 export const drawGame = (
 	graphics: Graphics,
 	game: Game,
 	layout: Layout,
 	marks: ReadonlyArray<BoardMark>,
+	overlays: ReadonlyArray<BoardOverlay>,
 	display: GameDisplay,
 ): void => {
 	graphics.clear();
 	drawStack(graphics, game, layout);
+	drawTints(graphics, overlays, layout);
+	drawRowLines(graphics, overlays, layout);
 
 	for (const { cells, tone } of marks) if (tone === "target") drawHatched(graphics, cells, LIME, TARGET_ALPHA, layout);
+
+	drawGhosts(graphics, overlays, layout);
 
 	if (display === "play") drawFalling(graphics, game, layout);
 
 	for (const { cells, tone } of marks) if (tone === "mistake") drawOutline(graphics, cells, PINK, layout);
+
+	drawBadges(graphics, overlays, layout);
 };

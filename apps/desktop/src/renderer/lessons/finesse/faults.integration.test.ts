@@ -180,11 +180,83 @@ describe("finesse faults", () => {
 				yours: [{ tap: "moveRight" }, { tap: "moveRight" }, { tap: "moveRight" }],
 				minimal: [{ das: "moveRight" }, { tap: "moveLeft" }],
 			},
+			overlays: [
+				{
+					kind: "ghost",
+					tone: "pink",
+					label: "1",
+					cells: [
+						[5, 1],
+						[4, 0],
+						[5, 0],
+						[6, 0],
+					],
+				},
+				{
+					kind: "ghost",
+					tone: "pink",
+					label: "2",
+					cells: [
+						[6, 1],
+						[5, 0],
+						[6, 0],
+						[7, 0],
+					],
+				},
+				{
+					kind: "ghost",
+					tone: "pink",
+					label: "3",
+					cells: [
+						[7, 1],
+						[6, 0],
+						[7, 0],
+						[8, 0],
+					],
+				},
+				{
+					kind: "ghost",
+					tone: "lime",
+					label: "1",
+					cells: [
+						[8, 1],
+						[7, 0],
+						[8, 0],
+						[9, 0],
+					],
+				},
+				{
+					kind: "ghost",
+					tone: "lime",
+					label: "2",
+					cells: [
+						[7, 1],
+						[6, 0],
+						[7, 0],
+						[8, 0],
+					],
+				},
+			],
 		});
 		expect(wrongSpot(attempt(Mino.O, ["spawn", 4], []), WITH_180)).toEqual({
 			kind: "wrong-spot",
 			title: "Wrong spot",
 			keys: { yours: [], minimal: [] },
+			overlays: [],
 		});
+	});
+
+	it("numbers one ghost per spot, listing every key that landed there", () => {
+		const wiggle = findFault(
+			attempt(Mino.L, ["spawn", 1], pressed(["moveLeft", "moveLeft", "moveRight", "moveLeft"])),
+			WITH_180,
+		);
+
+		expect(wiggle?.overlays).toMatchObject([
+			{ tone: "pink", label: "1,3" },
+			{ tone: "pink", label: "2,4" },
+			{ tone: "lime", label: "1" },
+			{ tone: "lime", label: "2" },
+		]);
 	});
 });
