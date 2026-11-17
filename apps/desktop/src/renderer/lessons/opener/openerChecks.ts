@@ -1,5 +1,5 @@
-import { samePlacement, type Game, type PlaceEvent, type Piece } from "@tetris-trainer/game";
-import { DEMO_HANDLING, loadOrder, loadSlide, planScript } from "./openerScript";
+import { DEMO_HANDLING, samePlacement, type Game, type PlaceEvent, type Piece } from "@tetris-trainer/game";
+import { loadOrder, loadSlide, planScript } from "./openerScript";
 import { ordersByCategory } from "./orders";
 import { plan, startState } from "./planner";
 import type { Opener } from "./Opener";

@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, dropSteps, Game, type Handling, type Piece, type ScriptStep } from "@tetris-trainer/game";
+import { DEMO_HANDLING, dropSteps, Game, type Handling, type Piece, type ScriptStep } from "@tetris-trainer/game";
 import type { Slide } from "./Opener";
 import type { Decision } from "./planner";
 
@@ -6,8 +6,6 @@ export interface ScriptPacing {
 	readonly keyWait: number;
 	readonly decisionWait: number;
 }
-
-export const DEMO_HANDLING: Handling = { ...DEFAULT_CONFIG.handling, sdf: 41 };
 
 export const DEMO_PACING: ScriptPacing = { keyWait: 6, decisionWait: 30 };
 

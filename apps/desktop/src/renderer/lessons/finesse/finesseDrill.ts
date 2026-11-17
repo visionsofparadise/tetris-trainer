@@ -1,6 +1,5 @@
-import { finesseRoutes, Mino, samePlacement, type Piece, type PieceTarget } from "@tetris-trainer/game";
+import { DEMO_HANDLING, finesseRoutes, Mino, samePlacement, type Piece, type PieceTarget } from "@tetris-trainer/game";
 import { loadGame } from "../../utils/loadDemo";
-import { DEMO_HANDLING } from "../opener/openerScript";
 import { findFault, wrongSpot, type Attempt } from "./faults";
 import { routeScript } from "./routeScript";
 import { slideTitles } from "./slides";

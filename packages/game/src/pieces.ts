@@ -6,6 +6,8 @@ export type Piece = Exclude<Mino, Mino.GARBAGE | Mino.BOMB>;
 
 export const BAG: ReadonlyArray<Piece> = [Mino.Z, Mino.L, Mino.O, Mino.S, Mino.I, Mino.J, Mino.T];
 
+export const isPiece = (mino: Mino): mino is Piece => BAG.some((piece) => piece === mino);
+
 export const ORIENTATIONS = ["spawn", "right", "reverse", "left"] as const;
 
 export type Orientation = (typeof ORIENTATIONS)[number];
@@ -26,7 +28,7 @@ export const pieceShape = (mino: Mino): TetrominoData => {
 };
 
 export const boxBlocks = (mino: Mino, rotation: number): Array<Block> =>
-	(pieceShape(mino).matrix.data[rotation % ORIENTATIONS.length] ?? []).map(([x, y]) => [x, -y]);
+	(pieceShape(mino).matrix.data[rotation % ORIENTATIONS.length] ?? []).map(([x, y]) => [x, 0 - y]);
 
 export const leftmost = (blocks: ReadonlyArray<Block>): number => Math.min(...blocks.map(([x]) => x));
 

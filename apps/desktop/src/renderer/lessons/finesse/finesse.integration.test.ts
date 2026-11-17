@@ -1,6 +1,7 @@
 import {
 	cellsKey,
 	DEFAULT_CONFIG,
+	DEMO_HANDLING,
 	finesseRoutes,
 	Game,
 	minimalPresses,
@@ -16,7 +17,6 @@ import { createMutableState } from "opshot";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { continueDrill, createDrillSession, dealDrill, retryMistake, setStage } from "../drill/drillSession";
 import { playerOf } from "../drill/player";
-import { DEMO_HANDLING } from "../opener/openerScript";
 import { FINESSE_DRILL, FINESSE_STAGES, startFinesse, type FinesseStageId } from "./finesseDrill";
 import { routeScript } from "./routeScript";
 import { FINESSE_SLIDES } from "./slides";

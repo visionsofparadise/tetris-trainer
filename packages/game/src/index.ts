@@ -13,6 +13,7 @@ export {
 export {
 	BAG,
 	cellsKey,
+	isPiece,
 	ORIENTATIONS,
 	placementCells,
 	samePlacement,
@@ -23,6 +24,7 @@ export {
 } from "./pieces";
 export {
 	DEFAULT_CONFIG,
+	DEMO_HANDLING,
 	findAction,
 	parseTetrioConfig,
 	readTetrioConfig,

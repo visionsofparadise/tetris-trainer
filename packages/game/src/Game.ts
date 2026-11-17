@@ -2,7 +2,7 @@ import { Board, Engine, legal, type EngineSnapshot, type LockRes, type Mino } fr
 import mitt from "mitt";
 import { BOARD_SIZE, createEngineOptions, DEFAULT_GRAVITY, settleSpawn } from "./engineOptions";
 import { KeyRecord } from "./inputs";
-import { BAG, leftmost, lowest, ORIENTATIONS, placementCells, type Block, type Piece, type Placement } from "./pieces";
+import { isPiece, leftmost, lowest, ORIENTATIONS, placementCells, type Block, type Placement } from "./pieces";
 import { compileScript, type GameKey, type InputType, type ScriptStep, type ShiftKey } from "./script";
 import {
 	buildBoard,
@@ -41,8 +41,6 @@ export const NEXT_COUNT = 5;
 const FRAME_MS = 1000 / 60;
 
 const randomSeed = (): number => Math.floor(Math.random() * 2 ** 31);
-
-const isPiece = (mino: Mino): mino is Piece => BAG.some((piece) => piece === mino);
 
 export class Game {
 	readonly #engine: Engine;

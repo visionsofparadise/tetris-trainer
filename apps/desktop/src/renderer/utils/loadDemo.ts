@@ -1,5 +1,4 @@
-import { Game, type GameSetup, type Handling, type ScriptStep } from "@tetris-trainer/game";
-import { DEMO_HANDLING } from "../lessons/opener/openerScript";
+import { DEMO_HANDLING, Game, type GameSetup, type Handling, type ScriptStep } from "@tetris-trainer/game";
 import type { BoardMark } from "../models/BoardMark";
 
 export interface Demo {

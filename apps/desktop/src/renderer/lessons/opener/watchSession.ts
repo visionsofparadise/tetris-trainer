@@ -1,5 +1,6 @@
+import { DEMO_HANDLING } from "@tetris-trainer/game";
 import { ignore } from "opshot";
-import { DEMO_HANDLING, DEMO_PACING, loadOrder, planScript } from "./openerScript";
+import { DEMO_PACING, loadOrder, planScript } from "./openerScript";
 import { categorize, dealOrder, type Category, type OrderFilter, type OrderPool } from "./orders";
 import { impossibleReason, plan, startState, type Decision } from "./planner";
 import type { Opener } from "./Opener";

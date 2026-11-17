@@ -68,6 +68,8 @@ export const DEFAULT_CONFIG: TetrioConfig = {
 	},
 };
 
+export const DEMO_HANDLING: Handling = { ...DEFAULT_CONFIG.handling, sdf: 41 };
+
 export const readTetrioConfig = (value: unknown): TetrioConfig => tetrioConfigSchema.parse(value);
 
 export const parseTetrioConfig = (text: string): TetrioConfig => readTetrioConfig(JSON.parse(text));
