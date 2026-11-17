@@ -30,7 +30,7 @@ export interface RecordedInput {
 
 type Opened = Omit<KeyPress, "up"> & { readonly up?: number };
 
-export const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.some((shift) => shift === key);
+const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.some((shift) => shift === key);
 
 const isTurnKey = (key: GameKey): boolean => isShiftKey(key) || ROTATION_KEYS.includes(key);
 
@@ -40,8 +40,8 @@ const openPresses = (inputs: ReadonlyArray<RecordedInput>, spawn: number): Array
 	for (const { frame, type, key, source, blocked, carried } of inputs) {
 		const open = presses.filter((press) => press.key === key && press.up === undefined).at(-1);
 
-		if (type === "keydown") presses.push({ key, source, down: frame - spawn, blocked: false, carried });
-		else if (open !== undefined) presses[presses.indexOf(open)] = { ...open, up: frame - spawn, blocked };
+		if (type === "keydown") presses.push({ key, source, down: frame - spawn, blocked, carried });
+		else if (open !== undefined) presses[presses.indexOf(open)] = { ...open, up: frame - spawn };
 	}
 
 	return presses;
@@ -60,6 +60,19 @@ export class KeyRecord {
 
 	add(input: RecordedInput): void {
 		this.#inputs.push(input);
+	}
+
+	markBlocked(isBlocked: (key: ShiftKey) => boolean): void {
+		const open = new Map<GameKey, number>();
+
+		this.#inputs.forEach(({ type, key }, index) => (type === "keydown" ? open.set(key, index) : open.delete(key)));
+
+		for (const index of open.values()) {
+			const input = this.#inputs[index];
+
+			if (input !== undefined && !input.blocked && isShiftKey(input.key) && isBlocked(input.key))
+				this.#inputs[index] = { ...input, blocked: true };
+		}
 	}
 
 	start(frame: number, isCharged: (key: ShiftKey) => boolean): void {
@@ -93,7 +106,11 @@ export class KeyRecord {
 
 		return presses.map(({ up, ...press }) =>
 			up === undefined
-				? { ...press, up: frame - this.#spawn, blocked: isShiftKey(press.key) && isBlocked(press.key) }
+				? {
+						...press,
+						up: frame - this.#spawn,
+						blocked: press.blocked || (isShiftKey(press.key) && isBlocked(press.key)),
+					}
 				: { ...press, up },
 		);
 	}

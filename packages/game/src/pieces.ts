@@ -40,7 +40,7 @@ export const placementCells = ({ mino, orientation, column, row }: Placement): A
 	return blocks.map(([x, y]) => [column + x - left, row + y - bottom]);
 };
 
-const cellsKey = (cells: ReadonlyArray<Block>): string =>
+export const cellsKey = (cells: ReadonlyArray<Block>): string =>
 	cells
 		.map(([x, y]) => `${x},${y}`)
 		.sort()

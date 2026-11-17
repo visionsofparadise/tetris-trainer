@@ -4,7 +4,7 @@ import { DEFAULT_CONFIG } from "./config";
 import { BOARD_COLUMNS } from "./engineOptions";
 import { dropSteps, finesseRoutes, finesseTargets, type FinesseOptions } from "./finesse";
 import { Game } from "./Game";
-import { BAG, ORIENTATIONS, placementCells, samePlacement, type Piece, type Placement } from "./pieces";
+import { BAG, cellsKey, ORIENTATIONS, placementCells, samePlacement, type Piece, type Placement } from "./pieces";
 import type { Handling } from "./config";
 import type { ScriptStep } from "./script";
 
@@ -35,11 +35,7 @@ const floorPlacements: ReadonlyArray<Placement> = BAG.flatMap((mino) =>
 	),
 );
 
-const cellsKey = (placement: Placement): string =>
-	placementCells(placement)
-		.map(([x, y]) => `${x},${y}`)
-		.sort()
-		.join(" ");
+const placementKey = (placement: Placement): string => cellsKey(placementCells(placement));
 
 const land = (game: Game, mino: Piece, steps: ReadonlyArray<ScriptStep>): Placement | undefined => {
 	let placed: Placement | undefined;
@@ -78,7 +74,7 @@ const bruteForce = (mino: Piece, options: FinesseOptions): Map<string, Set<strin
 
 			if (placed === undefined) throw new Error(`No lock after ${JSON.stringify(sequence)}`);
 
-			const key = cellsKey(placed);
+			const key = placementKey(placed);
 			const best = shortest.get(key) ?? { length, routes: new Set<string>() };
 
 			shortest.set(key, best);
@@ -126,7 +122,7 @@ describe("finesseRoutes", () => {
 			const targets = finesseTargets().filter((target) => target.mino === mino);
 			const searched = new Map(
 				targets.map((target) => [
-					cellsKey({ ...target, row: 0 }),
+					placementKey({ ...target, row: 0 }),
 					new Set(finesseRoutes(target, { allow180 }).map((route) => JSON.stringify(route))),
 				]),
 			);

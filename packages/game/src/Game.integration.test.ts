@@ -330,6 +330,30 @@ describe("key timings", () => {
 		]);
 	});
 
+	it("marks a shift blocked when it held the piece at the wall before a turn moved it off", () => {
+		const game = new Game({ ...DEFAULT_CONFIG.handling, dcd: 3 }, 1);
+		const places = placed(game);
+
+		game.load(setup({ queue: { pieces: [Mino.T], mode: "any" } }));
+		game.press("moveLeft");
+		game.step(32);
+		game.press("rotateCW");
+		game.step();
+		game.release("moveLeft");
+		game.release("rotateCW");
+		game.step();
+		hardDrop(game);
+
+		const [place] = places;
+
+		expect(place?.placement).toEqual({ mino: Mino.T, orientation: "right", column: 1, row: 0 });
+		expect(place?.inputs).toEqual([
+			press("moveLeft", 0, 33, true),
+			press("rotateCW", 32, 33),
+			press("hardDrop", 34, 34),
+		]);
+	});
+
 	it("judges a shift held at lock against the board before the lock clears lines", () => {
 		const game = loaded({
 			board: [

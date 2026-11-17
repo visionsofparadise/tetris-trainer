@@ -1,7 +1,7 @@
 import { Board, Engine, legal, type EngineSnapshot, type LockRes, type Mino } from "@haelp/teto/engine";
 import mitt from "mitt";
 import { BOARD_SIZE, createEngineOptions, DEFAULT_GRAVITY, settleSpawn } from "./engineOptions";
-import { isShiftKey, KeyRecord } from "./inputs";
+import { KeyRecord } from "./inputs";
 import { BAG, leftmost, lowest, ORIENTATIONS, placementCells, type Block, type Piece, type Placement } from "./pieces";
 import { compileScript, type GameKey, type InputType, type ScriptStep, type ShiftKey } from "./script";
 import {
@@ -260,16 +260,10 @@ export class Game {
 		const due = this.#scheduled.filter((input) => input.frame <= frame);
 
 		this.#scheduled = this.#scheduled.filter((input) => input.frame > frame);
+		this.#keys.markBlocked((key) => this.#isBlocked(key));
 
 		for (const { type, key, source } of due) {
-			this.#keys.add({
-				frame,
-				type,
-				key,
-				source,
-				blocked: type === "keyup" && isShiftKey(key) && this.#isBlocked(key),
-				carried: false,
-			});
+			this.#keys.add({ frame, type, key, source, blocked: false, carried: false });
 			this.#events.emit("input", { type, key, source });
 		}
 

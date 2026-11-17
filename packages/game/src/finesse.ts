@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG } from "./config";
 import { BOARD_COLUMNS, createEngineOptions, settleSpawn } from "./engineOptions";
 import {
 	boxBlocks,
+	cellsKey,
 	leftmost,
 	ORIENTATIONS,
 	pieceShape,
@@ -51,12 +52,6 @@ const ROTATIONS: ReadonlyArray<Move> = [ROTATE_CW, ROTATE_CCW, ROTATE_180];
 const ORIENTATION_MOVES: ReadonlyArray<Move | undefined> = [undefined, ROTATE_CW, ROTATE_180, ROTATE_CCW];
 
 const TARGET_PIECES: ReadonlyArray<Piece> = [Mino.O, Mino.I, Mino.T, Mino.J, Mino.L, Mino.S, Mino.Z];
-
-const cellsKey = (cells: ReadonlyArray<Block>): string =>
-	cells
-		.map(([x, y]) => `${x},${y}`)
-		.sort()
-		.join(" ");
 
 const shapeKey = (target: PieceTarget): string => cellsKey(placementCells({ ...target, row: 0 }));
 

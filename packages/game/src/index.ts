@@ -11,6 +11,7 @@ export {
 } from "./finesse";
 export {
 	BAG,
+	cellsKey,
 	ORIENTATIONS,
 	placementCells,
 	samePlacement,
