@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { LESSON_GROUPS } from "../lessons/catalog";
 import { mainEvents } from "../models/mainEventsOfWindow";
 import { createSettings } from "../models/Settings";
+import { createWorkerSearch } from "../search/workerSearch";
 import { createSound } from "../utils/createSound";
 import { findLessonPlace } from "../utils/lessonViews";
 import { restoreNavigation, toward, type Navigation } from "../utils/navigation";
@@ -17,7 +18,14 @@ export function App({ savedSettings }: AppProps) {
 	const [context] = useState<AppContext>(() => {
 		const settings = createSettings(savedSettings, window.main.writeSettings);
 
-		return { main: window.main, mainEvents, settings, sound: createSound(settings), lessons: LESSON_GROUPS };
+		return {
+			main: window.main,
+			mainEvents,
+			settings,
+			sound: createSound(settings),
+			lessons: LESSON_GROUPS,
+			search: createWorkerSearch(),
+		};
 	});
 	const [{ view }, setNavigation] = useState<Navigation>(() =>
 		restoreNavigation(context.lessons, window.location.hash),
