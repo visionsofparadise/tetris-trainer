@@ -100,7 +100,11 @@ function PracticeView<S, T extends DrillStage>({
 
 	const hints = useMemo(
 		() => [
-			...(isMistake && !isRestart ? [`${keyLabel(config.controls.custom.hardDrop[0])} for the next piece`] : []),
+			...(isMistake
+				? [
+						`${keyLabel(config.controls.custom.hardDrop[0])} ${isRestart ? "to restart the run" : "for the next piece"}`,
+					]
+				: []),
 			...retryHints(config, retryLabel.toLowerCase()),
 			PAUSE_HINT,
 		],

@@ -1,4 +1,4 @@
-import { placementCells, type Block, type TetrioConfig } from "@tetris-trainer/game";
+import { cellsKey, placementCells, type Block, type TetrioConfig } from "@tetris-trainer/game";
 import { stepLabel } from "./keyLabel";
 import type { DrillMistake, KeyComparison } from "../lessons/drill/Drill";
 import type { BoardMark } from "../models/BoardMark";
@@ -25,16 +25,21 @@ export const mistakeCard = (
 	},
 ];
 
-export const drillMarks = ({ placed, best }: MarkedMistake): ReadonlyArray<BoardMark> => [
-	...(placed === null ? [] : [{ cells: placed, tone: "mistake" as const }]),
-	...(best === null ? [] : [{ cells: placementCells(best), tone: "target" as const }]),
-];
+const misplaced = (
+	placed: ReadonlyArray<Block> | null,
+	target: ReadonlyArray<Block> | null,
+): ReadonlyArray<Block> | null =>
+	placed !== null && target !== null && cellsKey(placed) === cellsKey(target) ? null : placed;
 
-const cellsKey = (cells: ReadonlyArray<Block>): string =>
-	cells
-		.map(([x, y]) => `${x},${y}`)
-		.sort()
-		.join(" ");
+export const drillMarks = ({ placed, best }: MarkedMistake): ReadonlyArray<BoardMark> => {
+	const target = best === null ? null : placementCells(best);
+	const wrong = misplaced(placed, target);
+
+	return [
+		...(wrong === null ? [] : [{ cells: wrong, tone: "mistake" as const }]),
+		...(target === null ? [] : [{ cells: target, tone: "target" as const }]),
+	];
+};
 
 const keyRows = ({ yours, minimal }: KeyComparison, config: TetrioConfig): ReadonlyArray<KeyRow> => [
 	{ label: "Yours", tone: "pink", keys: yours.map((step) => stepLabel(step, config)) },
@@ -46,9 +51,8 @@ export const drillNotes = (
 	config: TetrioConfig,
 ): ReadonlyArray<BoardNote> => {
 	const target = best === null ? null : placementCells(best);
-	const pointed = placed !== null && target !== null && cellsKey(placed) === cellsKey(target) ? null : placed;
 
-	return mistakeCard(title, undefined, pointed, target).map((note) =>
+	return mistakeCard(title, undefined, misplaced(placed, target), target).map((note) =>
 		keys ? { ...note, keys: keyRows(keys, config) } : note,
 	);
 };
