@@ -118,6 +118,16 @@ export const continueDrill = <S, T extends DrillStage>(
 	dealDrill(session, drill, player);
 };
 
+export const retryDrill = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	drill: Drill<S, T>,
+	player: Player,
+): void => {
+	if (session.stage.onMistake === "restart") continueDrill(session, drill, player);
+	else if (session.status === "playing") dealDrill(session, drill, player);
+	else retryMistake(session);
+};
+
 export const setStage = <S, T extends DrillStage>(
 	session: DrillSession<S, T>,
 	drill: Drill<S, T>,

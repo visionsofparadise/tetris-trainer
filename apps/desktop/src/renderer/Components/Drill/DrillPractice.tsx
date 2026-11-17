@@ -9,7 +9,7 @@ import {
 	continueDrill,
 	createDrillSession,
 	dealDrill,
-	retryMistake,
+	retryDrill,
 	setStage,
 	type DrillSession,
 } from "../../lessons/drill/drillSession";
@@ -96,20 +96,17 @@ function PracticeView<S, T extends DrillStage>({
 	useCue(context.sound, "failure", isMistake);
 
 	const isRestartMistake = isMistake && isRestart;
-	const retryLabel = isMistake ? (isRestart ? "Restart the run" : "Retry the piece") : "Restart the piece";
+	const retryLabel = isRestart ? "Restart the run" : isMistake ? "Retry the piece" : "Restart the piece";
 
-	const hints = useMemo(
-		() => [
-			...(isMistake
-				? [
-						`${keyLabel(config.controls.custom.hardDrop[0])} ${isRestart ? "to restart the run" : "for the next piece"}`,
-					]
-				: []),
-			...retryHints(config, retryLabel.toLowerCase()),
+	const hints = useMemo(() => {
+		const { hardDrop } = config.controls.custom;
+
+		return [
+			...(isMistake && !isRestart ? [`${keyLabel(hardDrop[0])} for the next piece`] : []),
+			...retryHints(config, retryLabel.toLowerCase(), isRestartMistake ? hardDrop.slice(0, 1) : []),
 			PAUSE_HINT,
-		],
-		[isMistake, isRestart, config, retryLabel],
-	);
+		];
+	}, [isMistake, isRestart, isRestartMistake, config, retryLabel]);
 
 	return (
 		<LessonShell
@@ -200,13 +197,10 @@ export function DrillPractice<S, T extends DrillStage>({
 		return created;
 	});
 
-	const handleRetry = useCallback(() => {
-		const player = playerOf(settings.config);
-
-		if (session.status === "playing") dealDrill(session, drill, player);
-		else if (session.stage.onMistake === "restart") continueDrill(session, drill, player);
-		else retryMistake(session);
-	}, [session, drill, settings]);
+	const handleRetry = useCallback(
+		() => retryDrill(session, drill, playerOf(settings.config)),
+		[session, drill, settings],
+	);
 
 	const handleContinue = useCallback(() => {
 		if (session.status === "mistake") continueDrill(session, drill, playerOf(settings.config));

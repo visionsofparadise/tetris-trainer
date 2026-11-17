@@ -5,6 +5,7 @@ import {
 	continueDrill,
 	createDrillSession,
 	dealDrill,
+	retryDrill,
 	retryMistake,
 	setStage,
 	type DrillSession,
@@ -177,6 +178,26 @@ describe("drill session", () => {
 		play(session.game, FIRST);
 		play(session.game, WRONG);
 		continueDrill(session, FAKE, PLAYER);
+
+		expect(session.status).toBe("playing");
+		expect(session.state).toEqual({ stage: "restart", round: 0, placed: 0, passes: 0, failures: 0 });
+	});
+
+	it("restarts the run on a retry mid-piece in a restart-mode stage and the piece in a pause-mode one", () => {
+		const session = started();
+
+		play(session.game, FIRST);
+		session.game.press("moveRight");
+		session.game.step(2);
+		retryDrill(session, FAKE, PLAYER);
+
+		expect(session.state).toMatchObject({ round: 0, placed: 0, passes: 1 });
+
+		setStage(session, FAKE, PLAYER, RESTART);
+		play(session.game, FIRST);
+		session.game.press("moveRight");
+		session.game.step(2);
+		retryDrill(session, FAKE, PLAYER);
 
 		expect(session.status).toBe("playing");
 		expect(session.state).toEqual({ stage: "restart", round: 0, placed: 0, passes: 0, failures: 0 });
