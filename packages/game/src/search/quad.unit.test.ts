@@ -1,7 +1,7 @@
 import { Mino } from "@haelp/teto/engine";
 import { describe, expect, it } from "vitest";
 import { DEMO_HANDLING } from "../config";
-import { BAG, cellsKey, type Piece } from "../pieces";
+import { BAG, cellsKey, type Block, type Piece } from "../pieces";
 import { emptySimBoard, lockCells, type SimBoard } from "../sim/simBoard";
 import { isQuadReady, judgeDistance, readyGap, searchQuadReady } from "./quad";
 import type { Mover, MoveRules } from "./moves";
@@ -15,7 +15,7 @@ const FULL = "#########.";
 
 const MOVER: Mover = { handling: DEMO_HANDLING, gravity: 0 };
 
-const BUDGET: SearchBudget = { nodes: 50000, depth: 6 };
+const BUDGET: SearchBudget = { nodes: 50000, depth: 6, deadlineMs: null };
 
 const RULES: MoveRules = {
 	allow180: true,
@@ -41,12 +41,22 @@ interface Query {
 	readonly queue: ReadonlyArray<Piece>;
 	readonly hold?: Piece | null;
 	readonly holdEnabled?: boolean;
+	readonly holdLocked?: boolean;
 	readonly rules?: Partial<MoveRules>;
 	readonly budget?: Partial<SearchBudget>;
 }
 
-const search = ({ board, current, queue, hold = null, holdEnabled = false, rules, budget }: Query): SearchResult =>
-	searchQuadReady({ board, current, queue, hold, holdEnabled }, GOAL, { ...RULES, ...rules }, MOVER, {
+const search = ({
+	board,
+	current,
+	queue,
+	hold = null,
+	holdEnabled = false,
+	holdLocked = false,
+	rules,
+	budget,
+}: Query): SearchResult =>
+	searchQuadReady({ board, current, queue, hold, holdEnabled, holdLocked }, GOAL, { ...RULES, ...rules }, MOVER, {
 		...BUDGET,
 		...budget,
 	});
@@ -56,7 +66,7 @@ const firstSteps = (result: SearchResult): Array<string> =>
 		? result.firstSteps.map(({ kind, move }) => `${kind} ${move.placement.mino} ${cellsKey(move.cells)}`).sort()
 		: [];
 
-const reached = (locks: number): SearchResult => ({ kind: "reached", locks, firstSteps: [] });
+const reached = (locks: number): SearchResult => ({ kind: "reached", locks, firstSteps: [], nodes: 0 });
 
 const EIGHT_GAP = boardOf(["........#.", FULL, FULL, FULL]);
 
@@ -85,7 +95,19 @@ describe("searchQuadReady", () => {
 	it("returns unknown when the node budget runs out", () => {
 		const queue: Array<Piece> = [Mino.I, Mino.O, Mino.O, Mino.O, Mino.O];
 
-		expect(search({ board: EIGHT_GAP, current: Mino.I, queue, budget: { nodes: 1 } }).kind).toBe("unknown");
+		expect(search({ board: EIGHT_GAP, current: Mino.I, queue, budget: { nodes: 1 } })).toEqual({
+			kind: "unknown",
+			nodes: 1,
+		});
+	});
+
+	it("returns unknown when the deadline has passed", () => {
+		const queue: Array<Piece> = [Mino.I, Mino.O, Mino.O, Mino.O, Mino.O];
+
+		expect(search({ board: EIGHT_GAP, current: Mino.I, queue, budget: { deadlineMs: -1 } })).toEqual({
+			kind: "unknown",
+			nodes: 0,
+		});
 	});
 
 	it("reaches the goal through hold, from a held piece or from the next preview", () => {
@@ -100,6 +122,26 @@ describe("searchQuadReady", () => {
 		expect(fromHold.kind === "reached" && fromHold.locks).toBe(1);
 		expect(firstSteps(fromHold)).toEqual(["hold i 0,3 1,3 2,3 3,3"]);
 		expect(firstSteps(fromPreview)).toEqual(["hold i 0,3 1,3 2,3 3,3"]);
+	});
+
+	it("leaves hold out of the first step while the hold is locked", () => {
+		const result = search({
+			board: FOUR_GAP,
+			current: Mino.S,
+			queue: SWAPS,
+			hold: Mino.I,
+			holdEnabled: true,
+			holdLocked: true,
+		});
+
+		expect(result.kind === "reached" && result.locks).toBe(3);
+		expect(firstSteps(result).every((step) => step.startsWith("place s"))).toBe(true);
+	});
+
+	it("counts a four-line I clear outside the well as an ordinary lock", () => {
+		const board = boardOf([".#########", ".#########", ".#########", ".#########"]);
+
+		expect(search({ board, current: Mino.I, queue: [Mino.O, Mino.O, Mino.O, Mino.O, Mino.O] }).kind).toBe("beyond");
 	});
 
 	it("measures the window from above a covered garbage hole in the well column", () => {
@@ -147,56 +189,41 @@ describe("searchQuadReady", () => {
 	});
 });
 
-describe("isQuadReady", () => {
-	it("holds when the lock fills the window, or the I clears four lines", () => {
-		const board = boardOf(["#####...#.", FULL, FULL, FULL]);
-		const filling = lockCells(
-			board,
-			[
-				[5, 3],
-				[6, 3],
-				[7, 3],
-				[6, 4],
-			],
-			"none",
-		);
-		const short = lockCells(
-			board,
-			[
-				[5, 3],
-				[6, 3],
-				[5, 4],
-				[6, 4],
-			],
-			"none",
-		);
-		const quad = lockCells(
-			boardOf([FULL, FULL, FULL, FULL]),
-			[
-				[9, 0],
-				[9, 1],
-				[9, 2],
-				[9, 3],
-			],
-			"none",
-		);
+const cellsOf = (...cells: Array<Block>): Array<Block> => cells;
 
-		expect(isQuadReady(filling, Mino.T, GOAL)).toBe(true);
-		expect(isQuadReady(short, Mino.O, GOAL)).toBe(false);
-		expect(isQuadReady(quad, Mino.I, GOAL)).toBe(true);
+const WELL_I = cellsOf([9, 0], [9, 1], [9, 2], [9, 3]);
+
+describe("isQuadReady", () => {
+	it("holds when the lock fills the window, or an I in the well clears four lines", () => {
+		const board = boardOf(["#####...#.", FULL, FULL, FULL]);
+		const filling = cellsOf([5, 3], [6, 3], [7, 3], [6, 4]);
+		const short = cellsOf([5, 3], [6, 3], [5, 4], [6, 4]);
+
+		expect(isQuadReady(lockCells(board, filling, "none"), filling, GOAL)).toBe(true);
+		expect(isQuadReady(lockCells(board, short, "none"), short, GOAL)).toBe(false);
+		expect(isQuadReady(lockCells(boardOf([FULL, FULL, FULL, FULL]), WELL_I, "none"), WELL_I, GOAL)).toBe(true);
+	});
+
+	it("leaves out a four-line I clear outside the goal's well", () => {
+		const columnZero = boardOf([".#########", ".#########", ".#########", ".#########"]);
+		const zeroI = cellsOf([0, 0], [0, 1], [0, 2], [0, 3]);
+		const convert = lockCells(boardOf([FULL, FULL, FULL, FULL]), WELL_I, "none");
+
+		expect(isQuadReady(lockCells(columnZero, zeroI, "none"), zeroI, GOAL)).toBe(false);
+		expect(isQuadReady(convert, WELL_I, { well: 6 })).toBe(false);
 	});
 });
 
 describe("judgeDistance", () => {
 	it.each([
-		["before beyond", { kind: "beyond" }, reached(1), false, "silent"],
-		["before unknown", { kind: "unknown" }, reached(1), false, "silent"],
-		["after unknown", reached(3), { kind: "unknown" }, false, "silent"],
+		["before beyond", { kind: "beyond", nodes: 0 }, reached(1), false, "silent"],
+		["before unknown", { kind: "unknown", nodes: 0 }, reached(1), false, "silent"],
+		["after unknown", reached(3), { kind: "unknown", nodes: 0 }, false, "silent"],
 		["the lock reached the goal", reached(1), reached(1), true, "pass"],
 		["one lock closer", reached(3), reached(2), false, "pass"],
 		["more than one lock closer", reached(3), reached(1), false, "pass"],
 		["no closer", reached(3), reached(3), false, "fail"],
-		["after beyond", reached(3), { kind: "beyond" }, false, "fail"],
+		["after beyond", reached(3), { kind: "beyond", nodes: 0 }, false, "fail"],
 	] as const)("%s", (_, before, after, reachedOnLock, call) => {
 		expect(judgeDistance(before, after, reachedOnLock)).toBe(call);
 	});

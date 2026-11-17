@@ -1,23 +1,14 @@
-import { BAG, DEFAULT_CONFIG, LIVE_BUDGET, Mino, type Game, type MoveRules } from "@tetris-trainer/game";
+import { DEFAULT_CONFIG, Mino, type Game, type GameSetup } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
 import { loadGame } from "../utils/loadDemo";
-import { createLocalSearch } from "./localSearch";
 import { searchStateOf } from "./searchStateOf";
 
 const WELL = 9;
 
-const RULES: MoveRules = {
-	allow180: true,
-	excluded: Object.fromEntries(BAG.filter((mino) => mino !== Mino.I).map((mino) => [mino, [WELL]])),
-	holeFreeOnly: true,
-	ceiling: null,
-	quadClearsOnly: true,
-};
-
-const loadedGame = (): Game =>
+const loadedGame = (board: GameSetup["board"]): Game =>
 	loadGame(
 		{
-			board: [{ column: WELL, amount: 3 }],
+			board,
 			validate: false,
 			queue: { pieces: [Mino.I, Mino.I, Mino.I, Mino.O, Mino.O, Mino.O], mode: "any" },
 			holdEnabled: true,
@@ -25,26 +16,22 @@ const loadedGame = (): Game =>
 		DEFAULT_CONFIG.handling,
 	);
 
-describe("search clients", () => {
+describe("searchStateOf", () => {
 	it("reads a loaded game's state", () => {
-		const state = searchStateOf(loadedGame());
+		const state = searchStateOf(loadedGame([{ column: WELL, amount: 3 }]));
 
 		expect(state.current).toBe(Mino.I);
 		expect(state.hold).toBeNull();
 		expect(state.holdEnabled).toBe(true);
+		expect(state.holdLocked).toBe(false);
 		expect(state.queue).toEqual([Mino.I, Mino.I, Mino.O, Mino.O, Mino.O]);
 		expect(Array.from(state.board.rows.slice(0, 4))).toEqual([0b0111111111, 0b0111111111, 0b0111111111, 0]);
 	});
 
-	it("resolves a quad-ready search on the game's state", async () => {
-		const result = await createLocalSearch().quadReady(
-			searchStateOf(loadedGame()),
-			{ well: WELL },
-			RULES,
-			{ handling: DEFAULT_CONFIG.handling, gravity: 0 },
-			LIVE_BUDGET,
-		);
+	it("reads the hold as locked after a hold step", () => {
+		const state = searchStateOf(loadedGame([{ hold: Mino.T }]));
 
-		expect(result.kind === "reached" && result.locks).toBe(3);
+		expect(state.hold).toBe(Mino.T);
+		expect(state.holdLocked).toBe(true);
 	});
 });

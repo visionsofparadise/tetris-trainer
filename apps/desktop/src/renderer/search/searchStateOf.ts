@@ -14,6 +14,7 @@ export const searchStateOf = (game: Game): SearchState => {
 		current: pieceOf(game.falling.mino),
 		hold: hold === null ? null : pieceOf(hold),
 		holdEnabled: game.isHoldEnabled,
+		holdLocked: game.isHoldLocked,
 		queue: game.next.map(pieceOf),
 	};
 };

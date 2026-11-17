@@ -25,6 +25,7 @@ export interface Move {
 	readonly placement: Placement;
 	readonly cells: ReadonlyArray<Block>;
 	readonly spin: SpinType;
+	readonly lines: number;
 	readonly keys: ReadonlyArray<ScriptStep>;
 	readonly presses: number;
 }
@@ -77,6 +78,10 @@ const NO_SPIN = 0;
 const LOCK_RESETS = 15;
 
 const RESET_CAP = 31;
+
+const MAX_GRAVITY = 0.1;
+
+const QUAD_LINES = 4;
 
 const INSTANT_SDF = 41;
 
@@ -230,23 +235,23 @@ const lockKey = (shape: SimShape, x: number, landing: number, spin: number): num
 	return ((landing + shape.bottom) * SPINS.length + spin) * ROWS_WEIGHT + rows;
 };
 
-const isAllowedLock = (generation: Generation, shape: SimShape, x: number, landing: number): boolean => {
+const allowedLines = (generation: Generation, shape: SimShape, x: number, landing: number): number | null => {
 	const { board, rules, excluded } = generation;
 	let lines = 0;
 
 	for (let index = 0; index < shape.rowOffsets.length; index++) {
 		const mask = shiftedMask(shape.rowMasks[index] ?? 0, x);
 
-		if ((mask & excluded) !== 0) return false;
+		if ((mask & excluded) !== 0) return null;
 
 		if (((board.rows[landing + (shape.rowOffsets[index] ?? 0)] ?? 0) | mask) === FULL_ROW) lines++;
 	}
 
-	if (rules.ceiling !== null && landing + shape.top >= rules.ceiling) return false;
+	if (rules.ceiling !== null && landing + shape.top >= rules.ceiling) return null;
 
-	if (rules.quadClearsOnly && lines > 0 && lines < 4) return false;
+	if (rules.quadClearsOnly && lines > 0 && lines < QUAD_LINES) return null;
 
-	return !rules.holeFreeOnly || isHoleFree(board, shapeCells(shape, x, landing));
+	return !rules.holeFreeOnly || isHoleFree(board, shapeCells(shape, x, landing)) ? lines : null;
 };
 
 const recordLock = (generation: Generation, index: number, shape: SimShape, landing: number): void => {
@@ -265,7 +270,9 @@ const recordLock = (generation: Generation, index: number, shape: SimShape, land
 
 	generation.locks.add(key);
 
-	if (!isAllowedLock(generation, shape, x, landing)) return;
+	const lines = allowedLines(generation, shape, x, landing);
+
+	if (lines === null) return;
 
 	generation.moves.push({
 		placement: {
@@ -276,6 +283,7 @@ const recordLock = (generation: Generation, index: number, shape: SimShape, land
 		},
 		cells: shapeCells(shape, x, landing),
 		spin: SPINS[spin] ?? "none",
+		lines,
 		keys: pathKeys(index, generation.mover),
 		presses: statePresses[index] ?? 0,
 	});
@@ -452,6 +460,9 @@ const expand = (generation: Generation, index: number): void => {
 };
 
 export const generateMoves = (board: SimBoard, mino: Piece, rules: MoveRules, mover: Mover): Array<Move> => {
+	if (mover.gravity > MAX_GRAVITY)
+		throw new Error(`Move keys are checked up to ${MAX_GRAVITY}G, not ${mover.gravity}G`);
+
 	const heights = columnHeights(board);
 	const generation: Generation = {
 		board,

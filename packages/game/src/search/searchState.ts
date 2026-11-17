@@ -7,6 +7,7 @@ export interface SearchState {
 	readonly current: Piece;
 	readonly hold: Piece | null;
 	readonly holdEnabled: boolean;
+	readonly holdLocked: boolean;
 	readonly queue: ReadonlyArray<Piece>;
 }
 
@@ -16,9 +17,15 @@ export type RouteStep =
 export interface SearchBudget {
 	readonly nodes: number;
 	readonly depth: number;
+	readonly deadlineMs: number | null;
 }
 
 export type SearchResult =
-	| { readonly kind: "reached"; readonly locks: number; readonly firstSteps: ReadonlyArray<RouteStep> }
-	| { readonly kind: "beyond" }
-	| { readonly kind: "unknown" };
+	| {
+			readonly kind: "reached";
+			readonly locks: number;
+			readonly firstSteps: ReadonlyArray<RouteStep>;
+			readonly nodes: number;
+	  }
+	| { readonly kind: "beyond"; readonly nodes: number }
+	| { readonly kind: "unknown"; readonly nodes: number };

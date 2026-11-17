@@ -1,5 +1,5 @@
 import { Mino } from "@haelp/teto/engine";
-import { BAG, type Piece } from "../pieces";
+import { BAG, type Block, type Piece } from "../pieces";
 import { BOARD_ROWS, FULL_ROW, lockCells, type SimBoard, type SimLock } from "../sim/simBoard";
 import { generateMoves, type Move, type Mover, type MoveRules } from "./moves";
 import type { RouteStep, SearchBudget, SearchResult, SearchState } from "./searchState";
@@ -45,7 +45,9 @@ interface Search {
 	readonly mover: Mover;
 	readonly sequence: ReadonlyArray<Piece>;
 	readonly holdEnabled: boolean;
+	readonly holdLocked: boolean;
 	readonly nodeLimit: number;
+	readonly deadline: number;
 	readonly loose: boolean;
 	readonly entries: Map<string, Entry>;
 	nodes: number;
@@ -100,28 +102,14 @@ const boardKey = (rows: Uint16Array): string => {
 	return String.fromCharCode(...rows.subarray(0, top));
 };
 
-const clearedLines = (board: SimBoard, move: Move): number => {
-	let lines = 0;
-
-	move.cells.forEach(([, y], index) => {
-		if (move.cells.findIndex(([, cellY]) => cellY === y) !== index) return;
-
-		const mask = move.cells.reduce((row, [cellX, cellY]) => (cellY === y ? row | (1 << cellX) : row), 0);
-
-		if (((board.rows[y] ?? 0) | mask) === FULL_ROW) lines++;
-	});
-
-	return lines;
-};
-
 export const readyGap = (board: SimBoard, goal: QuadGoal): number => {
 	const wellMask = 1 << goal.well;
 
 	return windowEmpty(board.rows, wellMask, wellFloor(board.rows, wellMask));
 };
 
-export const isQuadReady = (lock: SimLock, mino: Piece, goal: QuadGoal): boolean =>
-	(mino === Mino.I && lock.lines === QUAD_LINES) || readyGap(lock.added, goal) === 0;
+export const isQuadReady = (lock: SimLock, cells: ReadonlyArray<Block>, goal: QuadGoal): boolean =>
+	(lock.lines === QUAD_LINES && cells.some(([x]) => x === goal.well)) || readyGap(lock.added, goal) === 0;
 
 export const judgeDistance = (before: SearchResult, after: SearchResult, reachedOnLock: boolean): Call => {
 	if (before.kind !== "reached" || after.kind === "unknown") return "silent";
@@ -167,7 +155,7 @@ const entryOf = (search: Search, board: SimBoard): Entry => {
 };
 
 const candidateOf = (search: Search, entry: Entry, move: Move): Candidate | null => {
-	const lines = clearedLines(entry.board, move);
+	const { lines } = move;
 	const inWell = move.cells.some(([x]) => ((1 << x) & search.wellMask) !== 0);
 	const top = entry.floor + WINDOW_ROWS;
 
@@ -179,7 +167,7 @@ const candidateOf = (search: Search, entry: Entry, move: Move): Candidate | null
 		move,
 		lines,
 		windowCells,
-		goal: lines === QUAD_LINES || windowCells === entry.empty,
+		goal: (inWell && lines === QUAD_LINES) || windowCells === entry.empty,
 		child: null,
 	};
 };
@@ -190,7 +178,7 @@ const candidatesOf = (search: Search, entry: Entry, piece: Piece): ReadonlyArray
 
 	if (known) return known;
 
-	if (search.nodes >= search.nodeLimit) {
+	if (search.nodes >= search.nodeLimit || performance.now() > search.deadline) {
 		search.exhausted = true;
 
 		return null;
@@ -226,7 +214,7 @@ const stepsOf = (search: Search, hold: number, next: number): Array<Step> => {
 
 	if (current !== undefined) steps.push({ kind: "place", piece: current, hold, next: next + 1 });
 
-	if (!search.holdEnabled) return steps;
+	if (!search.holdEnabled || (next === 0 && search.holdLocked)) return steps;
 
 	const held = BAG[hold];
 	const currentCode = current === undefined ? UNKNOWN_HOLD : BAG.indexOf(current);
@@ -319,7 +307,9 @@ export const searchQuadReady = (
 		mover,
 		sequence,
 		holdEnabled: state.holdEnabled,
+		holdLocked: state.holdLocked,
 		nodeLimit: budget.nodes,
+		deadline: budget.deadlineMs === null ? Infinity : performance.now() + budget.deadlineMs,
 		loose: !rules.quadClearsOnly && hasCoveredWellCell(state.board.rows, wellMask, floor),
 		entries: new Map(),
 		nodes: 0,
@@ -333,10 +323,10 @@ export const searchQuadReady = (
 	for (let locks = Math.max(1, boundOf(search, root.empty)); locks <= depth; locks++) {
 		const firstSteps = firstStepsWithin(search, root, hold, locks);
 
-		if (!firstSteps) return { kind: "unknown" };
+		if (!firstSteps) return { kind: "unknown", nodes: search.nodes };
 
-		if (firstSteps.length > 0) return { kind: "reached", locks, firstSteps };
+		if (firstSteps.length > 0) return { kind: "reached", locks, firstSteps, nodes: search.nodes };
 	}
 
-	return { kind: "beyond" };
+	return { kind: "beyond", nodes: search.nodes };
 };

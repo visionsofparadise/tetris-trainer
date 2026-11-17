@@ -109,6 +109,10 @@ export class Game {
 		return this.#engine.misc.allowed.hold;
 	}
 
+	get isHoldLocked(): boolean {
+		return this.#engine.holdLocked;
+	}
+
 	get hold(): Mino | null {
 		return this.#engine.held;
 	}

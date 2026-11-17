@@ -4,7 +4,7 @@ import { DEMO_HANDLING } from "../config";
 import { createEngineOptions } from "../engineOptions";
 import { finesseTargets, minimalPresses } from "../finesse";
 import { BAG, cellsKey, placementCells, samePlacement, type Piece } from "../pieces";
-import { emptySimBoard, lockCells, type SimBoard } from "../sim/simBoard";
+import { emptySimBoard, FULL_ROW, lockCells, type SimBoard } from "../sim/simBoard";
 import { generateMoves, type Mover } from "./moves";
 import {
 	chunks,
@@ -92,20 +92,23 @@ const engineLocks = (game: Game): Set<string> => {
 
 const mismatches = (board: SimBoard, mino: Piece, mover: Mover): Array<string> => {
 	const { game, start } = loadBoard(board, mino, mover);
+	const fullBefore = board.rows.filter((row) => row === FULL_ROW).length;
 
 	return generateMoves(board, mino, OPEN_RULES, mover).flatMap((move) => {
-		const { placed } = playMove(game, start, move);
-		const lines = lockCells(board, move.cells, move.spin).lines;
+		const { placed, board: played } = playMove(game, start, move);
+		const locked = lockCells(board, move.cells, move.spin);
 		const isMatch =
 			placed !== null &&
 			samePlacement(placed.placement, move.placement) &&
 			placed.spin === move.spin &&
-			placed.lines === lines;
+			placed.lines === move.lines + fullBefore &&
+			locked.lines === placed.lines &&
+			played.rows.every((row, y) => row === locked.board.rows[y]);
 
 		return isMatch
 			? []
 			: [
-					`${JSON.stringify(move.placement)} ${move.spin} ${lines} by ${JSON.stringify(move.keys)} placed ${JSON.stringify(placed?.placement)} ${placed?.spin ?? ""} ${placed?.lines ?? ""}`,
+					`${JSON.stringify(move.placement)} ${move.spin} ${move.lines} by ${JSON.stringify(move.keys)} placed ${JSON.stringify(placed?.placement)} ${placed?.spin ?? ""} ${placed?.lines ?? ""}`,
 				];
 	});
 };
@@ -132,7 +135,7 @@ describe("generateMoves on an empty board", () => {
 describe("generateMoves against the game", () => {
 	describe.each(BAG)("%s", (mino) => {
 		describe.each(MOVERS)("with %s", (_, mover) => {
-			it.each(CHUNKS)("plays every move on %s as generated", (_, boards) => {
+			it.each(CHUNKS)("plays every move on %s as generated, leaving the board lockCells gives", (_, boards) => {
 				const wrong = boards.flatMap(({ name, board }) =>
 					mismatches(board, mino, mover).map((miss) => `${name}: ${miss}`),
 				);
