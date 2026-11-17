@@ -173,7 +173,7 @@ const judgePlace = (opener: Opener, state: PlanState, placement: Placement): Ver
 	if (current === NEXT_BAG) {
 		const stand = { ...state, current: placement.mino };
 
-		return readyPositions(opener, stand).some((position) => samePlacement(position.placement, placement))
+		return readyPositions(opener, stand).length > 0
 			? judgePlace(opener, stand, placement)
 			: mistake(opener, state, "next-bag");
 	}

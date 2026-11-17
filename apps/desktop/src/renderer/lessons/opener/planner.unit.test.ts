@@ -109,6 +109,24 @@ describe("judge", () => {
 		expect(verdict.ok && isComplete(TKI, verdict.next)).toBe(true);
 	});
 
+	it("points a misplaced next bag's T at the slot", () => {
+		const pieces: Array<Piece> = [L, I, Z, S, O, J];
+		const tHeld = pieces.reduce(
+			(state, piece) => afterPlace(state, piece),
+			afterHold(startState([T, L, I, Z, S, O, J])),
+		);
+		const verdict = judge(TKI, tHeld, {
+			kind: "place",
+			placement: { mino: T, orientation: "spawn", column: 6, row: 0 },
+		});
+
+		expect(verdict).toMatchObject({
+			ok: false,
+			kind: "placement",
+			best: { kind: "place", position: { placement: { mino: T, orientation: "reverse", column: 1, row: 0 } } },
+		});
+	});
+
 	it("finishes on the T without the J", () => {
 		expect(plan(TKI, startState([L, I, Z, S, O, T, J]))).toHaveLength(6);
 	});
