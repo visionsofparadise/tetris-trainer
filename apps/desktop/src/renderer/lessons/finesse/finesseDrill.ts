@@ -2,15 +2,8 @@ import { finesseRoutes, Game, Mino, samePlacement, type Piece, type PieceTarget 
 import { DEMO_HANDLING } from "../opener/openerScript";
 import { findFault, wrongSpot, type Attempt } from "./faults";
 import { routeScript } from "./routeScript";
-import {
-	FINESSE_PIECES,
-	FINESSE_TARGETS,
-	routeRules,
-	RULE_TEXT,
-	TARGETS_BY_PIECE,
-	targetMarks,
-	targetPlacement,
-} from "./targets";
+import { slideTitles } from "./slides";
+import { FINESSE_PIECES, FINESSE_TARGETS, pieceSetup, routeRules, targetMarks, targetPlacement } from "./targets";
 import type { Drill, DrillStage, Player } from "../drill/Drill";
 
 export type FinesseStageId = "cells" | "keys" | "mixed" | "gravity" | "reset";
@@ -92,10 +85,20 @@ const windowOf = (results: ReadonlyArray<Result>, size: number): { readonly pass
 	return { passes: window.filter((result) => result.ok).length, size: window.length };
 };
 
-const resultsOf = ({ results }: FinesseState, mino: Piece): ReadonlyArray<Result> =>
+type Recorded = Pick<FinesseState, "stage" | "results">;
+
+const pick = <T>(items: ReadonlyArray<T>, fraction: number): T => {
+	const item = items[Math.floor(fraction * items.length)];
+
+	if (item === undefined) throw new Error("Nothing to pick from");
+
+	return item;
+};
+
+const resultsOf = ({ results }: Recorded, mino: Piece): ReadonlyArray<Result> =>
 	results.filter((result) => result.mino === mino);
 
-const isPiecePassed = (state: FinesseState, mino: Piece): boolean => {
+const isPiecePassed = (state: Recorded, mino: Piece): boolean => {
 	const results = resultsOf(state, mino);
 
 	if (state.stage === "cells") return streakOf(results) >= STREAK.cells;
@@ -105,24 +108,19 @@ const isPiecePassed = (state: FinesseState, mino: Piece): boolean => {
 	return size === WINDOWS.keys.size && passes >= WINDOWS.keys.passes;
 };
 
-export const currentPiece = (state: FinesseState): Piece =>
+export const currentPiece = (state: Recorded): Piece =>
 	FINESSE_PIECES.find((mino) => !isPiecePassed(state, mino)) ?? LAST_PIECE;
 
-const draw = (state: FinesseState): FinesseState => {
+const draw = (state: Omit<FinesseState, "target">): FinesseState => {
 	const seed = nextSeed(state.seed);
-	const pool = isPerPiece(state.stage) ? (TARGETS_BY_PIECE.get(currentPiece(state)) ?? []) : FINESSE_TARGETS;
-	const target = pool[Math.floor((seed / MODULUS) * pool.length)] ?? state.target;
+	const mino = currentPiece(state);
+	const pool = isPerPiece(state.stage) ? FINESSE_TARGETS.filter((target) => target.mino === mino) : FINESSE_TARGETS;
 
-	return { ...state, seed, target };
+	return { ...state, seed, target: pick(pool, seed / MODULUS) };
 };
 
 export const startFinesse = (stage: FinesseStageId, seed = randomSeed()): FinesseState =>
-	draw({
-		stage,
-		seed,
-		target: FINESSE_TARGETS[0] ?? { mino: Mino.O, orientation: "spawn", column: 0 },
-		results: [],
-	});
+	draw({ stage, seed, results: [] });
 
 export const isFinessePassed = (state: FinesseState): boolean => {
 	switch (state.stage) {
@@ -166,17 +164,10 @@ const loadTarget = (target: PieceTarget, handling: Player["handling"], hasGravit
 
 	if (!hasGravity) game.setGravity(0);
 
-	game.load({ board: [], validate: false, queue: { pieces: [target.mino], mode: "any" }, holdEnabled: false });
+	game.load(pieceSetup(target.mino));
 
 	return game;
 };
-
-const randomTarget = (): PieceTarget =>
-	FINESSE_TARGETS[Math.floor(Math.random() * FINESSE_TARGETS.length)] ?? {
-		mino: Mino.T,
-		orientation: "spawn",
-		column: 3,
-	};
 
 export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	stages: FINESSE_STAGES,
@@ -213,7 +204,7 @@ export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	describe: ({ stage, target }, player) =>
 		JSON.stringify({ stage, target, keys: finesseRoutes(target, player)[0] ?? [] }),
 	watch: (player) => {
-		const target = randomTarget();
+		const target = pick(FINESSE_TARGETS, Math.random());
 		const route = finesseRoutes(target, player)[0] ?? [];
 
 		return {
@@ -221,7 +212,7 @@ export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 			steps: routeScript(route),
 			locks: 1,
 			marks: targetMarks(target),
-			narration: routeRules(target, route).map((rule) => RULE_TEXT[rule]),
+			narration: slideTitles(routeRules(target, route)),
 		};
 	},
 };

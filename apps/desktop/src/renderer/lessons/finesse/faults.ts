@@ -6,15 +6,15 @@ import {
 	playerPresses,
 	pressesToSteps,
 	SHIFT_KEYS,
+	stepsMoved,
 	type GameKey,
 	type KeyPress,
 	type Orientation,
 	type PieceTarget,
 	type ScriptStep,
-	type ShiftKey,
 } from "@tetris-trainer/game";
 import { isTurn, touchesWall } from "./targets";
-import type { Player } from "../drill/Drill";
+import type { KeyComparison, Player } from "../drill/Drill";
 
 type FaultKind =
 	| "wrong-spot"
@@ -28,7 +28,7 @@ type FaultKind =
 export interface Fault {
 	readonly kind: FaultKind;
 	readonly title: string;
-	readonly detail: string;
+	readonly keys: KeyComparison;
 }
 
 const FAULT_TITLES: Record<FaultKind, string> = {
@@ -41,26 +41,15 @@ const FAULT_TITLES: Record<FaultKind, string> = {
 	"extra-press": "Extra press",
 };
 
-const KEY_TEXT: Partial<Record<GameKey, string>> = {
-	moveLeft: "←",
-	moveRight: "→",
-	rotateCW: "CW",
-	rotateCCW: "CCW",
-	rotate180: "180",
-};
-
 const TURN_STEPS: Partial<Record<GameKey, number>> = { rotateCW: 1, rotate180: 2, rotateCCW: 3 };
 
 const THREE_TAPS = 3;
 
 const stepToken = (step: ScriptStep): string => {
-	if ("das" in step) return `DAS ${KEY_TEXT[step.das] ?? step.das}`;
+	if ("das" in step) return `das ${step.das}`;
 
-	return "tap" in step ? (KEY_TEXT[step.tap] ?? step.tap) : JSON.stringify(step);
+	return "tap" in step ? step.tap : JSON.stringify(step);
 };
-
-export const keysText = (steps: ReadonlyArray<ScriptStep>): string =>
-	steps.length === 0 ? "none" : steps.map(stepToken).join(", ");
 
 const editDistance = (first: ReadonlyArray<string>, second: ReadonlyArray<string>): number => {
 	let row = second.map((_, index) => index + 1);
@@ -82,19 +71,35 @@ const editDistance = (first: ReadonlyArray<string>, second: ReadonlyArray<string
 	return row.at(-1) ?? first.length;
 };
 
+const turnsOf = (steps: ReadonlyArray<ScriptStep>): string =>
+	steps
+		.filter((step) => isTurn(step))
+		.map(stepToken)
+		.join(" ");
+
+interface NearRoute {
+	readonly route: ReadonlyArray<ScriptStep>;
+	readonly distance: number;
+	readonly mismatch: number;
+}
+
 export const nearestRoute = (
 	routes: ReadonlyArray<ReadonlyArray<ScriptStep>>,
 	steps: ReadonlyArray<ScriptStep>,
 ): ReadonlyArray<ScriptStep> => {
 	const tokens = steps.map(stepToken);
+	const turns = turnsOf(steps);
 
-	return routes.reduce<{ readonly route: ReadonlyArray<ScriptStep>; readonly distance: number }>(
+	return routes.reduce<NearRoute>(
 		(best, route) => {
 			const distance = editDistance(tokens, route.map(stepToken));
+			const mismatch = turnsOf(route) === turns ? 0 : 1;
 
-			return distance < best.distance ? { route, distance } : best;
+			return distance < best.distance || (distance === best.distance && mismatch < best.mismatch)
+				? { route, distance, mismatch }
+				: best;
 		},
-		{ route: [], distance: Infinity },
+		{ route: [], distance: Infinity, mismatch: 1 },
 	).route;
 };
 
@@ -107,13 +112,6 @@ const turnCount = (presses: ReadonlyArray<KeyPress>, player: Player): number =>
 	playerPresses(
 		presses.filter((press) => press.key in TURN_STEPS),
 		player,
-	);
-
-const hasRun = (steps: ReadonlyArray<ScriptStep>, key: ShiftKey): boolean =>
-	steps.some(
-		(_, start) =>
-			start + THREE_TAPS <= steps.length &&
-			steps.slice(start, start + THREE_TAPS).every((step) => "tap" in step && step.tap === key),
 	);
 
 const firstIndex = (steps: ReadonlyArray<ScriptStep>, test: (step: ScriptStep) => boolean): number => {
@@ -144,7 +142,7 @@ const faultKind = (
 	routes: ReadonlyArray<ReadonlyArray<ScriptStep>>,
 	nearest: ReadonlyArray<ScriptStep>,
 ): FaultKind => {
-	const user = presses.filter((press) => press.source === "user");
+	const user = presses.filter((press) => press.source === "user" && !press.carried);
 
 	if (user.some((press) => isDasPress(press, player.handling) && !press.blocked)) return "partial-das";
 
@@ -164,9 +162,17 @@ const faultKind = (
 	)
 		return "tapped-across";
 
-	if (SHIFT_KEYS.some((key) => hasRun(steps, key))) return "three-taps";
+	const moved = stepsMoved(target.mino, steps);
+	const movingTaps = (key: GameKey): number =>
+		steps.filter((step, index) => "tap" in step && step.tap === key && moved[index]).length;
 
-	if (firstIndex(steps, (step) => isTurn(step)) < firstIndex(steps, isDas) && routes.every(dasesFirst))
+	if (SHIFT_KEYS.some((key) => movingTaps(key) >= THREE_TAPS)) return "three-taps";
+
+	if (
+		steps.some(isDas) &&
+		firstIndex(steps, (step) => isTurn(step)) < firstIndex(steps, isDas) &&
+		routes.every(dasesFirst)
+	)
 		return "rotated-before-das";
 
 	return "extra-press";
@@ -175,7 +181,7 @@ const faultKind = (
 const faultOf = (kind: FaultKind, steps: ReadonlyArray<ScriptStep>, nearest: ReadonlyArray<ScriptStep>): Fault => ({
 	kind,
 	title: FAULT_TITLES[kind],
-	detail: `Your keys: ${keysText(steps)}\nMinimal: ${keysText(nearest)}`,
+	keys: { yours: steps, minimal: nearest },
 });
 
 const compared = (attempt: Attempt, player: Player) => {
@@ -194,8 +200,10 @@ export const wrongSpot = (attempt: Attempt, player: Player): Fault => {
 export const findFault = (attempt: Attempt, player: Player): Fault | null => {
 	const { presses, target } = attempt;
 	const isMinimal =
-		playerPresses(presses, player) === minimalPresses(target, player) &&
-		presses.every((press) => press.source !== "user" || !isDasPress(press, player.handling) || press.blocked);
+		playerPresses(presses, player) <= minimalPresses(target, player) &&
+		presses.every(
+			(press) => press.source !== "user" || press.carried || !isDasPress(press, player.handling) || press.blocked,
+		);
 
 	if (isMinimal) return null;
 

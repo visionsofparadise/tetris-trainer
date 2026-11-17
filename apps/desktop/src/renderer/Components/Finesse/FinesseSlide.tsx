@@ -2,7 +2,7 @@ import { finesseRoutes } from "@tetris-trainer/game";
 import { useMemo } from "react";
 import { playerOf } from "../../lessons/drill/player";
 import { routeScript } from "../../lessons/finesse/routeScript";
-import { targetMarks } from "../../lessons/finesse/targets";
+import { pieceSetup, targetMarks } from "../../lessons/finesse/targets";
 import { BoardNotes } from "../Board/BoardNotes";
 import { RouteDemo } from "../Drill/RouteDemo";
 import type { FinesseSlide as Slide } from "../../lessons/finesse/slides";
@@ -22,12 +22,7 @@ export function FinesseSlide({ slide, pause, context }: FinesseSlideProps) {
 	const demos = useMemo(
 		() =>
 			slide.demos.map(({ target, route }) => ({
-				setup: {
-					board: [],
-					validate: false,
-					queue: { pieces: [target.mino], mode: "any" as const },
-					holdEnabled: false,
-				},
+				setup: pieceSetup(target.mino),
 				steps: routeScript(route === "minimal" ? (finesseRoutes(target, { allow180 })[0] ?? []) : route),
 				marks: targetMarks(target),
 			})),
@@ -40,7 +35,7 @@ export function FinesseSlide({ slide, pause, context }: FinesseSlideProps) {
 	);
 
 	return (
-		<RouteDemo key={slide.title} demos={demos} context={context} pause={pause}>
+		<RouteDemo key={slide.title} demos={demos} pause={pause} context={context}>
 			<BoardNotes notes={notes} />
 		</RouteDemo>
 	);

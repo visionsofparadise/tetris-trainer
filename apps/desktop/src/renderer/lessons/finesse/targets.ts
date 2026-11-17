@@ -5,6 +5,7 @@ import {
 	placementCells,
 	QUARTER_TURN_KEYS,
 	ROTATION_KEYS,
+	type GameSetup,
 	type Piece,
 	type PieceTarget,
 	type Placement,
@@ -30,23 +31,12 @@ export const FINESSE_PIECES: ReadonlyArray<Piece> = [Mino.O, Mino.I, Mino.T, Min
 
 export const FINESSE_TARGETS: ReadonlyArray<PieceTarget> = finesseTargets();
 
-export const TARGETS_BY_PIECE: ReadonlyMap<Piece, ReadonlyArray<PieceTarget>> = new Map(
-	FINESSE_PIECES.map((mino) => [mino, FINESSE_TARGETS.filter((target) => target.mino === mino)]),
-);
-
-export const RULE_TEXT: Record<RouteRule, string> = {
-	drop: "The piece spawns over its spot, so it only needs the drop.",
-	taps: "A spot one or two columns away takes that many taps.",
-	turn: "A turn alone reaches this spot.",
-	"any-order": "Away from the walls, the turn and the taps can come in either order.",
-	das: "Hold the move key to DAS: one press slides the piece to the wall.",
-	"tap-back": "DAS, then tap back: two presses where taps would take three or more.",
-	gap: "Turning after the DAS leaves a gap at the wall.",
-	flush: "Turning before the DAS lets the piece sit flush against the wall.",
-	"toward-travel": "After a DAS, turn the way the piece should go: CW steps it right, CCW steps it left.",
-	south: "Upside down is a 180 (or two turns), then the flat keys.",
-	verticals: "S, Z and I stand up in two columns, so pick the turn that lands on the target.",
-};
+export const pieceSetup = (mino: Piece): GameSetup => ({
+	board: [],
+	validate: false,
+	queue: { pieces: [mino], mode: "any" },
+	holdEnabled: false,
+});
 
 const UPRIGHT_PIECES: ReadonlyArray<Piece> = [Mino.I, Mino.S, Mino.Z];
 

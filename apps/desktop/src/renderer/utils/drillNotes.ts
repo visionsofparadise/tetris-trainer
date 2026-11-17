@@ -1,7 +1,8 @@
-import { placementCells } from "@tetris-trainer/game";
-import type { DrillMistake } from "../lessons/drill/Drill";
+import { placementCells, type Block, type TetrioConfig } from "@tetris-trainer/game";
+import { stepLabel } from "./keyLabel";
+import type { DrillMistake, KeyComparison } from "../lessons/drill/Drill";
 import type { BoardMark } from "../models/BoardMark";
-import type { BoardNote, NoteTarget } from "../models/BoardNote";
+import type { BoardNote, KeyRow, NoteTarget } from "../models/BoardNote";
 
 type NoteAt = NoteTarget["at"];
 
@@ -29,5 +30,25 @@ export const drillMarks = ({ placed, best }: MarkedMistake): ReadonlyArray<Board
 	...(best === null ? [] : [{ cells: placementCells(best), tone: "target" as const }]),
 ];
 
-export const drillNotes = ({ title, detail, placed, best }: DrillMistake): ReadonlyArray<BoardNote> =>
-	mistakeCard(title, detail, placed, best === null ? null : placementCells(best));
+const cellsKey = (cells: ReadonlyArray<Block>): string =>
+	cells
+		.map(([x, y]) => `${x},${y}`)
+		.sort()
+		.join(" ");
+
+const keyRows = ({ yours, minimal }: KeyComparison, config: TetrioConfig): ReadonlyArray<KeyRow> => [
+	{ label: "Yours", tone: "pink", keys: yours.map((step) => stepLabel(step, config)) },
+	{ label: "Minimal", tone: "lime", keys: minimal.map((step) => stepLabel(step, config)) },
+];
+
+export const drillNotes = (
+	{ title, keys, placed, best }: DrillMistake,
+	config: TetrioConfig,
+): ReadonlyArray<BoardNote> => {
+	const target = best === null ? null : placementCells(best);
+	const pointed = placed !== null && target !== null && cellsKey(placed) === cellsKey(target) ? null : placed;
+
+	return mistakeCard(title, undefined, pointed, target).map((note) =>
+		keys ? { ...note, keys: keyRows(keys, config) } : note,
+	);
+};

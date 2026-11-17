@@ -1,11 +1,4 @@
-import {
-	DEFAULT_CONFIG,
-	Mino,
-	placementCells,
-	type PieceTarget,
-	type PlaceEvent,
-	type Piece,
-} from "@tetris-trainer/game";
+import { Mino, type Piece } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
 import {
 	currentPiece,
@@ -16,14 +9,9 @@ import {
 	type FinesseStageId,
 	type FinesseState,
 } from "./finesseDrill";
-import { FINESSE_PIECES, targetPlacement } from "./targets";
-import type { Player } from "../drill/Drill";
-
-const PLAYER: Player = { handling: DEFAULT_CONFIG.handling, allow180: true };
+import { FINESSE_PIECES } from "./targets";
 
 const SEED = 20261117;
-
-const T_FLAT: PieceTarget = { mino: Mino.T, orientation: "spawn", column: 3 };
 
 const results = (mino: Piece, outcomes: string): FinesseState["results"] =>
 	[...outcomes].map((outcome) => ({ mino, ok: outcome === "+" }));
@@ -34,22 +22,6 @@ const stateOf = (stage: FinesseStageId, recorded: FinesseState["results"]): Fine
 	...startFinesse(stage, SEED),
 	results: recorded,
 });
-
-const placeOn = (target: PieceTarget): PlaceEvent => {
-	const placement = targetPlacement(target);
-
-	return {
-		placement,
-		cells: placementCells(placement),
-		lines: 0,
-		spin: "none",
-		combo: 0,
-		b2b: 0,
-		attack: 0,
-		isPerfectClear: false,
-		inputs: [],
-	};
-};
 
 describe("finesse drill", () => {
 	it("unlocks the next piece after 20 spots in a row and resets the streak on a miss", () => {
@@ -62,14 +34,13 @@ describe("finesse drill", () => {
 		});
 	});
 
-	it("deals only the newest unlocked piece and passes when the Z is done", () => {
+	it("passes the per-piece stages when the Z is done", () => {
 		const unlocked = stateOf("cells", results(Mino.O, passes(20)));
 		const allDone = stateOf(
 			"cells",
 			FINESSE_PIECES.flatMap((mino) => results(mino, passes(20))),
 		);
 
-		expect(FINESSE_DRILL.deal(unlocked, PLAYER, "next").state.target.mino).toBe(Mino.I);
 		expect(isFinessePassed(unlocked)).toBe(false);
 		expect(isFinessePassed(allDone)).toBe(true);
 	});
@@ -95,27 +66,6 @@ describe("finesse drill", () => {
 			label: "Progress",
 			value: "94 of the last 100",
 		});
-	});
-
-	it("re-deals the same target for the same round and draws a new one for the next", () => {
-		const start = { ...startFinesse("mixed", SEED), target: T_FLAT };
-		const again = FINESSE_DRILL.deal(start, PLAYER, "same").state;
-		const { verdict, next } = FINESSE_DRILL.judge(again, placeOn(T_FLAT), PLAYER);
-		const drawn = FINESSE_DRILL.deal(next, PLAYER, "next").state;
-
-		expect(again).toEqual(start);
-		expect(verdict).toEqual({ ok: true });
-		expect(next.results).toEqual([{ mino: Mino.T, ok: true }]);
-		expect(drawn.seed).not.toBe(start.seed);
-		expect(drawn.results).toEqual(next.results);
-	});
-
-	it("records a wrong spot", () => {
-		const start = { ...startFinesse("cells", SEED), target: T_FLAT };
-		const { verdict, next } = FINESSE_DRILL.judge(start, placeOn({ ...T_FLAT, column: 4 }), PLAYER);
-
-		expect(verdict).toMatchObject({ ok: false, kind: "wrong-spot", best: targetPlacement(T_FLAT) });
-		expect(next.results).toEqual([{ mino: Mino.T, ok: false }]);
 	});
 
 	it("passes the reset run on 40 in a row and starts it over from nothing", () => {

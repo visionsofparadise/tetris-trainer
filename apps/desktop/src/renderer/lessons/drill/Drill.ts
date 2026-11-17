@@ -10,10 +10,15 @@ interface DrillHint {
 	readonly best: Placement | null;
 }
 
+export interface KeyComparison {
+	readonly yours: ReadonlyArray<ScriptStep>;
+	readonly minimal: ReadonlyArray<ScriptStep>;
+}
+
 export interface DrillMistake extends DrillHint {
 	readonly kind: string;
 	readonly title: string;
-	readonly detail?: string;
+	readonly keys?: KeyComparison;
 	readonly placed: ReadonlyArray<Block> | null;
 }
 

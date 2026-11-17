@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../utils/cn";
 import { cellsPoint, leaderTo, type Leader, type Point, type Rect } from "../../utils/noteGeometry";
+import { TONE_TEXT } from "../../utils/toneClasses";
 import { PieceText } from "../Pieces/PieceText";
+import { KeyCap } from "../UI/KeyCap";
 import type { BoardNote, NoteTarget } from "../../models/BoardNote";
 import type { Tone } from "../../models/Tone";
 
@@ -116,10 +118,26 @@ export function BoardNotes({ notes }: BoardNotesProps) {
 					>
 						{note.title && <p className="heading text-lg leading-tight">{note.title}</p>}
 						{note.text && (
-							<p className="text-base leading-relaxed text-pretty whitespace-pre-line">
+							<p className="text-base leading-relaxed text-pretty">
 								<PieceText text={note.text} />
 							</p>
 						)}
+						{note.keys?.map((row) => (
+							<div key={row.label} className="flex items-center gap-3">
+								<span className={cn("label w-16 shrink-0", TONE_TEXT[row.tone])}>{row.label}</span>
+								<ul className="flex flex-wrap gap-1.5" aria-label={row.label}>
+									{row.keys.length === 0 ? (
+										<KeyCap className="bg-raised text-muted">—</KeyCap>
+									) : (
+										row.keys.map((key, index) => (
+											<KeyCap key={index} className="bg-raised text-text">
+												{key}
+											</KeyCap>
+										))
+									)}
+								</ul>
+							</div>
+						))}
 					</div>
 				))}
 			</div>

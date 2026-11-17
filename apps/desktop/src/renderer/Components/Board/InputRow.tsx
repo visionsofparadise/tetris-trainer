@@ -1,5 +1,6 @@
 import { cn } from "../../utils/cn";
 import { keyLabel } from "../../utils/keyLabel";
+import { KeyCap } from "../UI/KeyCap";
 import type { Control } from "../../models/Control";
 import type { GameKey, TetrioConfig } from "@tetris-trainer/game";
 
@@ -39,15 +40,9 @@ export function InputRow({ control, pressed, config }: InputRowProps) {
 			<span className={cn("label text-right", text)}>{label}</span>
 			<ul className="flex min-w-(--well-width) justify-center gap-1.5" aria-label={label}>
 				{INPUT_KEYS.map((key) => (
-					<li
-						key={key}
-						className={cn(
-							"label inline-flex h-[34px] min-w-[34px] items-center justify-center px-2 text-xs font-bold tracking-[0.04em]",
-							pressed.has(key) ? pressedStyle : "bg-panel text-text",
-						)}
-					>
+					<KeyCap key={key} className={pressed.has(key) ? pressedStyle : "bg-panel text-text"}>
 						{keyLabel(config.controls.custom[key][0])}
-					</li>
+					</KeyCap>
 				))}
 			</ul>
 			<span />

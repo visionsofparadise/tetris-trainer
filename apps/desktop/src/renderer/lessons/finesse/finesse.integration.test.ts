@@ -2,7 +2,9 @@ import {
 	DEFAULT_CONFIG,
 	finesseRoutes,
 	Game,
+	minimalPresses,
 	Mino,
+	placementCells,
 	samePlacement,
 	type GameKey,
 	type PieceTarget,
@@ -10,14 +12,14 @@ import {
 	type ScriptStep,
 } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { continueDrill, createDrillSession, dealDrill, retryMistake, setStage } from "../drill/drillSession";
 import { playerOf } from "../drill/player";
 import { DEMO_HANDLING } from "../opener/openerScript";
-import { FINESSE_DRILL, FINESSE_STAGES, type FinesseStageId } from "./finesseDrill";
+import { FINESSE_DRILL, FINESSE_STAGES, startFinesse, type FinesseStageId } from "./finesseDrill";
 import { routeScript } from "./routeScript";
 import { FINESSE_SLIDES } from "./slides";
-import { targetPlacement } from "./targets";
+import { FINESSE_TARGETS, pieceSetup, targetPlacement } from "./targets";
 import type { Player } from "../drill/Drill";
 
 const PLAYER = playerOf(DEFAULT_CONFIG);
@@ -77,6 +79,28 @@ const judged = (stage: FinesseStageId, target: PieceTarget, play: (game: Game) =
 
 const kindOf = (verdict: ReturnType<typeof judged>): string => (verdict.ok ? "pass" : verdict.kind);
 
+const placeOn = (target: PieceTarget): PlaceEvent => {
+	const placement = targetPlacement(target);
+
+	return {
+		placement,
+		cells: placementCells(placement),
+		lines: 0,
+		spin: "none",
+		combo: 0,
+		b2b: 0,
+		attack: 0,
+		isPerfectClear: false,
+		inputs: [],
+	};
+};
+
+const lowestRow = (game: Game): number => Math.min(...game.falling.blocks.map(([, y]) => y));
+
+const SEED = 20261117;
+
+const T_FLAT: PieceTarget = { mino: Mino.T, orientation: "spawn", column: 3 };
+
 const placeBy = (game: Game, steps: ReadonlyArray<ScriptStep>): PlaceEvent => {
 	let event: PlaceEvent | null = null;
 
@@ -90,7 +114,55 @@ const placeBy = (game: Game, steps: ReadonlyArray<ScriptStep>): PlaceEvent => {
 	return event;
 };
 
+afterEach(() => {
+	vi.restoreAllMocks();
+});
+
 describe("Finesse", () => {
+	it("deals only the newest unlocked piece in a per-piece stage", () => {
+		const unlocked = {
+			...startFinesse("cells", SEED),
+			results: Array.from({ length: 20 }, () => ({ mino: Mino.O as const, ok: true })),
+		};
+
+		expect(FINESSE_DRILL.deal(unlocked, PLAYER, "next").state.target.mino).toBe(Mino.I);
+	});
+
+	it("re-deals the same target for the same round and draws a new one for the next", () => {
+		const start = { ...startFinesse("mixed", SEED), target: T_FLAT };
+		const again = FINESSE_DRILL.deal(start, PLAYER, "same").state;
+		const { verdict, next } = FINESSE_DRILL.judge(again, placeOn(T_FLAT), PLAYER);
+		const drawn = FINESSE_DRILL.deal(next, PLAYER, "next").state;
+
+		expect(again).toEqual(start);
+		expect(verdict).toEqual({ ok: true });
+		expect(next.results).toEqual([{ mino: Mino.T, ok: true }]);
+		expect(drawn.seed).not.toBe(start.seed);
+		expect(drawn.results).toEqual(next.results);
+	});
+
+	it("records a wrong spot", () => {
+		const start = { ...startFinesse("cells", SEED), target: T_FLAT };
+		const { verdict, next } = FINESSE_DRILL.judge(start, placeOn({ ...T_FLAT, column: 4 }), PLAYER);
+
+		expect(verdict).toMatchObject({ ok: false, kind: "wrong-spot", best: targetPlacement(T_FLAT) });
+		expect(next.results).toEqual([{ mino: Mino.T, ok: false }]);
+	});
+
+	it("drops the piece by gravity only in the gravity stage", () => {
+		const fallen = (stage: FinesseStageId): boolean => {
+			const { game } = FINESSE_DRILL.deal({ ...startFinesse(stage, SEED), target: T_FLAT }, PLAYER, "same");
+			const spawned = lowestRow(game);
+
+			game.step(60);
+
+			return lowestRow(game) < spawned;
+		};
+
+		expect(fallen("gravity")).toBe(true);
+		expect(fallen("mixed")).toBe(false);
+	});
+
 	it("judges spots only in the first stage", () => {
 		expect(kindOf(judged("cells", at(Mino.T, "spawn", 0), (game) => playKeys(game, [{ das: "moveLeft" }])))).toBe(
 			"pass",
@@ -123,6 +195,13 @@ describe("Finesse", () => {
 		expect(kindOf(judged("mixed", at(Mino.S, "right", 3), (game) => playKeys(game, [{ tap: "rotateCCW" }])))).toBe(
 			"pass",
 		);
+		expect(
+			kindOf(
+				judged("mixed", at(Mino.T, "spawn", 1), (game) =>
+					playKeys(game, [{ das: "moveLeft" }, { tap: "moveRight" }]),
+				),
+			),
+		).toBe("pass");
 		expect(
 			kindOf(
 				judged("mixed", at(Mino.S, "right", 3), (game) =>
@@ -218,7 +297,13 @@ describe("Finesse", () => {
 		expect(session.state.results).toEqual([]);
 	});
 
-	it("plays a Watch round onto its target and narrates it", () => {
+	it("plays a Watch round onto its target and narrates the rules it shows by slide title", () => {
+		const gapJ = FINESSE_TARGETS.findIndex(
+			({ mino, orientation, column }) => mino === Mino.J && orientation === "right" && column === 1,
+		);
+
+		vi.spyOn(Math, "random").mockReturnValue((gapJ + 0.5) / FINESSE_TARGETS.length);
+
 		const round = FINESSE_DRILL.watch?.(PLAYER);
 
 		if (!round) throw new Error("Finesse has a Watch section");
@@ -230,8 +315,8 @@ describe("Finesse", () => {
 				.sort()
 				.join(" ");
 
-		expect(key(event.cells)).toBe(key(round.marks[0]?.cells ?? []));
-		expect(round.narration.length).toBeGreaterThan(0);
+		expect(key(event.cells)).toBe(key(placementCells(targetPlacement(at(Mino.J, "right", 1)))));
+		expect(round.narration).toEqual(["DAS to the wall", "The gap rule", "Rotate toward travel"]);
 	});
 
 	it("plays every slide's demo onto its target, with and without a 180 key", () => {
@@ -241,12 +326,7 @@ describe("Finesse", () => {
 					const game = new Game(DEMO_HANDLING);
 
 					game.setGravity(0);
-					game.load({
-						board: [],
-						validate: false,
-						queue: { pieces: [target.mino], mode: "any" },
-						holdEnabled: false,
-					});
+					game.load(pieceSetup(target.mino));
 
 					const steps = routeScript(route === "minimal" ? (finesseRoutes(target, player)[0] ?? []) : route);
 					const event = placeBy(game, steps);
@@ -258,5 +338,6 @@ describe("Finesse", () => {
 
 		expect(misses).toEqual([]);
 		expect(FINESSE_SLIDES).toHaveLength(9);
+		expect(FINESSE_SLIDES[0]?.demos.map(({ target }) => minimalPresses(target, PLAYER))).toEqual([0, 1, 2, 3]);
 	});
 });

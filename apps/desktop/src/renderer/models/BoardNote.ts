@@ -8,9 +8,16 @@ export interface NoteTarget {
 	readonly tone: Tone;
 }
 
+export interface KeyRow {
+	readonly label: string;
+	readonly tone: Tone;
+	readonly keys: ReadonlyArray<string>;
+}
+
 export interface BoardNote {
 	readonly title?: string;
 	readonly text?: string;
+	readonly keys?: ReadonlyArray<KeyRow>;
 	readonly tone: Tone;
 	readonly targets: ReadonlyArray<NoteTarget>;
 }

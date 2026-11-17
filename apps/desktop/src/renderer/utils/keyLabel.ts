@@ -1,3 +1,5 @@
+import type { ScriptStep, TetrioConfig } from "@tetris-trainer/game";
+
 const NAMED_KEYS: Record<string, string> = {
 	ARROWLEFT: "←",
 	ARROWRIGHT: "→",
@@ -28,4 +30,10 @@ export const keyLabel = (code: string | undefined): string => {
 	const prefix = PREFIXES.find((candidate) => key.startsWith(candidate) && key.length > candidate.length);
 
 	return prefix === undefined ? key : key.slice(prefix.length);
+};
+
+export const stepLabel = (step: ScriptStep, config: TetrioConfig): string => {
+	if ("das" in step) return `DAS ${keyLabel(config.controls.custom[step.das][0])}`;
+
+	return "tap" in step ? keyLabel(config.controls.custom[step.tap][0]) : "";
 };

@@ -69,7 +69,7 @@ function PracticeView<S, T extends DrillStage>({
 		[drill],
 	);
 
-	const notes = useMemo(() => (mistake ? drillNotes(mistake) : null), [mistake]);
+	const notes = useMemo(() => (mistake ? drillNotes(mistake, config) : null), [mistake, config]);
 	const marks = useMemo(() => (mistake ? drillMarks(mistake) : drill.marks(state)), [mistake, drill, state]);
 
 	const handleRetry = useCallback(() => {
