@@ -10,6 +10,7 @@ interface SlideDemo {
 export interface FinesseSlide extends DeckSlide {
 	readonly title: string;
 	readonly notes: ReadonlyArray<string>;
+	readonly notesWithout180?: ReadonlyArray<string>;
 	readonly demos: ReadonlyArray<SlideDemo>;
 	readonly rules: ReadonlyArray<RouteRule>;
 }
@@ -96,7 +97,11 @@ export const FINESSE_SLIDES: ReadonlyArray<FinesseSlide> = [
 	{
 		title: "South",
 		isLive: true,
-		notes: ["Upside down is a 180, then the flat keys.", "Two turns the same way also pass, as they do in TETR.IO."],
+		notes: [
+			"Upside down is a 180, then the flat keys.",
+			"Two turns in a row the same way also pass, as they do in TETR.IO.",
+		],
+		notesWithout180: ["Upside down is two turns in a row the same way, then the flat keys."],
 		demos: [minimal(at(Mino.T, "reverse", 3)), minimal(at(Mino.T, "reverse", 0))],
 		rules: ["south"],
 	},
@@ -111,6 +116,9 @@ export const FINESSE_SLIDES: ReadonlyArray<FinesseSlide> = [
 		rules: ["any-order"],
 	},
 ];
+
+export const slideNotes = (slide: FinesseSlide, allow180: boolean): ReadonlyArray<string> =>
+	(allow180 ? undefined : slide.notesWithout180) ?? slide.notes;
 
 export const slideTitles = (rules: ReadonlyArray<RouteRule>): Array<string> =>
 	FINESSE_SLIDES.filter((slide) => slide.rules.some((rule) => rules.includes(rule))).map(({ title }) => title);

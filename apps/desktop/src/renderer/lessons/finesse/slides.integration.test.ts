@@ -14,7 +14,7 @@ import {
 	type ShiftKey,
 } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
-import { FINESSE_SLIDES } from "./slides";
+import { FINESSE_SLIDES, slideNotes } from "./slides";
 import { FINESSE_TARGETS, pieceSetup, targetPlacement } from "./targets";
 import type { Player } from "../drill/Drill";
 
@@ -63,14 +63,17 @@ const groups = (route: ReadonlyArray<ScriptStep>): number =>
 const tapsOneWay = (route: ReadonlyArray<ScriptStep>, key: GameKey): number =>
 	route.filter((step) => "tap" in step && step.tap === key).length;
 
-const slideNotes = (title: string): ReadonlyArray<string> =>
-	FINESSE_SLIDES.find((slide) => slide.title === title)?.notes ?? [];
+const notesOf = (title: string, allow180 = true): ReadonlyArray<string> => {
+	const slide = FINESSE_SLIDES.find((candidate) => candidate.title === title);
+
+	return slide ? slideNotes(slide, allow180) : [];
+};
 
 const named = ({ mino, orientation, column }: PieceTarget): string => `${mino} ${orientation} ${column}`;
 
 describe("Finesse slide notes", () => {
 	it("Two steps: every spot has a shortest route of one turn and one move, at most three presses with a 180", () => {
-		expect(slideNotes("Two steps")).toContain(
+		expect(notesOf("Two steps")).toContain(
 			"On an empty board every spot takes two steps at most, a turn and a move, then the drop.",
 		);
 
@@ -86,7 +89,7 @@ describe("Finesse slide notes", () => {
 	});
 
 	it("Never three taps: a flat piece one column off a wall is a DAS and a tap back, and no shortest route taps three times one way", () => {
-		expect(slideNotes("Never three taps")).toEqual([
+		expect(notesOf("Never three taps")).toEqual([
 			"A flat piece one column off the wall is a DAS and a tap back.",
 			"Three taps would cost one press more.",
 		]);
@@ -147,7 +150,7 @@ describe("Finesse slide notes", () => {
 	});
 
 	it("Rotate toward travel: after a DAS left, CCW keeps the S against the wall", () => {
-		expect(slideNotes("Rotate toward travel")).toEqual(["After a DAS left, CCW keeps the S against the wall."]);
+		expect(notesOf("Rotate toward travel")).toEqual(["After a DAS left, CCW keeps the S against the wall."]);
 		expect(atWall(land(Mino.S, [{ das: "moveLeft" }, { tap: "rotateCCW" }]), "moveLeft")).toBe(true);
 	});
 
@@ -177,7 +180,10 @@ describe("Finesse slide notes", () => {
 		}
 	});
 
-	it("South: upside down is a 180 (or two turns) followed by the flat keys", () => {
+	it("South: upside down is a 180 (or two turns in a row) followed by the flat keys", () => {
+		expect(notesOf("South")).toContain("Upside down is a 180, then the flat keys.");
+		expect(notesOf("South", false)).toEqual(["Upside down is two turns in a row the same way, then the flat keys."]);
+
 		for (const player of PLAYERS) {
 			const turns: ReadonlyArray<ReadonlyArray<ScriptStep>> = player.allow180
 				? [[{ tap: "rotate180" }]]

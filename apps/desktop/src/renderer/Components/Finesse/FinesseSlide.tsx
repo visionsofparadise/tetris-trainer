@@ -2,10 +2,10 @@ import { finesseRoutes } from "@tetris-trainer/game";
 import { useMemo } from "react";
 import { playerOf } from "../../lessons/drill/player";
 import { routeScript } from "../../lessons/finesse/routeScript";
+import { slideNotes, type FinesseSlide as Slide } from "../../lessons/finesse/slides";
 import { pieceSetup, targetMarks } from "../../lessons/finesse/targets";
 import { BoardNotes } from "../Board/BoardNotes";
 import { RouteDemo } from "../Drill/RouteDemo";
-import type { FinesseSlide as Slide } from "../../lessons/finesse/slides";
 import type { AppContext } from "../../models/AppContext";
 import type { BoardNote } from "../../models/BoardNote";
 import type { PauseControl } from "../../models/PauseControl";
@@ -30,8 +30,8 @@ export function FinesseSlide({ slide, pause, context }: FinesseSlideProps) {
 	);
 
 	const notes = useMemo(
-		(): ReadonlyArray<BoardNote> => slide.notes.map((text) => ({ text, tone: "lime", targets: [] })),
-		[slide],
+		(): ReadonlyArray<BoardNote> => slideNotes(slide, allow180).map((text) => ({ text, tone: "lime", targets: [] })),
+		[slide, allow180],
 	);
 
 	return (
