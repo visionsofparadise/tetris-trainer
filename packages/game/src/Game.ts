@@ -1,6 +1,6 @@
 import { Board, Engine, legal, type EngineSnapshot, type LockRes, type Mino } from "@haelp/teto/engine";
 import mitt from "mitt";
-import { BOARD_SIZE, createEngineOptions, DEFAULT_GRAVITY } from "./engineOptions";
+import { BOARD_SIZE, createEngineOptions, DEFAULT_GRAVITY, settleSpawn } from "./engineOptions";
 import { BAG, leftmost, lowest, ORIENTATIONS, placementCells, type Block, type Piece, type Placement } from "./pieces";
 import { compileScript, type GameKey, type InputType, type ScriptStep } from "./script";
 import {
@@ -43,8 +43,6 @@ const randomSeed = (): number => Math.floor(Math.random() * 2 ** 31);
 
 const isPiece = (mino: Mino): mino is Piece => BAG.some((piece) => piece === mino);
 
-const SPAWN_SETTLE = 1e-6;
-
 export class Game {
 	readonly #engine: Engine;
 	readonly #handling: Handling;
@@ -68,11 +66,11 @@ export class Game {
 		this.#idleInput = structuredClone(this.#engine.input);
 		this.#engine.events.on("falling.lock.pre", () => this.#handleLockStart());
 		this.#engine.events.on("falling.new", ({ piece, isHold }) => {
-			this.#settleSpawn();
+			settleSpawn(this.#engine);
 			this.#handleSpawn(piece, isHold);
 		});
 		this.#engine.events.on("falling.lock", (lock) => this.#handleLock(lock));
-		this.#settleSpawn();
+		settleSpawn(this.#engine);
 	}
 
 	get isOver(): boolean {
@@ -289,16 +287,6 @@ export class Game {
 			},
 			cells,
 		};
-	}
-
-	#settleSpawn(): void {
-		const { falling, board } = this.#engine;
-		const row = falling.y;
-
-		if (!legal(falling.absoluteAt({ y: row - 1 }), board.state)) return;
-
-		falling.location[1] = row - SPAWN_SETTLE;
-		falling.highestY = row - 1;
 	}
 
 	#handleSpawn(mino: Mino, fromHold: boolean): void {

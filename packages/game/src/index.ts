@@ -1,5 +1,13 @@
 export { Mino, type SpinType } from "@haelp/teto/engine";
-export { dropSteps, finesseSteps, type PieceTarget } from "./finesse";
+export {
+	dropSteps,
+	finesseRoutes,
+	finesseSteps,
+	finesseTargets,
+	minimalPresses,
+	type FinesseOptions,
+	type PieceTarget,
+} from "./finesse";
 export {
 	BAG,
 	ORIENTATIONS,
