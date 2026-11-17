@@ -5,6 +5,7 @@ export {
 	finesseSteps,
 	finesseTargets,
 	minimalPresses,
+	pressesReach,
 	stepsMoved,
 	type FinesseOptions,
 	type PieceTarget,

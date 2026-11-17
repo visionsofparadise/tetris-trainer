@@ -30,9 +30,9 @@ export interface RecordedInput {
 
 type Opened = Omit<KeyPress, "up"> & { readonly up?: number };
 
-const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.some((shift) => shift === key);
+export const isShiftKey = (key: GameKey): key is ShiftKey => SHIFT_KEYS.some((shift) => shift === key);
 
-const isMoveOrTurnKey = (key: GameKey): boolean => isShiftKey(key) || ROTATION_KEYS.includes(key);
+export const isMoveOrTurnKey = (key: GameKey): boolean => isShiftKey(key) || ROTATION_KEYS.includes(key);
 
 const openPresses = (inputs: ReadonlyArray<RecordedInput>, spawn: number): Array<Opened> => {
 	const presses: Array<Opened> = [];

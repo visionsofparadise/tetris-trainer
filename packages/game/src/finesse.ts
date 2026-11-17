@@ -1,6 +1,7 @@
 import { Engine, Mino, type EngineSnapshot } from "@haelp/teto/engine";
-import { DEFAULT_CONFIG } from "./config";
+import { DEFAULT_CONFIG, type Handling } from "./config";
 import { BOARD_COLUMNS, createEngineOptions, settleSpawn } from "./engineOptions";
+import { isDasPress, isMoveOrTurnKey, isShiftKey, type KeyPress } from "./inputs";
 import {
 	boxBlocks,
 	cellsKey,
@@ -219,6 +220,10 @@ const isSameMove = (step: ScriptStep, other: ScriptStep): boolean =>
 	("das" in step && "das" in other && step.das === other.das) ||
 	("tap" in step && "tap" in other && step.tap === other.tap);
 
+const applyStep = (engine: Engine, step: ScriptStep): void => {
+	MOVES.find((move) => isSameMove(move.step, step))?.apply(engine);
+};
+
 export const stepsMoved = (mino: Piece, steps: ReadonlyArray<ScriptStep>): Array<boolean> => {
 	const engine = spawnEngine(mino);
 
@@ -227,10 +232,33 @@ export const stepsMoved = (mino: Piece, steps: ReadonlyArray<ScriptStep>): Array
 	return steps.map((step) => {
 		const before = cells();
 
-		MOVES.find((move) => isSameMove(move.step, step))?.apply(engine);
+		applyStep(engine, step);
 
 		return cells() !== before;
 	});
+};
+
+const replayed = (press: KeyPress, handling: Handling): ScriptStep =>
+	isShiftKey(press.key) && (press.carried || isDasPress(press, handling)) ? { das: press.key } : { tap: press.key };
+
+export const pressesReach = (target: PieceTarget, presses: ReadonlyArray<KeyPress>, handling: Handling): boolean => {
+	const engine = spawnEngine(target.mino);
+	const moves = presses
+		.filter((press) => press.source === "user" && isMoveOrTurnKey(press.key))
+		.sort((first, second) => first.down - second.down);
+
+	for (const press of moves) {
+		applyStep(engine, replayed(press, handling));
+
+		for (const held of moves)
+			if (held !== press && held.down <= press.down && press.down < held.up) {
+				const step = replayed(held, handling);
+
+				if ("das" in step) applyStep(engine, step);
+			}
+	}
+
+	return landingKey(engine) === shapeKey(target);
 };
 
 export const finesseSteps = (target: PieceTarget): Array<ScriptStep> =>

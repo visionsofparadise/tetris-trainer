@@ -52,7 +52,7 @@ const tapKey = (game: Game, key: GameKey): void => {
 	game.step(2);
 };
 
-const playKeys = (game: Game, steps: ReadonlyArray<ScriptStep>): void => {
+const pressKeys = (game: Game, steps: ReadonlyArray<ScriptStep>): void => {
 	for (const step of steps) {
 		if ("das" in step) {
 			game.press(step.das);
@@ -61,7 +61,10 @@ const playKeys = (game: Game, steps: ReadonlyArray<ScriptStep>): void => {
 			game.step(2);
 		} else if ("tap" in step) tapKey(game, step.tap);
 	}
+};
 
+const playKeys = (game: Game, steps: ReadonlyArray<ScriptStep>): void => {
+	pressKeys(game, steps);
 	tapKey(game, "hardDrop");
 };
 
@@ -252,6 +255,29 @@ describe("Finesse", () => {
 
 		expect(kindOf(softDropped)).toBe("floor-kick");
 		expect(kindOf(fallen)).toBe("floor-kick");
+	});
+
+	it("names a minimal count that reaches its target only by a floor kick in Gravity", () => {
+		const kicks: ReadonlyArray<[PieceTarget, ScriptStep]> = [
+			[at(Mino.T, "right", 0), { das: "moveLeft" }],
+			[at(Mino.J, "right", 0), { das: "moveLeft" }],
+			[at(Mino.L, "right", 0), { das: "moveLeft" }],
+			[at(Mino.I, "right", 3), { das: "moveLeft" }],
+			[at(Mino.S, "right", 2), { tap: "moveLeft" }],
+		];
+		const kinds = kicks.map(([target, shift]) =>
+			kindOf(
+				judged("gravity", target, (game) => {
+					pressKeys(game, [shift]);
+
+					while (lowestRow(game) > 0) game.step();
+
+					playKeys(game, [{ tap: "rotateCW" }]);
+				}),
+			),
+		);
+
+		expect(kinds).toEqual(["floor-kick", "floor-kick", "floor-kick", "floor-kick", "floor-kick"]);
 	});
 
 	it("names a DAS that stops short of the wall", () => {

@@ -1,8 +1,18 @@
 import { Mino } from "@haelp/teto/engine";
 import { describe, expect, it } from "vitest";
-import { finesseRoutes, finesseSteps, finesseTargets, minimalPresses, stepsMoved, type PieceTarget } from "./finesse";
+import { DEFAULT_CONFIG } from "./config";
+import {
+	finesseRoutes,
+	finesseSteps,
+	finesseTargets,
+	minimalPresses,
+	pressesReach,
+	stepsMoved,
+	type PieceTarget,
+} from "./finesse";
 import { placementCells } from "./pieces";
-import { ROTATION_KEYS, type ScriptStep } from "./script";
+import { ROTATION_KEYS, type GameKey, type ScriptStep } from "./script";
+import type { KeyPress } from "./inputs";
 
 const WITH_180 = { allow180: true };
 const WITHOUT_180 = { allow180: false };
@@ -162,5 +172,28 @@ describe("finesseRoutes", () => {
 	it("replays steps from spawn and reports which ones moved the piece", () => {
 		expect(stepsMoved(Mino.J, [DL, L, CW, L, L])).toEqual([true, false, true, true, false]);
 		expect(stepsMoved(Mino.O, [CW, DR, R])).toEqual([false, true, false]);
+	});
+});
+
+describe("pressesReach", () => {
+	const T_RIGHT_0: PieceTarget = { mino: Mino.T, orientation: "right", column: 0 };
+
+	const held = (key: GameKey, down: number, up: number): KeyPress => ({
+		key,
+		source: "user",
+		down,
+		up,
+		blocked: true,
+		carried: false,
+	});
+
+	it("replays the player's shifts and turns on an empty 0G board", () => {
+		const reach = (presses: ReadonlyArray<KeyPress>): boolean =>
+			pressesReach(T_RIGHT_0, presses, DEFAULT_CONFIG.handling);
+
+		expect(reach([held("rotateCW", 0, 2), held("moveLeft", 10, 40)])).toBe(true);
+		expect(reach([held("moveLeft", 0, 30), held("rotateCW", 40, 42)])).toBe(false);
+		expect(reach([held("moveLeft", 0, 60), held("rotateCW", 40, 42)])).toBe(true);
+		expect(reach([held("softDrop", 0, 60), held("rotateCW", 70, 72), held("moveLeft", 80, 110)])).toBe(true);
 	});
 });

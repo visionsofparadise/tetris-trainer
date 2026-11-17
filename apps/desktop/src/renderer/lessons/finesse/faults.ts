@@ -4,6 +4,7 @@ import {
 	minimalPresses,
 	ORIENTATIONS,
 	playerPresses,
+	pressesReach,
 	pressesToSteps,
 	SHIFT_KEYS,
 	stepsMoved,
@@ -154,7 +155,8 @@ const faultKind = (
 
 	if (user.some((press) => isDasPress(press, player.handling) && !press.blocked)) return "partial-das";
 
-	if (playerPresses(user, player) < minimalPresses(target, player)) return "floor-kick";
+	if (playerPresses(user, player) < minimalPresses(target, player) || !pressesReach(target, user, player.handling))
+		return "floor-kick";
 
 	if (
 		turnCount(user, player) > nearest.filter((step) => isTurn(step)).length ||
@@ -228,7 +230,8 @@ export const findFault = (attempt: Attempt, player: Player): Fault | null => {
 		!presses.some(isSoftDrop) &&
 		presses.every(
 			(press) => press.source !== "user" || press.carried || !isDasPress(press, player.handling) || press.blocked,
-		);
+		) &&
+		pressesReach(target, presses, player.handling);
 
 	if (isMinimal) return null;
 
