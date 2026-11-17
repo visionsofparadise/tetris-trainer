@@ -15,7 +15,7 @@ import {
 	type ScriptStep,
 	type ShiftKey,
 } from "@tetris-trainer/game";
-import { isTurn, opposite, touchesWall } from "./targets";
+import { isTurn, isUprightVertical, opposite, touchesWall } from "./targets";
 import type { KeyComparison, Player } from "../drill/Drill";
 
 type FaultKind =
@@ -149,7 +149,6 @@ const faultKind = (
 	player: Player,
 	steps: ReadonlyArray<ScriptStep>,
 	routes: ReadonlyArray<ReadonlyArray<ScriptStep>>,
-	nearest: ReadonlyArray<ScriptStep>,
 ): FaultKind => {
 	const user = presses.filter((press) => press.source === "user" && !press.carried);
 
@@ -158,11 +157,19 @@ const faultKind = (
 	if (playerPresses(user, player) < minimalPresses(target, player) || !pressesReach(target, user, player.handling))
 		return "floor-kick";
 
-	if (
-		turnCount(user, player) > nearest.filter((step) => isTurn(step)).length ||
-		!routes.some((route) => finalOrientation(route) === orientation)
-	)
-		return "wrong-rotation";
+	const turns = turnCount(user, player);
+	const turnKeys = user.map(({ key }) => key);
+	const isOneWay = !(turnKeys.includes("rotateCW") && turnKeys.includes("rotateCCW"));
+	const isLongWay = routes.some(
+		(route) =>
+			route.some((step) => isTurn(step)) &&
+			finalOrientation(route) === orientation &&
+			turns > route.filter((step) => isTurn(step)).length,
+	);
+	const isOtherVertical =
+		isUprightVertical(target.mino, orientation) && !routes.some((route) => finalOrientation(route) === orientation);
+
+	if ((isOneWay && isLongWay) || isOtherVertical) return "wrong-rotation";
 
 	if (
 		SHIFT_KEYS.some(
@@ -175,10 +182,19 @@ const faultKind = (
 		return "tapped-across";
 
 	const moved = stepsMoved(target.mino, steps);
-	const movingTaps = (key: ShiftKey): number =>
-		steps.filter((step, index) => "tap" in step && step.tap === key && moved[index]).length;
+	const tapRun = (key: ShiftKey): number =>
+		steps.reduce(
+			({ run, longest }, step, index) => {
+				if (!moved[index] || isTurn(step)) return { run, longest };
+
+				const next = "tap" in step && step.tap === key ? run + 1 : 0;
+
+				return { run: next, longest: Math.max(longest, next) };
+			},
+			{ run: 0, longest: 0 },
+		).longest;
 	const isThreeTaps = (key: ShiftKey): boolean => {
-		const taps = movingTaps(key) - movingTaps(opposite(key));
+		const taps = tapRun(key);
 
 		return (
 			taps >= THREE_TAPS &&
@@ -237,5 +253,5 @@ export const findFault = (attempt: Attempt, player: Player): Fault | null => {
 
 	const { routes, steps, nearest } = compared(attempt, player);
 
-	return faultOf(faultKind(attempt, player, steps, routes, nearest), attempt, player, nearest);
+	return faultOf(faultKind(attempt, player, steps, routes), attempt, player, nearest);
 };

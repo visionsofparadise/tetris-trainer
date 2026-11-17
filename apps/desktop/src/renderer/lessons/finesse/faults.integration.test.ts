@@ -54,7 +54,7 @@ describe("finesse faults", () => {
 		const kinds = [
 			attempt(Mino.T, ["spawn", 1], [das("moveLeft", 0, false)]),
 			attempt(Mino.T, ["right", 3], [tap("rotateCW", 0)]),
-			attempt(Mino.O, ["spawn", 4], [tap("rotateCW", 0)], "right"),
+			attempt(Mino.T, ["right", 4], [tap("rotateCCW", 0), tap("rotateCCW", 5), tap("rotateCCW", 10)]),
 			attempt(Mino.T, ["spawn", 0], [tap("moveLeft", 0), tap("moveLeft", 5), tap("moveLeft", 10)]),
 			attempt(Mino.T, ["spawn", 6], [tap("moveRight", 0), tap("moveRight", 5), tap("moveRight", 10)]),
 			attempt(Mino.J, ["right", 1], [tap("rotateCW", 0), das("moveLeft", 5), tap("moveRight", 40)]),
@@ -99,6 +99,13 @@ describe("finesse faults", () => {
 		).toBe("extra-press");
 	});
 
+	it("names three moving taps in a row one way before the tap back", () => {
+		expect(
+			findFault(attempt(Mino.T, ["spawn", 1], pressed(["moveLeft", "moveLeft", "moveLeft", "moveRight"])), WITH_180)
+				?.kind,
+		).toBe("three-taps");
+	});
+
 	it("leaves a back-and-forth wiggle that DAS and a tap back would not shorten to Extra press", () => {
 		expect(
 			findFault(attempt(Mino.L, ["spawn", 1], pressed(["moveLeft", "moveLeft", "moveRight", "moveLeft"])), WITH_180)
@@ -129,6 +136,15 @@ describe("finesse faults", () => {
 		expect(findFault(otherVertical, WITH_180)?.kind).toBe("wrong-rotation");
 	});
 
+	it("calls a turn that the target never needed, or one undone, an extra press", () => {
+		const kinds = [
+			attempt(Mino.O, ["spawn", 4], [tap("rotateCW", 0)], "right"),
+			attempt(Mino.T, ["spawn", 3], [tap("rotateCW", 0), tap("rotateCCW", 5)]),
+		].map((tried) => findFault(tried, WITH_180)?.kind);
+
+		expect(kinds).toEqual(["extra-press", "extra-press"]);
+	});
+
 	it("counts two same-direction turns as one press when a 180 is bound", () => {
 		const twoTurns = attempt(Mino.T, ["reverse", 0], [tap("rotateCW", 0), tap("rotateCW", 5), das("moveLeft", 10)]);
 		const threeTurns = attempt(
@@ -139,7 +155,7 @@ describe("finesse faults", () => {
 
 		expect(findFault(twoTurns, WITH_180)).toBeNull();
 		expect(findFault(twoTurns, WITHOUT_180)).toBeNull();
-		expect(findFault(threeTurns, WITH_180)?.kind).toBe("wrong-rotation");
+		expect(findFault(threeTurns, WITH_180)?.kind).toBe("extra-press");
 	});
 
 	it("counts a soft drop as a press and shows it among the player's keys", () => {

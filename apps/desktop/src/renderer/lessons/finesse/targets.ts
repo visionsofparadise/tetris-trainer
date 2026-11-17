@@ -6,6 +6,7 @@ import {
 	QUARTER_TURN_KEYS,
 	ROTATION_KEYS,
 	type GameSetup,
+	type Orientation,
 	type Piece,
 	type PieceTarget,
 	type Placement,
@@ -39,6 +40,9 @@ export const pieceSetup = (mino: Piece): GameSetup => ({
 });
 
 const UPRIGHT_PIECES: ReadonlyArray<Piece> = [Mino.I, Mino.S, Mino.Z];
+
+export const isUprightVertical = (mino: Piece, orientation: Orientation): boolean =>
+	UPRIGHT_PIECES.includes(mino) && (orientation === "right" || orientation === "left");
 
 export const opposite = (key: ShiftKey): ShiftKey => (key === "moveLeft" ? "moveRight" : "moveLeft");
 
@@ -91,7 +95,5 @@ export const routeRules = (target: PieceTarget, route: ReadonlyArray<ScriptStep>
 	...moveRules(route),
 	...dasRules(target, route),
 	...(target.orientation === "reverse" ? ["south" as const] : []),
-	...(UPRIGHT_PIECES.includes(target.mino) && (target.orientation === "right" || target.orientation === "left")
-		? ["verticals" as const]
-		: []),
+	...(isUprightVertical(target.mino, target.orientation) ? ["verticals" as const] : []),
 ];
