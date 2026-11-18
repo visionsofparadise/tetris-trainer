@@ -3,7 +3,7 @@
 	"author": "Matt Cavender",
 	"license": "MIT",
 	"productName": "Tetris Trainer",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Desktop Tetris with TETR.IO handling.",
 	"private": true,
 	"type": "module",
