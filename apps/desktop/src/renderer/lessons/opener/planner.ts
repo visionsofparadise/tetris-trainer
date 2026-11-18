@@ -189,7 +189,8 @@ const judgePlace = (opener: Opener, state: PlanState, placement: Placement): Ver
 			: mistake(opener, state, "next-bag");
 	}
 
-	const position = positionsOf(opener, current).find((candidate) => samePlacement(candidate.placement, placement));
+	const matches = positionsOf(opener, current).filter((candidate) => samePlacement(candidate.placement, placement));
+	const position = matches.find((candidate) => missing(candidate, placed).length === 0) ?? matches[0];
 
 	if (position === undefined) return mistake(opener, state, "placement");
 

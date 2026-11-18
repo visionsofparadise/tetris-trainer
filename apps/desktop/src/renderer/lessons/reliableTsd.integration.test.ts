@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { openerProblems, playPlan, playUntilPaused } from "./opener/openerChecks";
 import { planScript } from "./opener/openerScript";
 import { categorize, ordersByCategory } from "./opener/orders";
-import { plan, startState } from "./opener/planner";
+import { isComplete, judge, plan, startState } from "./opener/planner";
 import {
 	declareImpossible,
 	dealPractice,
@@ -107,6 +107,22 @@ describe("Reliable TSD", () => {
 
 		expect(session.clears).toBe(1);
 		expect(session.status).toBe("playing");
+	});
+
+	it("accepts every planned move when the S rests on the L before the I is down", () => {
+		let state = startState([Mino.J, Mino.Z, Mino.L, Mino.S, Mino.O, Mino.T, Mino.I]);
+
+		for (const decision of plan(RELIABLE_TSD, state) ?? []) {
+			const move =
+				decision.kind === "place" ? { kind: "place" as const, placement: decision.position.placement } : decision;
+			const verdict = judge(RELIABLE_TSD, state, move);
+
+			expect(verdict.ok).toBe(true);
+
+			if (verdict.ok) state = verdict.next;
+		}
+
+		expect(isComplete(RELIABLE_TSD, state)).toBe(true);
 	});
 
 	it("marks an impossible call right only when the order can't be built", () => {
