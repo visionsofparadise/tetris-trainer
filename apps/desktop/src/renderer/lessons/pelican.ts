@@ -83,7 +83,7 @@ export const PELICAN: Opener = {
 				{ text: "An early T can wait in hold until every other piece is in.", aims: [T_POSITION] },
 			],
 			board: [S_POSITION, Z_POSITION, I_POSITION, { hold: Mino.L }],
-			marks: [J_POSITION, L_POSITION],
+			marks: [J_POSITION, L_POSITION, T_POSITION],
 		},
 		{
 			title: "Is it possible?",

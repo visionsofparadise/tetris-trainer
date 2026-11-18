@@ -1,8 +1,15 @@
-import { DEMO_HANDLING, samePlacement, type Game, type PlaceEvent, type Piece } from "@tetris-trainer/game";
+import {
+	DEMO_HANDLING,
+	samePlacement,
+	type Game,
+	type PlaceEvent,
+	type Piece,
+	type Placement,
+} from "@tetris-trainer/game";
 import { loadOrder, loadSlide, planScript } from "./openerScript";
 import { ordersByCategory } from "./orders";
 import { plan, startState } from "./planner";
-import type { Opener } from "./Opener";
+import type { Opener, Slide } from "./Opener";
 
 const INSTANT = { keyWait: 0, decisionWait: 0 };
 const FRAME_LIMIT = 3000;
@@ -28,12 +35,27 @@ export const playPlan = (opener: Opener, order: ReadonlyArray<Piece>): Array<Pla
 	return placed;
 };
 
+const isShown = ({ board, marks }: Slide, aim: Placement): boolean =>
+	[...board, ...marks].some((item) => "mino" in item && samePlacement(item, aim));
+
+const aimProblems = (slide: Slide): Array<string> =>
+	slide.isLive
+		? []
+		: slide.notes.flatMap(({ text, aims }) =>
+				aims
+					.filter((aim): aim is Placement => typeof aim !== "string" && "mino" in aim && !isShown(slide, aim))
+					.map(
+						(aim) =>
+							`Slide "${slide.title}" aims "${text}" at the ${aim.mino.toUpperCase()}, which is neither on the board nor marked`,
+					),
+			);
+
 const slideProblems = ({ slides }: Opener): Array<string> =>
 	slides.flatMap((slide) => {
 		try {
 			loadSlide(slide);
 
-			return [];
+			return aimProblems(slide);
 		} catch (error) {
 			return [`Slide "${slide.title}" fails to load: ${String(error)}`];
 		}
