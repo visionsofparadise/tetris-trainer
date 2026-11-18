@@ -249,7 +249,7 @@ const judgeLock = async <S, T extends DrillStage>(
 	session.state = ignore(next);
 
 	if (!verdict.ok) {
-		queue.game.restore(record.placed);
+		queue.game.restore(verdict.showsBefore === true ? record.checkpoint : record.placed);
 		fail(session, verdict, {
 			retry: { snapshot: record.checkpoint, before: record.before, state: next },
 			resume: queue.toppedOut === captured ? null : { snapshot: record.placed, before: lock.after, state: next },

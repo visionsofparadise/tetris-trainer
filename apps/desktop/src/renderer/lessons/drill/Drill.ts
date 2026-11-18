@@ -34,6 +34,7 @@ export interface DrillMistake extends DrillHint {
 	readonly keys?: KeyComparison;
 	readonly overlays?: ReadonlyArray<BoardOverlay>;
 	readonly placed: ReadonlyArray<Block> | null;
+	readonly showsBefore?: boolean;
 }
 
 type DrillVerdict = { readonly ok: true } | ({ readonly ok: false } & DrillMistake);

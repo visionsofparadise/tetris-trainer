@@ -4,12 +4,12 @@ import { SlideBoard } from "../Opener/SlideBoard";
 import type { Slide } from "../../lessons/opener/Opener";
 import type { AppContext } from "../../models/AppContext";
 
-interface WellsSlideProps {
+interface BoardSlideProps {
 	readonly slide: Slide;
 	readonly context: AppContext;
 }
 
-export function WellsSlide({ slide, context }: WellsSlideProps) {
+export function BoardSlide({ slide, context }: BoardSlideProps) {
 	const notes = useMemo(() => slideNotes(slide), [slide]);
 
 	return <SlideBoard slide={slide} notes={notes} context={context} />;

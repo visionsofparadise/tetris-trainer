@@ -1,4 +1,5 @@
 import { COLUMN_WELLS } from "./column-wells/lesson";
+import { DROP_CHOICE } from "./drop-choice/lesson";
 import { FINESSE } from "./finesse/lesson";
 import { NUMBER_ONE } from "./numberOne";
 import { openerLesson } from "./opener/openerLesson";
@@ -12,6 +13,7 @@ import type { LessonGroup } from "../models/Lesson";
 export const LESSON_GROUPS: ReadonlyArray<LessonGroup> = [
 	{ title: "Fundamentals", lessons: [FINESSE] },
 	{ title: "Quads", lessons: [COLUMN_WELLS] },
+	{ title: "Moves", lessons: [DROP_CHOICE] },
 	{
 		title: "Openers",
 		lessons: [

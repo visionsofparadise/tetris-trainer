@@ -251,6 +251,26 @@ describe("drill session", () => {
 		expect(session.game.board[0]?.[6]).toBe(Mino.O);
 	});
 
+	it("shows the board from before the lock when the mistake asks for it", async () => {
+		const showingBefore: Drill<FakeState>["judge"] = (state, lock) => {
+			const judgement = judgeRound(state, lock);
+
+			return judgement.verdict.ok
+				? judgement
+				: { ...judgement, verdict: { ...judgement.verdict, showsBefore: true } };
+		};
+		const session = started({ ...FAKE, judge: showingBefore });
+
+		play(session.game, FIRST);
+		play(session.game, WRONG);
+		await settle();
+
+		expect(session.status).toBe("mistake");
+		expect(filled(session.game)).toBe(4);
+		expect(session.game.board[0]?.[0]).toBe(Mino.O);
+		expect(session.game.board[0]?.[6]).toBeNull();
+	});
+
 	it("retries a failure from its piece's spawn, keeping the failure, and judges the next lock from there", async () => {
 		const seen: Array<DrillLock> = [];
 		const drill = { ...FAKE, judge: recording(seen) };
