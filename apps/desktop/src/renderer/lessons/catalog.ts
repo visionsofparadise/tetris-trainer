@@ -2,6 +2,7 @@ import { COLUMN_WELLS } from "./column-wells/lesson";
 import { FINESSE } from "./finesse/lesson";
 import { NUMBER_ONE } from "./numberOne";
 import { openerLesson } from "./opener/openerLesson";
+import { PCO } from "./pco";
 import { PELICAN } from "./pelican";
 import { RELIABLE_TSD } from "./reliableTsd";
 import { TKI } from "./tki";
@@ -19,6 +20,7 @@ export const LESSON_GROUPS: ReadonlyArray<LessonGroup> = [
 			openerLesson(PELICAN, "pelican", "A first-bag platform opener that ends in a T-spin double."),
 			openerLesson(RELIABLE_TSD, "reliable-tsd", "A first-bag T-spin double with its slot on the right."),
 			openerLesson(NUMBER_ONE, "number-one", "A first-bag platform opener that ends in an upright T-spin double."),
+			openerLesson(PCO, "pco", "A first-bag shape that leaves a gap for a perfect clear."),
 		],
 	},
 ];

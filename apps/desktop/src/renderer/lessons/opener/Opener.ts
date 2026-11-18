@@ -34,9 +34,15 @@ export interface Slide {
 	readonly isLive?: boolean;
 }
 
+interface Keep {
+	readonly piece: Piece;
+	readonly reason: string;
+}
+
 export interface Opener {
 	readonly name: string;
 	readonly positions: ReadonlyArray<Position>;
 	readonly optional: ReadonlyArray<Piece>;
+	readonly keep?: Keep;
 	readonly slides: ReadonlyArray<Slide>;
 }

@@ -91,11 +91,16 @@ export const afterHold = (state: PlanState): PlanState =>
 export const isComplete = (opener: Opener, state: PlanState): boolean =>
 	placedCount(opener, state) === pieceCount(opener);
 
-const readyPositions = (opener: Opener, { current, placed }: PlanState): Array<Position> =>
+const isKept = ({ keep }: Opener, { placement }: Position): boolean => placement.mino === keep?.piece;
+
+const readyPositions = (opener: Opener, { current, placed }: PlanState, allowKept = true): Array<Position> =>
 	current === NEXT_BAG || placed.includes(current)
 		? []
 		: positionsOf(opener, current).filter(
-				(position) => isOpen(position, placed) && missing(position, placed).length === 0,
+				(position) =>
+					(allowKept || !isKept(opener, position)) &&
+					isOpen(position, placed) &&
+					missing(position, placed).length === 0,
 			);
 
 const whyNotNow = (opener: Opener, { current, placed }: PlanState): string => {
@@ -120,7 +125,7 @@ const placeDecision = (position: Position, placed: ReadonlyArray<Piece>): Decisi
 };
 
 const holdDecision = (opener: Opener, state: PlanState): Decision => {
-	const why = whyNotNow(opener, state);
+	const why = state.current === opener.keep?.piece ? opener.keep.reason : whyNotNow(opener, state);
 
 	return {
 		kind: "hold",
@@ -131,21 +136,27 @@ const holdDecision = (opener: Opener, state: PlanState): Decision => {
 	};
 };
 
-export const plan = (opener: Opener, state: PlanState, allowHold = true): Array<Decision> | null => {
+const search = (opener: Opener, state: PlanState, allowHold: boolean, allowKept: boolean): Array<Decision> | null => {
 	if (isComplete(opener, state)) return [];
 
-	for (const position of readyPositions(opener, state)) {
-		const rest = plan(opener, afterPlace(state, position.placement.mino), allowHold);
+	for (const position of readyPositions(opener, state, allowKept)) {
+		const rest = search(opener, afterPlace(state, position.placement.mino), allowHold, allowKept);
 
 		if (rest) return [placeDecision(position, state.placed), ...rest];
 	}
 
 	if (!allowHold || state.holdLocked) return null;
 
-	const rest = plan(opener, afterHold(state), allowHold);
+	const rest = search(opener, afterHold(state), allowHold, allowKept);
 
 	return rest ? [holdDecision(opener, state), ...rest] : null;
 };
+
+const canKeep = (opener: Opener, state: PlanState): boolean =>
+	opener.keep === undefined || search(opener, state, true, false) !== null;
+
+export const plan = (opener: Opener, state: PlanState, allowHold = true): Array<Decision> | null =>
+	search(opener, state, allowHold, !canKeep(opener, state));
 
 const earlyPieces = (opener: Opener, order: ReadonlyArray<Piece>): Array<Piece> =>
 	order.filter((piece, index) =>
@@ -186,6 +197,9 @@ const judgePlace = (opener: Opener, state: PlanState, placement: Placement): Ver
 
 	if (needs.length > 0) return mistake(opener, state, "order", `Needs ${list(needs)} first.`);
 
+	if (isKept(opener, position) && canKeep(opener, state))
+		return mistake(opener, state, "hold", `The ${name(current)} goes here only when hold must keep another piece.`);
+
 	const next = afterPlace(state, current);
 
 	return plan(opener, next) ? { ok: true, next } : mistake(opener, state, "dead-end");
@@ -199,5 +213,9 @@ export const judge = (opener: Opener, state: PlanState, move: Move): Verdict => 
 
 	const next = afterHold(state);
 
-	return plan(opener, next) ? { ok: true, next } : mistake(opener, state, "hold");
+	if (plan(opener, next) === null) return mistake(opener, state, "hold");
+
+	return opener.keep && canKeep(opener, state) && !canKeep(opener, next)
+		? mistake(opener, state, "hold", `Holding now leaves no way to keep the ${name(opener.keep.piece)} in hold.`)
+		: { ok: true, next };
 };
