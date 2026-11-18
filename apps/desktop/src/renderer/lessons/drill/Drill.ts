@@ -70,6 +70,7 @@ export interface DrillJudgement<S> {
 
 export interface DrillWords {
 	readonly next: string;
+	readonly resume?: string;
 	readonly why: string;
 }
 
@@ -84,7 +85,7 @@ interface WatchRound {
 	readonly marks: ReadonlyArray<BoardMark>;
 	readonly overlays?: (board: SimBoard) => ReadonlyArray<BoardOverlay>;
 	readonly narration: ReadonlyArray<string>;
-	readonly play: (spawn: SearchState) => Promise<WatchTurn>;
+	readonly play: (spawn: SearchState, signal: AbortSignal) => Promise<WatchTurn>;
 }
 
 export interface Drill<S, T extends DrillStage = DrillStage> {

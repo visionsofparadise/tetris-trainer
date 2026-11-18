@@ -13,6 +13,12 @@ const failureOf = (event: Event): Error => {
 
 const errorOf = (reason: unknown): Error => (reason instanceof Error ? reason : new Error(String(reason)));
 
+const answerless = <T>(error: Error, fallback: T): T => {
+	console.error("The search worker failed, so the search makes no call", error);
+
+	return fallback;
+};
+
 export const searchClientOn = (endpoint: Endpoint, timeoutMs: number): SearchClient => {
 	const searches = wrap<WorkerSearches>(endpoint);
 	const pending = new Set<(error: Error) => void>();
@@ -22,7 +28,7 @@ export const searchClientOn = (endpoint: Endpoint, timeoutMs: number): SearchCli
 		const error = failureOf(event);
 
 		failure = error;
-		pending.forEach((reject) => reject(error));
+		pending.forEach((answer) => answer(error));
 		pending.clear();
 	};
 
@@ -30,28 +36,29 @@ export const searchClientOn = (endpoint: Endpoint, timeoutMs: number): SearchCli
 	endpoint.addEventListener("messageerror", fail);
 
 	const settle = <T>(call: () => Promise<T>, fallback: T): Promise<T> => {
-		if (failure) return Promise.reject(failure);
+		if (failure) return Promise.resolve(answerless(failure, fallback));
 
-		return new Promise<T>((resolve, reject) => {
+		return new Promise<T>((resolve) => {
 			const finish = (): void => {
 				clearTimeout(timer);
-				pending.delete(reject);
+				pending.delete(answer);
+			};
+			const answer = (error: Error): void => {
+				finish();
+				resolve(answerless(error, fallback));
 			};
 			const timer = setTimeout(() => {
 				finish();
 				resolve(fallback);
 			}, timeoutMs);
 
-			pending.add(reject);
+			pending.add(answer);
 			call().then(
 				(value) => {
 					finish();
 					resolve(value);
 				},
-				(reason: unknown) => {
-					finish();
-					reject(errorOf(reason));
-				},
+				(reason: unknown) => answer(errorOf(reason)),
 			);
 		});
 	};

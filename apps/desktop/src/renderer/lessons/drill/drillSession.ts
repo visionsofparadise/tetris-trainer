@@ -35,6 +35,9 @@ interface JudgeQueue<S> {
 	tail: Promise<void>;
 	before: SearchState;
 	last: LockRecord<S> | null;
+	spawning: DrillLock | null;
+	toppedOut: DrillLock | null;
+	claim: object | null;
 }
 
 interface Recovery<S> {
@@ -73,6 +76,9 @@ const queueOn = <S>(game: Game, before: SearchState): JudgeQueue<S> => ({
 	tail: Promise.resolve(),
 	before,
 	last: null,
+	spawning: null,
+	toppedOut: null,
+	claim: null,
 });
 
 export const createDrillSession = <S, T extends DrillStage>(drill: Drill<S, T>): DrillSession<S, T> => {
@@ -129,28 +135,37 @@ const handBack = <S, T extends DrillStage>(session: DrillSession<S, T>): void =>
 	session.game.setUserInput(true);
 };
 
+const isClaimed = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	queue: JudgeQueue<S>,
+	claim: object,
+): boolean => isCurrent(session, queue) && queue.claim === claim;
+
 const delegateTurn = async <S, T extends DrillStage>(
 	session: DrillSession<S, T>,
 	queue: JudgeQueue<S>,
+	claim: object,
+	spawned: GameSnapshot,
 	play: () => Promise<ReadonlyArray<ScriptStep>>,
 ): Promise<void> => {
 	try {
 		await queue.tail;
 
-		if (!isCurrent(session, queue)) return;
+		if (!isClaimed(session, queue, claim)) return;
 
 		const keys = await play();
 
-		if (!isCurrent(session, queue)) return;
+		if (!isClaimed(session, queue, claim)) return;
 
+		queue.game.restore(spawned);
 		queue.game.input(keys);
 	} catch (error) {
 		console.error("The drill could not play its piece, so the player plays it", error);
 
-		if (isCurrent(session, queue)) handBack(session);
+		if (isClaimed(session, queue, claim)) handBack(session);
 	}
 
-	if (isCurrent(session, queue)) queue.game.resume();
+	if (isClaimed(session, queue, claim)) queue.game.resume();
 };
 
 const claimTurn = <S, T extends DrillStage>(
@@ -161,14 +176,20 @@ const claimTurn = <S, T extends DrillStage>(
 	const { game, queue, state } = session;
 	const { delegate } = drill;
 
-	if (!delegate || !isOwned(drill, state, game.falling.mino)) return;
+	if (!delegate || !isOwned(drill, state, game.falling.mino)) {
+		if (session.owner === "demo") handBack(session);
 
-	const spawn = queue.before;
+		return;
+	}
 
+	const spawn = searchStateOf(game);
+	const claim = {};
+
+	queue.claim = claim;
 	game.pause();
 	game.setUserInput(false);
 	session.owner = "demo";
-	void delegateTurn(session, queue, () => delegate(session.state, spawn, context));
+	void delegateTurn(session, queue, claim, game.snapshot(), () => delegate(session.state, spawn, context));
 };
 
 const playFrom = <S, T extends DrillStage>(
@@ -212,8 +233,10 @@ const judgeLock = async <S, T extends DrillStage>(
 	drill: Drill<S, T>,
 	context: JudgeContext,
 	queue: JudgeQueue<S>,
-	{ record, ...lock }: CapturedLock<S>,
+	captured: CapturedLock<S>,
 ): Promise<void> => {
+	const { record, ...lock } = captured;
+
 	if (!isCurrent(session, queue)) return;
 
 	const stateBefore = session.state;
@@ -229,7 +252,7 @@ const judgeLock = async <S, T extends DrillStage>(
 		queue.game.restore(record.placed);
 		fail(session, verdict, {
 			retry: { snapshot: record.checkpoint, before: record.before, state: next },
-			resume: { snapshot: record.placed, before: lock.after, state: next },
+			resume: queue.toppedOut === captured ? null : { snapshot: record.placed, before: lock.after, state: next },
 		});
 
 		return;
@@ -262,16 +285,17 @@ const capture = <S, T extends DrillStage>(
 	};
 
 	queue.before = after;
+	queue.spawning = lock;
 	session.board = ignore(after.board);
 	enqueue(queue, () => judgeLock(session, drill, context, queue, lock));
 	session.pending++;
-	claimTurn(session, drill, context);
 };
 
 const topOut = <S, T extends DrillStage>(session: DrillSession<S, T>): void => {
 	const { game, queue } = session;
 
 	game.pause();
+	queue.toppedOut = queue.spawning;
 	enqueue(queue, () => {
 		if (!isCurrent(session, queue)) return;
 
@@ -294,12 +318,14 @@ const deal = <S, T extends DrillStage>(
 
 	const isActive = (): boolean => session.status === "playing" && session.game === game;
 
-	game.on("spawn", ({ mino, fromHold }) => {
-		if (!isActive() || fromHold) return;
+	game.on("spawn", ({ fromHold }) => {
+		if (!isActive()) return;
 
-		session.checkpoint = ignore(game.snapshot());
+		session.queue.spawning = null;
 
-		if (session.owner === "demo" && !isOwned(drill, session.state, mino)) handBack(session);
+		if (!fromHold) session.checkpoint = ignore(game.snapshot());
+
+		claimTurn(session, drill, context);
 	});
 	game.on("place", (event) => {
 		if (isActive()) capture(session, drill, context, event);
@@ -352,14 +378,41 @@ export const continueDrill = <S, T extends DrillStage>(
 	else deal(session, drill, context, "next");
 };
 
+const restartPiece = <S, T extends DrillStage>(
+	session: DrillSession<S, T>,
+	drill: Drill<S, T>,
+	context: JudgeContext,
+): void => {
+	const { game, queue } = session;
+
+	if (game.isOver) return;
+
+	game.restore(session.checkpoint);
+	queue.claim = null;
+	session.board = ignore(queue.before.board);
+	handBack(session);
+	game.resume();
+	claimTurn(session, drill, context);
+};
+
 export const retryDrill = <S, T extends DrillStage>(
 	session: DrillSession<S, T>,
 	drill: Drill<S, T>,
 	context: JudgeContext,
 ): void => {
 	if (session.stage.onMistake === "restart") continueDrill(session, drill, context);
-	else if (session.status === "playing") dealDrill(session, drill, context);
+	else if (session.status === "playing") restartPiece(session, drill, context);
 	else retryMistake(session, drill, context);
+};
+
+export const canResume = <S, T extends DrillStage>(session: DrillSession<S, T>, drill: Drill<S, T>): boolean =>
+	session.stage.onMistake === "pause" && drill.onContinue === "resume" && (session.recovery?.resume ?? null) !== null;
+
+export const stopDrill = <S, T extends DrillStage>(session: DrillSession<S, T>): void => {
+	const { game, queue } = session;
+
+	game.pause();
+	session.queue = ignore(queueOn(game, queue.before));
 };
 
 export const setStage = <S, T extends DrillStage>(

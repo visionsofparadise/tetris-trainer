@@ -13,12 +13,14 @@ import { createMutableState, flush, subscribe, type Operation } from "opshot";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createLocalSearch } from "../../search/localSearch";
 import {
+	canResume,
 	continueDrill,
 	createDrillSession,
 	dealDrill,
 	retryDrill,
 	retryMistake,
 	setStage,
+	stopDrill,
 	type DrillSession,
 } from "./drillSession";
 import { playerOf } from "./player";
@@ -42,6 +44,10 @@ const ROUND: ReadonlyArray<Placement> = [FIRST, SECOND];
 const WRONG: Placement = { mino: Mino.O, orientation: "spawn", column: 6, row: 0 };
 
 const T_LEFT: Placement = { mino: Mino.T, orientation: "spawn", column: 0, row: 0 };
+
+const T_MIDDLE: Placement = { mino: Mino.T, orientation: "spawn", column: 3, row: 0 };
+
+const FRAME_MS = 1000 / 60;
 
 const JUDGE: JudgeContext = { player: playerOf(DEFAULT_CONFIG), search: createLocalSearch() };
 
@@ -427,23 +433,36 @@ describe("drill session", () => {
 		expect(session.state).toEqual({ stage: "restart", round: 0, placed: 0, passes: 0, failures: 0 });
 	});
 
-	it("restarts the run on a retry mid-piece in a restart-mode stage and the piece in a pause-mode one", async () => {
-		const session = started();
+	it("restarts the run on a retry mid-piece in a restart-mode stage and only the piece in a pause-mode one", async () => {
+		const seen: Array<DrillLock> = [];
+		const drill = { ...FAKE, judge: recording(seen) };
+		const session = started(drill);
 
 		play(session.game, FIRST);
 		await settle();
 		session.game.press("moveRight");
 		session.game.step(2);
-		retryDrill(session, FAKE, JUDGE);
+		retryDrill(session, drill, JUDGE);
 
-		expect(session.state).toMatchObject({ round: 0, placed: 0, passes: 1 });
+		expect(session.state).toMatchObject({ round: 0, placed: 1, passes: 1 });
+		expect(filled(session.game)).toBe(4);
+		expect(session.game.falling.blocks).toEqual(started(drill).game.falling.blocks);
 
-		setStage(session, FAKE, JUDGE, RESTART);
+		play(session.game, SECOND);
+		await settle();
+
+		expect(seen.map(({ before }) => rowsOf(before))).toEqual([
+			[0, 0],
+			[0b11, 0b11],
+		]);
+		expect(session.clears).toBe(1);
+
+		setStage(session, drill, JUDGE, RESTART);
 		play(session.game, FIRST);
 		await settle();
 		session.game.press("moveRight");
 		session.game.step(2);
-		retryDrill(session, FAKE, JUDGE);
+		retryDrill(session, drill, JUDGE);
 
 		expect(session.status).toBe("playing");
 		expect(session.state).toEqual({ stage: "restart", round: 0, placed: 0, passes: 0, failures: 0 });
@@ -492,5 +511,130 @@ describe("drill session", () => {
 		expect(session.stage).toBe(RESTART);
 		expect(session.state).toEqual({ stage: "restart", round: 0, placed: 0, passes: 0, failures: 0 });
 		expect(session.passed).toEqual(["pause"]);
+	});
+
+	it("plays an app-owned piece from its spawn when a direction is held through the player's hard drop", async () => {
+		const owning: Drill<FakeState> = {
+			...FAKE,
+			deal: dealing([Mino.O, Mino.T, Mino.O, Mino.O]),
+			judge: (state) => ({ verdict: { ok: true }, next: { ...state, placed: state.placed + 1 } }),
+			isRoundOver: () => false,
+			owns: (_state, mino) => mino === Mino.T,
+			delegate: () => Promise.resolve(dropSteps(T_MIDDLE)),
+		};
+		const session = started(owning);
+		const { game } = session;
+		const columns: Array<string> = [];
+
+		game.on("place", ({ placement }) => columns.push(`${placement.mino}@${placement.column}`));
+		game.press("moveLeft");
+		game.step(30);
+		game.press("hardDrop");
+		game.advance(FRAME_MS * 3);
+		game.release("hardDrop");
+		game.release("moveLeft");
+		await settle();
+
+		for (let frame = 0; frame < FRAME_LIMIT && columns.length < 2; frame++) game.advance(FRAME_MS);
+
+		expect(columns).toEqual(["o@0", "t@3"]);
+	});
+
+	it("gives an app-owned piece that comes out of hold to the app", async () => {
+		const spawns: Array<SearchState> = [];
+		const owning: Drill<FakeState> = {
+			...FAKE,
+			deal: dealing([Mino.O, Mino.T, Mino.O, Mino.O]),
+			judge: (state) => ({ verdict: { ok: true }, next: { ...state, placed: state.placed + 1 } }),
+			isRoundOver: () => false,
+			owns: (_state, mino) => mino === Mino.T,
+			delegate: (_state, spawn) => {
+				spawns.push(spawn);
+
+				return Promise.resolve(dropSteps(T_MIDDLE));
+			},
+		};
+		const session = started(owning);
+		const { game } = session;
+		const placed: Array<string> = [];
+
+		game.on("place", ({ placement, inputs }) =>
+			placed.push(
+				`${placement.mino}@${placement.column} by ${[...new Set(inputs.map(({ source }) => source))].join("+")}`,
+			),
+		);
+		tapKey(game, "hold");
+
+		expect(session.owner).toBe("demo");
+		expect(game.isPaused).toBe(true);
+
+		await settle();
+		lockNext(game);
+
+		expect(placed).toEqual(["t@3 by script"]);
+		expect(spawns).toMatchObject([{ current: Mino.T, hold: Mino.O, holdLocked: true }]);
+		expect(session.owner).toBe("user");
+	});
+
+	it("offers no resume after a failing lock that also topped out", async () => {
+		const failing: Drill<FakeState> = {
+			...FAKE,
+			deal: dealing(Array.from({ length: 30 }, () => Mino.O)),
+			judge: (state, { event }) => ({
+				verdict: { ok: false, kind: "spot", title: "Wrong spot", placed: event.cells, best: null },
+				next: { ...state, failures: state.failures + 1 },
+			}),
+			onContinue: "resume",
+		};
+		const session = started(failing);
+		let toppedOut = false;
+
+		session.game.on("topout", () => (toppedOut = true));
+
+		for (let lock = 0; lock < 15 && !toppedOut; lock++) {
+			if (lock > 0) continueDrill(session, failing, JUDGE);
+
+			tapKey(session.game, "hardDrop");
+			await settle();
+
+			expect(session.mistake?.kind).toBe("spot");
+			expect(canResume(session, failing)).toBe(!toppedOut);
+		}
+
+		expect(toppedOut).toBe(true);
+
+		continueDrill(session, failing, JUDGE);
+
+		expect(session.status).toBe("playing");
+		expect(session.state.round).toBe(1);
+		expect(filled(session.game)).toBe(0);
+	});
+
+	it("applies no judgement and plays no app piece once stopped", async () => {
+		const seen: Array<DrillLock> = [];
+		const { opened, open } = gate();
+		const delegated: Array<SearchState> = [];
+		const drill: Drill<FakeState> = {
+			...FAKE,
+			deal: dealing([Mino.O, Mino.T, Mino.O]),
+			judge: gatedFirst(seen, opened),
+			owns: (_state, mino) => mino === Mino.T,
+			delegate: (_state, spawn) => {
+				delegated.push(spawn);
+
+				return Promise.resolve(dropSteps(T_MIDDLE));
+			},
+		};
+		const session = started(drill);
+
+		play(session.game, WRONG);
+		stopDrill(session);
+		open();
+		await settle();
+
+		expect(session.status).toBe("playing");
+		expect(session.state.failures).toBe(0);
+		expect(delegated).toEqual([]);
+		expect(session.game.isPaused).toBe(true);
 	});
 });

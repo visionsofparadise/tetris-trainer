@@ -19,6 +19,7 @@ export interface DrillWatchSession {
 	speed: number;
 	isDone: boolean;
 	clears: number;
+	abort: AbortController;
 }
 
 export const createDrillWatch = (): DrillWatchSession => {
@@ -33,18 +34,25 @@ export const createDrillWatch = (): DrillWatchSession => {
 		speed: 1,
 		isDone: false,
 		clears: 0,
+		abort: ignore(new AbortController()),
 	};
+};
+
+export const stopDrillWatch = (session: DrillWatchSession): void => {
+	session.abort.abort();
+	session.game.pause();
 };
 
 export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, context: JudgeContext): void => {
 	const { game, locks, marks, overlays, narration, play } = watch(context.player, context.search, session.round);
+	const abort = new AbortController();
 	let placed = 0;
 
 	const showBoard = (): void => {
 		session.overlays = ignore(overlays ? overlays(simBoardOf(game.board)) : NO_OVERLAYS);
 	};
 
-	const isActive = (): boolean => session.game === game;
+	const isActive = (): boolean => session.game === game && !abort.signal.aborted;
 
 	const finish = (): void => {
 		game.pause();
@@ -55,7 +63,7 @@ export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, con
 		game.pause();
 
 		try {
-			const { steps, line } = await play(searchStateOf(game));
+			const { steps, line } = await play(searchStateOf(game), abort.signal);
 
 			if (!isActive()) return;
 
@@ -65,6 +73,8 @@ export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, con
 
 			game.resume();
 		} catch (error) {
+			if (abort.signal.aborted) return;
+
 			console.error("The Watch round could not play its piece", error);
 
 			if (isActive()) finish();
@@ -88,6 +98,8 @@ export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, con
 		session.clears++;
 	});
 
+	session.abort.abort();
+	session.abort = ignore(abort);
 	session.round++;
 	session.marks = ignore(marks);
 	showBoard();

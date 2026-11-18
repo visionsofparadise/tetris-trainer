@@ -1,16 +1,18 @@
 import { createMutableState } from "opshot";
 import { scope } from "opshot/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useContinueKey } from "../../hooks/useContinueKey";
 import { useCue } from "../../hooks/useCue";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
 import { PAUSE_HINT, usePause } from "../../hooks/usePause";
 import {
+	canResume,
 	continueDrill,
 	createDrillSession,
 	dealDrill,
 	retryDrill,
 	setStage,
+	stopDrill,
 	type DrillSession,
 } from "../../lessons/drill/drillSession";
 import { playerOf } from "../../lessons/drill/player";
@@ -104,16 +106,22 @@ function PracticeView<S, T extends DrillStage>({
 
 	const isRestartMistake = isMistake && isRestart;
 	const retryLabel = isRestart ? "Restart the run" : isMistake ? "Retry the piece" : "Restart the piece";
+	const resumes = isMistake && canResume(session, drill);
+	const continueLabel = resumes ? (drill.words.resume ?? drill.words.next) : drill.words.next;
 
 	const hints = useMemo(() => {
 		const { hardDrop } = config.controls.custom;
+		const key = keyLabel(hardDrop[0]);
+		const continueHint = resumes
+			? `${key} to ${continueLabel.toLowerCase()}`
+			: `${key} for the ${continueLabel.toLowerCase()}`;
 
 		return [
-			...(isMistake && !isRestart ? [`${keyLabel(hardDrop[0])} for the ${drill.words.next.toLowerCase()}`] : []),
+			...(isMistake && !isRestart ? [continueHint] : []),
 			...retryHints(config, retryLabel.toLowerCase(), isRestartMistake ? hardDrop.slice(0, 1) : []),
 			PAUSE_HINT,
 		];
-	}, [isMistake, isRestart, isRestartMistake, config, retryLabel, drill]);
+	}, [isMistake, isRestart, isRestartMistake, config, retryLabel, resumes, continueLabel]);
 
 	return (
 		<LessonShell
@@ -153,7 +161,7 @@ function PracticeView<S, T extends DrillStage>({
 									{isMistake ? <PreviousIcon size={22} /> : <ReplayIcon size={22} />}
 								</IconButton>
 								{isMistake && (
-									<PrimaryIconButton label={drill.words.next} onClick={handleContinue}>
+									<PrimaryIconButton label={continueLabel} onClick={handleContinue}>
 										<ArrowIcon size={22} />
 									</PrimaryIconButton>
 								)}
@@ -202,13 +210,13 @@ export function DrillPractice<S, T extends DrillStage>({
 		[settings, search],
 	);
 
-	const [session] = useState(() => {
-		const created = createMutableState<DrillSession<S, T>>(createDrillSession(drill));
+	const [session] = useState(() => createMutableState<DrillSession<S, T>>(createDrillSession(drill)));
 
-		dealDrill(created, drill, judgeContext());
+	useEffect(() => {
+		dealDrill(session, drill, judgeContext());
 
-		return created;
-	});
+		return () => stopDrill(session);
+	}, [session, drill, judgeContext]);
 
 	const handleRetry = useCallback(() => retryDrill(session, drill, judgeContext()), [session, drill, judgeContext]);
 

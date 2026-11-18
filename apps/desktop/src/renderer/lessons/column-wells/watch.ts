@@ -18,6 +18,21 @@ const WATCH_MOVER: Mover = { handling: DEMO_HANDLING, gravity: WELLS_GRAVITY };
 
 const NO_NARRATION: ReadonlyArray<string> = [];
 
+const thinking = (signal: AbortSignal): Promise<void> =>
+	new Promise((resolve, reject) => {
+		const stop = (): void => {
+			clearTimeout(timer);
+			reject(new Error("The Watch round stopped"));
+		};
+		const timer = setTimeout(() => {
+			signal.removeEventListener("abort", stop);
+			resolve();
+		}, THINK_MS);
+
+		if (signal.aborted) stop();
+		else signal.addEventListener("abort", stop, { once: true });
+	});
+
 const watchStage = (round: number): WellStage => wellStage(round % 2 === 0 ? "nine-zero" : "six-three");
 
 const sideOf = (stage: WellStage, { cells, lines }: Move): string => {
@@ -44,8 +59,8 @@ export const wellsWatch: DealWatch = (_player, search, round) => {
 		marks: [],
 		overlays: (board) => wellOverlays(stage, board),
 		narration: NO_NARRATION,
-		play: async (spawn) => {
-			await new Promise((resolve) => setTimeout(resolve, THINK_MS));
+		play: async (spawn, signal) => {
+			await thinking(signal);
 
 			const before = await search.quadReady(spawn, goal, rules, WATCH_MOVER, LIVE_BUDGET);
 			const choice = chooseMove(spawn, before, stage, rules, WATCH_MOVER, true);

@@ -21,7 +21,7 @@ export interface WellsState {
 	readonly over: boolean;
 }
 
-const WORDS: DrillWords = { next: "Next run", why: "Why this placement" };
+const WORDS: DrillWords = { next: "Next run", resume: "Continue", why: "Why this placement" };
 
 const NO_MARKS = [] as const;
 

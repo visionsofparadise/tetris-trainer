@@ -6,6 +6,7 @@ import {
 	createDrillWatch,
 	dealDrillWatch,
 	setDrillWatchSpeed,
+	stopDrillWatch,
 	type DealWatch,
 	type DrillWatchSession,
 } from "../../lessons/drill/drillWatch";
@@ -105,18 +106,18 @@ interface DrillWatchProps extends LessonScreenProps {
 export function DrillWatch({ watch, words, showNext, lesson, view, onNavigate, context }: DrillWatchProps) {
 	const { settings, search } = context;
 
-	const [session] = useState(() => {
-		const created = createMutableState<DrillWatchSession>(createDrillWatch());
-
-		dealDrillWatch(created, watch, { player: playerOf(settings.config), search });
-
-		return created;
-	});
+	const [session] = useState(() => createMutableState<DrillWatchSession>(createDrillWatch()));
 
 	const handleDeal = useCallback(
 		() => dealDrillWatch(session, watch, { player: playerOf(settings.config), search }),
 		[session, watch, settings, search],
 	);
+
+	useEffect(() => {
+		handleDeal();
+
+		return () => stopDrillWatch(session);
+	}, [session, handleDeal]);
 
 	const handleSpeed = useCallback((speed: number) => setDrillWatchSpeed(session, speed), [session]);
 

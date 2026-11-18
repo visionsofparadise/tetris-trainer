@@ -382,7 +382,7 @@ describe("Finesse", () => {
 
 		if (!round) throw new Error("Finesse has a Watch section");
 
-		const { steps, line } = await round.play(searchStateOf(round.game));
+		const { steps, line } = await round.play(searchStateOf(round.game), new AbortController().signal);
 		const event = placeBy(round.game, steps);
 
 		expect(line).toBeNull();
