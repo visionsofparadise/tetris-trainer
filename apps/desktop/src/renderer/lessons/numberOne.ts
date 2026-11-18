@@ -1,4 +1,4 @@
-import { Mino, type Placement } from "@tetris-trainer/game";
+import { Mino, type Block, type Placement } from "@tetris-trainer/game";
 import type { Position, Opener } from "./opener/Opener";
 
 const J_POSITION: Placement = { mino: Mino.J, orientation: "reverse", column: 0, row: 0 };
@@ -8,6 +8,7 @@ const L_POSITION: Placement = { mino: Mino.L, orientation: "left", column: 4, ro
 const Z_POSITION: Placement = { mino: Mino.Z, orientation: "spawn", column: 6, row: 1 };
 const S_POSITION: Placement = { mino: Mino.S, orientation: "right", column: 8, row: 1 };
 const T_POSITION: Placement = { mino: Mino.T, orientation: "left", column: 3, row: 0 };
+const FLOATING_MINO: Block = [8, 3];
 
 const SETUP: ReadonlyArray<Placement> = [J_POSITION, I_POSITION, O_POSITION, L_POSITION, Z_POSITION, S_POSITION];
 
@@ -60,7 +61,7 @@ export const NUMBER_ONE: Opener = {
 				{ text: "The L hangs over the slot, so the T can't drop straight in.", aims: [L_POSITION] },
 				{
 					text: "The double leaves one S mino floating in row 2. Filling under it is a later lesson.",
-					aims: [S_POSITION],
+					aims: [[FLOATING_MINO]],
 				},
 			],
 			board: SETUP,
