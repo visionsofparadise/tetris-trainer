@@ -1,20 +1,35 @@
 import type { NoteAnchor } from "../../models/BoardNote";
 import type { BoardItem, Piece, Placement, ScriptStep } from "@tetris-trainer/game";
 
-interface Tuck {
-	readonly under: ReadonlyArray<Piece>;
-	readonly description: string;
-	readonly keys: ReadonlyArray<ScriptStep>;
+export const NEXT_BAG = "next-bag";
+
+type Hand = Piece | typeof NEXT_BAG;
+
+export interface PlanState {
+	readonly order: ReadonlyArray<Piece>;
+	readonly drawn: number;
+	readonly current: Hand;
+	readonly hold: Hand | null;
+	readonly holdLocked: boolean;
+	readonly placed: ReadonlyArray<Piece>;
 }
 
-export interface Position {
-	readonly placement: Placement;
-	readonly after: ReadonlyArray<Piece>;
-	readonly before?: ReadonlyArray<Piece>;
-	readonly description: string;
-	readonly keys?: ReadonlyArray<ScriptStep>;
-	readonly tuck?: Tuck;
+export type Decision =
+	| { readonly kind: "place"; readonly placement: Placement; readonly keys?: ReadonlyArray<ScriptStep> }
+	| { readonly kind: "hold" };
+
+export type Move = { readonly kind: "place"; readonly placement: Placement } | { readonly kind: "hold" };
+
+export type MistakeKind = "placement" | "order" | "dead-end" | "hold" | "next-bag" | "impossible";
+
+export interface Mistake {
+	readonly kind: MistakeKind;
+	readonly best: Decision | null;
 }
+
+export type Category = "no-hold" | "hold" | "impossible";
+
+type Verdict = { readonly result: "complete" } | { readonly result: "ok" } | ({ readonly result: "mistake" } & Mistake);
 
 type NoteAim = Placement | NoteAnchor;
 
@@ -34,7 +49,9 @@ export interface Slide {
 
 export interface Opener {
 	readonly name: string;
-	readonly positions: ReadonlyArray<Position>;
-	readonly optional: ReadonlyArray<Piece>;
-	readonly slides: ReadonlyArray<Slide>;
+	readonly pieceCount: () => number;
+	readonly placedCount: (state: PlanState) => number;
+	readonly deal: (category: Category) => Array<Piece>;
+	readonly plan: (state: PlanState) => Array<Decision> | null;
+	readonly judge: (state: PlanState, move: Move) => Verdict;
 }

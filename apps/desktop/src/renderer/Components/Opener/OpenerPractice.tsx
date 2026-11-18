@@ -6,7 +6,6 @@ import { useCue } from "../../hooks/useCue";
 import { useGameKeyboard } from "../../hooks/useGameKeyboard";
 import { useKeyPress } from "../../hooks/useKeyPress";
 import { PAUSE_HINT, usePause } from "../../hooks/usePause";
-import { pieceCount, placedCount, plan } from "../../lessons/opener/planner";
 import {
 	dealPractice,
 	declareImpossible,
@@ -49,9 +48,8 @@ const GUIDE_OPTIONS: ReadonlyArray<SegmentedOption<Guide>> = [
 
 const STAGE_TEXT: Record<OrderFilter, string> = {
 	"no-hold": "Every order can be built by placing each piece as it comes.",
-	hold: "Every order needs hold somewhere to be built.",
+	hold: "Every order can be built, and some need hold somewhere.",
 	mixed: "Some orders can't be built. Press Impossible before your first piece when you spot one.",
-	impossible: "No order can be built. Press Impossible before your first piece.",
 };
 
 interface PracticeViewProps {
@@ -72,16 +70,16 @@ const PracticeView = scope<PracticeViewProps>(
 	({ session, onDeal, onFilter, onRetry, onRestart, onImpossible, opener, lesson, view, onNavigate, context }) => {
 		const { status, filter, mistake, clears } = session;
 		const { config } = context.settings;
-		const pieces = pieceCount(opener);
-		const placed = placedCount(opener, session.state);
+		const pieces = opener.pieceCount();
+		const placed = opener.placedCount(session.state);
 		const isMistake = status === "mistake";
-		const canCallImpossible = status === "playing" && (filter === "mixed" || filter === "impossible");
+		const canCallImpossible = status === "playing" && filter === "mixed";
 		const pause = usePause(context);
 		const { resume } = pause;
 		const [guide, setGuide] = useState<Guide>("off");
 
 		const guideMarks = useMemo(
-			() => (guide === "on" && status === "playing" ? decisionMarks(plan(opener, session.state)?.[0]) : NO_MARKS),
+			() => (guide === "on" && status === "playing" ? decisionMarks(opener.plan(session.state)?.[0]) : NO_MARKS),
 			[guide, status, opener, session.state],
 		);
 

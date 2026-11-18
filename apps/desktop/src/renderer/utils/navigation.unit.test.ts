@@ -2,16 +2,15 @@ import { describe, expect, it } from "vitest";
 import { restoreNavigation, START, toward } from "./navigation";
 import type { LessonGroup } from "../models/Lesson";
 
-const PRACTICE = "lesson/tki-3/practice";
+const PRACTICE = "lesson/first/practice";
 
 const GROUPS: ReadonlyArray<LessonGroup> = [
 	{
-		title: "Openers",
+		title: "Group",
 		lessons: [
 			{
-				id: "tki-3",
-				title: "TKI-3",
-				detail: "",
+				id: "first",
+				title: "First",
 				sections: [{ id: "practice", title: "Practice", render: () => null }],
 			},
 		],

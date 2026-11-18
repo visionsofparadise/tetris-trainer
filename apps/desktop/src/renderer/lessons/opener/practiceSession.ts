@@ -1,17 +1,8 @@
 import { ignore } from "opshot";
 import { loadOrder } from "./openerScript";
 import { dealOrder, type OrderFilter } from "./orders";
-import {
-	isComplete,
-	judge,
-	plan,
-	startState,
-	type Mistake,
-	type MistakeKind,
-	type Move,
-	type PlanState,
-} from "./planner";
-import type { Opener } from "./Opener";
+import { afterHold, afterPlace, startState } from "./planState";
+import type { Mistake, MistakeKind, Move, Opener, PlanState } from "./Opener";
 import type { Block, Game, GameSnapshot, Handling, Piece } from "@tetris-trainer/game";
 
 interface Checkpoint {
@@ -43,7 +34,7 @@ export interface PracticeSession {
 const checkpointOf = (game: Game, state: PlanState): Checkpoint => ignore({ snapshot: game.snapshot(), state });
 
 export const initialPractice = (opener: Opener, handling: Handling): PracticeSession => {
-	const order = dealOrder(opener, "no-hold");
+	const { order } = dealOrder(opener, "no-hold");
 	const game = loadOrder(handling, order);
 	const start = checkpointOf(game, startState(order));
 
@@ -75,7 +66,7 @@ const clear = (session: PracticeSession, opener: Opener, handling: Handling): vo
 };
 
 export const dealPractice = (session: PracticeSession, opener: Opener, handling: Handling): void => {
-	const order = dealOrder(opener, session.filter);
+	const { order } = dealOrder(opener, session.filter);
 	const game = loadOrder(handling, order);
 	const start = checkpointOf(game, startState(order));
 
@@ -84,17 +75,17 @@ export const dealPractice = (session: PracticeSession, opener: Opener, handling:
 	const respond = (move: Move, placed: PracticeMistake["placed"]): void => {
 		if (!isActive()) return;
 
-		const verdict = judge(opener, session.state, move);
+		const verdict = opener.judge(session.state, move);
 
-		if (!verdict.ok) {
-			fail(session, { kind: verdict.kind, detail: verdict.detail, best: verdict.best, placed });
+		if (verdict.result === "mistake") {
+			fail(session, { kind: verdict.kind, best: verdict.best, placed });
 
 			return;
 		}
 
-		session.state = verdict.next;
+		session.state = move.kind === "hold" ? afterHold(session.state) : afterPlace(session.state, move.placement.mino);
 
-		if (isComplete(opener, verdict.next)) clear(session, opener, handling);
+		if (verdict.result === "complete") clear(session, opener, handling);
 	};
 
 	game.on("place", ({ placement, cells }) => respond({ kind: "place", placement }, cells));
@@ -141,6 +132,6 @@ export const restartOrder = (session: PracticeSession): void => resumeFrom(sessi
 export const declareImpossible = (session: PracticeSession, opener: Opener, handling: Handling): void => {
 	if (session.status !== "playing") return;
 
-	if (plan(opener, startState(session.order)) === null) clear(session, opener, handling);
-	else fail(session, { kind: "possible", placed: null, best: plan(opener, session.state)?.[0] ?? null });
+	if (opener.plan(startState(session.order)) === null) clear(session, opener, handling);
+	else fail(session, { kind: "possible", placed: null, best: opener.plan(session.state)?.[0] ?? null });
 };

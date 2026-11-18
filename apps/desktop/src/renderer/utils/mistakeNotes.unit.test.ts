@@ -1,59 +1,53 @@
-import { Mino, type Block, type Placement } from "@tetris-trainer/game";
+import { Mino, placementCells, type Block, type Placement } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
 import { mistakeMarks, mistakeNotes } from "./mistakeNotes";
-import type { Position } from "../lessons/opener/Opener";
 import type { PracticeMistake } from "../lessons/opener/practiceSession";
 
-const I_PLACEMENT: Placement = { mino: Mino.I, orientation: "spawn", column: 3, row: 0 };
+const BEST_PLACEMENT: Placement = { mino: Mino.O, orientation: "spawn", column: 4, row: 6 };
 
-const I_CELLS: ReadonlyArray<Block> = [
-	[3, 0],
-	[4, 0],
-	[5, 0],
-	[6, 0],
-];
-
-const I_POSITION: Position = { placement: I_PLACEMENT, after: [], description: "Lay the I flat." };
+const BEST_CELLS = placementCells(BEST_PLACEMENT);
 
 const PLACED: Array<Block> = [
-	[0, 0],
-	[1, 0],
-	[2, 0],
-	[3, 0],
+	[0, 9],
+	[1, 9],
+	[2, 9],
+	[3, 9],
 ];
 
-const PLACE_BEST = { kind: "place", position: I_POSITION, reason: "Lay the I flat." } as const;
+const PLACE_BEST = { kind: "place", placement: BEST_PLACEMENT } as const;
 
-const HOLD_BEST = { kind: "hold", reason: "Hold the Z." } as const;
+const HOLD_BEST = { kind: "hold" } as const;
+
+const KIND = "placement";
+
+const TITLE = "Placement";
 
 describe("mistakeNotes and mistakeMarks", () => {
-	it("point at a misplaced piece and its placement", () => {
-		const mistake: PracticeMistake = { kind: "placement", detail: "Wrong spot.", placed: PLACED, best: PLACE_BEST };
+	it("point at the placed cells and a best placement", () => {
+		const mistake: PracticeMistake = { kind: KIND, placed: PLACED, best: PLACE_BEST };
 
 		expect(mistakeNotes(mistake)).toEqual([
 			{
-				title: "Placement",
-				text: "Wrong spot.",
+				title: TITLE,
 				tone: "pink",
 				targets: [
 					{ at: PLACED, tone: "pink" },
-					{ at: I_CELLS, tone: "lime" },
+					{ at: BEST_CELLS, tone: "lime" },
 				],
 			},
 		]);
 		expect(mistakeMarks(mistake)).toEqual([
 			{ cells: PLACED, tone: "mistake" },
-			{ cells: I_CELLS, tone: "target" },
+			{ cells: BEST_CELLS, tone: "target" },
 		]);
 	});
 
-	it("point at a placed piece and the hold box when hold was best", () => {
-		const mistake: PracticeMistake = { kind: "order", detail: "Too early.", placed: PLACED, best: HOLD_BEST };
+	it("point at the hold box when a hold is best", () => {
+		const mistake: PracticeMistake = { kind: KIND, placed: PLACED, best: HOLD_BEST };
 
 		expect(mistakeNotes(mistake)).toEqual([
 			{
-				title: "Order",
-				text: "Too early.",
+				title: TITLE,
 				tone: "pink",
 				targets: [
 					{ at: PLACED, tone: "pink" },
@@ -64,36 +58,33 @@ describe("mistakeNotes and mistakeMarks", () => {
 		expect(mistakeMarks(mistake)).toEqual([{ cells: PLACED, tone: "mistake" }]);
 	});
 
-	it("point at the hold box and the placement when a hold was wrong", () => {
-		const mistake: PracticeMistake = { kind: "hold", detail: "Place it.", placed: "hold", best: PLACE_BEST };
+	it("point at the hold box when a hold was the move", () => {
+		const mistake: PracticeMistake = { kind: KIND, placed: "hold", best: PLACE_BEST };
 
 		expect(mistakeNotes(mistake)).toEqual([
 			{
-				title: "Hold",
-				text: "Place it.",
+				title: TITLE,
 				tone: "pink",
 				targets: [
 					{ at: "hold", tone: "pink" },
-					{ at: I_CELLS, tone: "lime" },
+					{ at: BEST_CELLS, tone: "lime" },
 				],
 			},
 		]);
-		expect(mistakeMarks(mistake)).toEqual([{ cells: I_CELLS, tone: "target" }]);
+		expect(mistakeMarks(mistake)).toEqual([{ cells: BEST_CELLS, tone: "target" }]);
 	});
 
-	it("leave a top-out without targets or marks", () => {
+	it("point only at the placed cells when no move is best", () => {
+		const mistake: PracticeMistake = { kind: KIND, placed: PLACED, best: null };
+
+		expect(mistakeNotes(mistake)).toEqual([{ title: TITLE, tone: "pink", targets: [{ at: PLACED, tone: "pink" }] }]);
+		expect(mistakeMarks(mistake)).toEqual([{ cells: PLACED, tone: "mistake" }]);
+	});
+
+	it("leave a mistake with no move and no best without targets or marks", () => {
 		const mistake: PracticeMistake = { kind: "top-out", placed: null, best: null };
 
-		expect(mistakeNotes(mistake)).toEqual([{ title: "Top out", text: undefined, tone: "pink", targets: [] }]);
+		expect(mistakeNotes(mistake)).toEqual([{ title: "Top out", tone: "pink", targets: [] }]);
 		expect(mistakeMarks(mistake)).toEqual([]);
-	});
-
-	it("point only at the placed piece when no move is best", () => {
-		const mistake: PracticeMistake = { kind: "impossible", detail: "Two wait.", placed: PLACED, best: null };
-
-		expect(mistakeNotes(mistake)).toEqual([
-			{ title: "Impossible", text: "Two wait.", tone: "pink", targets: [{ at: PLACED, tone: "pink" }] },
-		]);
-		expect(mistakeMarks(mistake)).toEqual([{ cells: PLACED, tone: "mistake" }]);
 	});
 });

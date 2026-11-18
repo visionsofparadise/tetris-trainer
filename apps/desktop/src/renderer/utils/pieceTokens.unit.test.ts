@@ -4,16 +4,16 @@ import { pieceTokens } from "./pieceTokens";
 
 describe("pieceTokens", () => {
 	it("turns standalone piece letters into minos", () => {
-		expect(pieceTokens("Lay the Z on the I's left end.")).toEqual([
-			{ text: "Lay the " },
-			{ mino: Mino.Z },
-			{ text: " on the " },
+		expect(pieceTokens("The O and the I's colors.")).toEqual([
+			{ text: "The " },
+			{ mino: Mino.O },
+			{ text: " and the " },
 			{ mino: Mino.I },
-			{ text: "'s left end." },
+			{ text: "'s colors." },
 		]);
 	});
 
-	it("leaves names and T-spins as text", () => {
-		expect(pieceTokens("TKI ends in a T-spin double.")).toEqual([{ text: "TKI ends in a T-spin double." }]);
+	it("leaves names and hyphenated words as text", () => {
+		expect(pieceTokens("SRS is an S-tier rule set.")).toEqual([{ text: "SRS is an S-tier rule set." }]);
 	});
 });

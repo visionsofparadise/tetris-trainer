@@ -14,7 +14,7 @@
 		"check": "concurrently --group \"eslint . --no-cache -f unix\" \"tsc --noEmit --pretty false\" \"stylelint \\\"**/*.css\\\" -f unix --allow-empty-input --cache\"",
 		"fix": "concurrently -m 1 --group \"eslint . --fix --cache\" \"stylelint \\\"**/*.css\\\" --fix --allow-empty-input --cache\"",
 		"unit": "vitest run unit --passWithNoTests",
-		"integration": "vitest run integration"
+		"integration": "vitest run integration --passWithNoTests"
 	},
 	"dependencies": {
 		"@fontsource-variable/anybody": "5.3.0",

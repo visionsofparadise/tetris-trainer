@@ -1,47 +1,17 @@
-import { BAG, type Piece } from "@tetris-trainer/game";
-import { plan, startState } from "./planner";
-import type { Opener } from "./Opener";
+import type { Category, Opener } from "./Opener";
+import type { Piece } from "@tetris-trainer/game";
 
-export type Category = "no-hold" | "hold" | "impossible";
+export type OrderFilter = "no-hold" | "hold" | "mixed";
 
-export type OrderFilter = Category | "mixed";
+interface Deal {
+	readonly order: Array<Piece>;
+	readonly category: Category;
+}
 
-export type OrderPool = OrderFilter | "possible";
-
-const CATEGORIES: ReadonlyArray<Category> = ["no-hold", "hold", "impossible"];
-
-const POOLS: Record<"mixed" | "possible", ReadonlyArray<Category>> = {
-	mixed: CATEGORIES,
-	possible: ["no-hold", "hold"],
-};
-
-const permutations = (pieces: ReadonlyArray<Piece>): Array<Array<Piece>> =>
-	pieces.length <= 1
-		? [[...pieces]]
-		: pieces.flatMap((piece, index) =>
-				permutations([...pieces.slice(0, index), ...pieces.slice(index + 1)]).map((rest) => [piece, ...rest]),
-			);
-
-export const categorize = (opener: Opener, order: ReadonlyArray<Piece>): Category => {
-	if (plan(opener, startState(order), false)) return "no-hold";
-
-	return plan(opener, startState(order)) ? "hold" : "impossible";
-};
-
-const cache = new WeakMap<Opener, Record<Category, Array<Array<Piece>>>>();
-
-export const ordersByCategory = (opener: Opener): Record<Category, Array<Array<Piece>>> => {
-	const cached = cache.get(opener);
-
-	if (cached) return cached;
-
-	const orders: Record<Category, Array<Array<Piece>>> = { "no-hold": [], hold: [], impossible: [] };
-
-	for (const order of permutations(BAG)) orders[categorize(opener, order)].push(order);
-
-	cache.set(opener, orders);
-
-	return orders;
+const POOLS: Record<OrderFilter, ReadonlyArray<Category>> = {
+	"no-hold": ["no-hold"],
+	hold: ["no-hold", "hold"],
+	mixed: ["no-hold", "hold", "impossible"],
 };
 
 const pick = <T>(items: ReadonlyArray<T>, random: () => number): T => {
@@ -52,8 +22,8 @@ const pick = <T>(items: ReadonlyArray<T>, random: () => number): T => {
 	return item;
 };
 
-export const dealOrder = (opener: Opener, pool: OrderPool, random = Math.random): Array<Piece> => {
-	const category = pool === "mixed" || pool === "possible" ? pick(POOLS[pool], random) : pool;
+export const dealOrder = (opener: Opener, filter: OrderFilter, random = Math.random): Deal => {
+	const category = pick(POOLS[filter], random);
 
-	return pick(ordersByCategory(opener)[category], random);
+	return { order: opener.deal(category), category };
 };

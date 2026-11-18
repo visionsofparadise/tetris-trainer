@@ -1,8 +1,8 @@
 import { ignore } from "opshot";
 import { DEMO_HANDLING, DEMO_PACING, loadOrder, planScript } from "./openerScript";
-import { categorize, dealOrder, type Category, type OrderFilter, type OrderPool } from "./orders";
-import { impossibleReason, plan, startState, type Decision } from "./planner";
-import type { Opener } from "./Opener";
+import { dealOrder, type OrderFilter } from "./orders";
+import { startState } from "./planState";
+import type { Category, Decision, Opener } from "./Opener";
 import type { Banner } from "../../models/Banner";
 import type { Game, Piece } from "@tetris-trainer/game";
 
@@ -21,7 +21,7 @@ export interface WatchSession {
 }
 
 export const initialWatch = (opener: Opener): WatchSession => {
-	const order = dealOrder(opener, "no-hold");
+	const { order, category } = dealOrder(opener, "no-hold");
 	const game = loadOrder(DEMO_HANDLING, order);
 
 	game.pause();
@@ -30,7 +30,7 @@ export const initialWatch = (opener: Opener): WatchSession => {
 		game: ignore(game),
 		filter: "no-hold",
 		order,
-		category: categorize(opener, order),
+		category,
 		decisions: [],
 		index: 0,
 		banner: null,
@@ -41,13 +41,13 @@ export const initialWatch = (opener: Opener): WatchSession => {
 	};
 };
 
-export const dealWatch = (session: WatchSession, opener: Opener, pool: OrderPool = session.filter): void => {
-	const order = dealOrder(opener, pool);
-	const decisions = plan(opener, startState(order));
+export const dealWatch = (session: WatchSession, opener: Opener, pool: OrderFilter = session.filter): void => {
+	const { order, category } = dealOrder(opener, pool);
+	const decisions = opener.plan(startState(order));
 	const game = loadOrder(DEMO_HANDLING, order);
 
 	session.order = order;
-	session.category = categorize(opener, order);
+	session.category = category;
 	session.decisions = decisions ?? [];
 	session.index = 0;
 	session.round++;
@@ -60,7 +60,7 @@ export const dealWatch = (session: WatchSession, opener: Opener, pool: OrderPool
 		session.banner = {
 			tone: "info",
 			title: `${opener.name} isn't possible`,
-			detail: impossibleReason(opener, order),
+			detail: "No way of placing and holding these pieces builds it.",
 		};
 	} else {
 		const handleDecision = () => {

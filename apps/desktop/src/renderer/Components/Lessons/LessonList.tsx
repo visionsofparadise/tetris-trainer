@@ -28,7 +28,6 @@ export function LessonList({ onNavigate, context }: LessonListProps) {
 									key={lesson.id}
 									number={(offsets[groupIndex] ?? 0) + index + 1}
 									title={lesson.title}
-									detail={lesson.detail}
 									onClick={() => onNavigate(lessonStart(lesson))}
 								/>
 							))}

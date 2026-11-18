@@ -27,11 +27,13 @@ export interface DeckSlide {
 interface SlideDeckProps<S extends DeckSlide> extends LessonScreenProps {
 	readonly slides: ReadonlyArray<S>;
 	readonly renderSlide: (slide: S, pause: PauseControl) => ReactNode;
+	readonly empty?: ReactNode;
 }
 
 export function SlideDeck<S extends DeckSlide>({
 	slides,
 	renderSlide,
+	empty,
 	lesson,
 	view,
 	onNavigate,
@@ -85,14 +87,14 @@ export function SlideDeck<S extends DeckSlide>({
 						<IconButton label="Previous slide" disabled={index === 0} onClick={() => setIndex(index - 1)}>
 							<PreviousIcon size={22} />
 						</IconButton>
-						<PrimaryIconButton label="Next slide" disabled={index === last} onClick={() => setIndex(index + 1)}>
+						<PrimaryIconButton label="Next slide" disabled={index >= last} onClick={() => setIndex(index + 1)}>
 							<ArrowIcon size={22} />
 						</PrimaryIconButton>
 					</div>
 				</LessonPanel>
 			}
 		>
-			{slide && renderSlide(slide, pause)}
+			{slide ? renderSlide(slide, pause) : empty}
 		</Shell>
 	);
 }

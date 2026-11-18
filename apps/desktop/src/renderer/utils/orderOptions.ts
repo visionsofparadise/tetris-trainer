@@ -1,5 +1,6 @@
 import type { SegmentedOption } from "../Components/UI/Segmented";
-import type { Category, OrderFilter } from "../lessons/opener/orders";
+import type { Category } from "../lessons/opener/Opener";
+import type { OrderFilter } from "../lessons/opener/orders";
 
 export const ORDER_OPTIONS: ReadonlyArray<SegmentedOption<OrderFilter>> = [
 	{ value: "no-hold", label: "No hold" },

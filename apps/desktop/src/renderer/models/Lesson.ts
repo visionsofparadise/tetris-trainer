@@ -18,7 +18,6 @@ export interface LessonSection {
 export interface Lesson {
 	readonly id: string;
 	readonly title: string;
-	readonly detail: string;
 	readonly sections: ReadonlyArray<LessonSection>;
 }
 

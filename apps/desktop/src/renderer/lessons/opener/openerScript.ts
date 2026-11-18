@@ -1,6 +1,5 @@
 import { DEFAULT_CONFIG, dropSteps, Game, type Handling, type Piece, type ScriptStep } from "@tetris-trainer/game";
-import type { Slide } from "./Opener";
-import type { Decision } from "./planner";
+import type { Decision, Slide } from "./Opener";
 
 export interface ScriptPacing {
 	readonly keyWait: number;
@@ -12,7 +11,7 @@ export const DEMO_HANDLING: Handling = { ...DEFAULT_CONFIG.handling, sdf: 41 };
 export const DEMO_PACING: ScriptPacing = { keyWait: 6, decisionWait: 30 };
 
 const decisionKeys = (decision: Decision): ReadonlyArray<ScriptStep> =>
-	decision.kind === "hold" ? [{ tap: "hold" }] : (decision.keys ?? dropSteps(decision.position.placement));
+	decision.kind === "hold" ? [{ tap: "hold" }] : (decision.keys ?? dropSteps(decision.placement));
 
 export const planScript = (
 	decisions: ReadonlyArray<Decision>,

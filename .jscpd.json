@@ -12,7 +12,6 @@
 		"**/*.test.ts",
 		"**/*.test.tsx",
 		"**/__fixtures__/**",
-		"**/designs/**",
 		"**/types/*.d.ts",
 		"**/package.json",
 		"package-lock.json"

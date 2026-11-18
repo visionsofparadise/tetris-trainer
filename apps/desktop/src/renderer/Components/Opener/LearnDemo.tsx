@@ -7,12 +7,12 @@ import { BoardNotes } from "../Board/BoardNotes";
 import { PlayArea } from "../Board/PlayArea";
 import { SuccessFlash } from "../Board/SuccessFlash";
 import type { Opener } from "../../lessons/opener/Opener";
-import type { OrderPool } from "../../lessons/opener/orders";
+import type { OrderFilter } from "../../lessons/opener/orders";
 import type { AppContext } from "../../models/AppContext";
 import type { BoardNote } from "../../models/BoardNote";
 import type { PauseControl } from "../../models/PauseControl";
 
-const DEMO_POOL: OrderPool = "possible";
+const DEMO_POOL: OrderFilter = "hold";
 
 interface LearnDemoViewProps {
 	readonly session: WatchSession;

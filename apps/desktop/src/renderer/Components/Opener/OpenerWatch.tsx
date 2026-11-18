@@ -10,6 +10,7 @@ import {
 	setWatchSpeed,
 	type WatchSession,
 } from "../../lessons/opener/watchSession";
+import { decisionLabel } from "../../utils/decisionLabel";
 import { decisionMarks } from "../../utils/decisionMarks";
 import { CATEGORY_SHORT_LABELS, ORDER_OPTIONS } from "../../utils/orderOptions";
 import { PlayArea } from "../Board/PlayArea";
@@ -94,9 +95,9 @@ const WatchView = scope<WatchViewProps>(({ session, onDeal, onFilter, onSpeed, l
 					<ol className="-mr-2 flex min-h-28 flex-1 flex-col gap-3 overflow-y-auto pr-2">
 						{decisions.map((decision, decisionIndex) => (
 							<ListRow
-								key={`${decisionIndex}-${decision.reason}`}
+								key={decisionIndex}
 								number={decisionIndex + 1}
-								detail={<PieceText text={decision.reason} />}
+								detail={<PieceText text={decisionLabel(decision)} />}
 								isCurrent={decisionIndex === index}
 								className={decisionIndex > index ? "opacity-70" : undefined}
 								status={
