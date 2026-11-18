@@ -5,7 +5,7 @@ import { routeScript } from "./routeScript";
 import { slideTitles } from "./slides";
 import { FINESSE_PIECES, FINESSE_TARGETS, pieceSetup, routeRules, targetMarks, targetPlacement } from "./targets";
 import type { BoardOverlay } from "../../models/BoardOverlay";
-import type { Drill, DrillStage } from "../drill/Drill";
+import type { Drill, DrillStage, DrillWords } from "../drill/Drill";
 
 export type FinesseStageId = "cells" | "keys" | "mixed" | "gravity" | "reset";
 
@@ -70,7 +70,7 @@ const LAST_PIECE: Piece = Mino.Z;
 
 const NO_OVERLAYS: ReadonlyArray<BoardOverlay> = [];
 
-const randomSeed = (): number => 1 + Math.floor(Math.random() * (MODULUS - 1));
+const WORDS: DrillWords = { next: "Next piece", why: "Why these keys" };
 
 const nextSeed = (seed: number): number => (seed * MULTIPLIER) % MODULUS;
 
@@ -122,8 +122,7 @@ const draw = (state: Omit<FinesseState, "target">): FinesseState => {
 	return { ...state, seed, target: pick(pool, seed / MODULUS) };
 };
 
-export const startFinesse = (stage: FinesseStageId, seed = randomSeed()): FinesseState =>
-	draw({ stage, seed, results: [] });
+export const startFinesse = (stage: FinesseStageId, seed: number): FinesseState => draw({ stage, seed, results: [] });
 
 export const isFinessePassed = (state: FinesseState): boolean => {
 	switch (state.stage) {
@@ -164,13 +163,14 @@ const progressOf = (state: FinesseState): { readonly label: string; readonly val
 
 export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	stages: FINESSE_STAGES,
-	start: (stage) => startFinesse(stage.id),
+	words: WORDS,
+	start: (stage, seed) => startFinesse(stage.id, seed),
 	deal: (state, player, round) => {
 		const next = round === "next" ? draw(state) : state;
 
 		return { game: loadGame(pieceSetup(next.target.mino), player.handling, next.stage === "gravity"), state: next };
 	},
-	judge: (state, { placement, cells, inputs }, player) => {
+	judge: (state, { event: { placement, cells, inputs } }, { player }) => {
 		const { target, stage } = state;
 		const attempt: Attempt = { target, orientation: placement.orientation, presses: inputs };
 		const fault = !samePlacement(placement, targetPlacement(target))
@@ -195,18 +195,20 @@ export const FINESSE_DRILL: Drill<FinesseState, FinesseStage> = {
 	progress: progressOf,
 	marks: ({ target }) => targetMarks(target),
 	overlays: () => NO_OVERLAYS,
+	onContinue: "next-round",
 	describe: ({ stage, target }, player) =>
 		JSON.stringify({ stage, target, keys: finesseRoutes(target, player)[0] ?? [] }),
 	watch: (player) => {
 		const target = pick(FINESSE_TARGETS, Math.random());
 		const route = finesseRoutes(target, player)[0] ?? [];
+		const turn = { steps: routeScript(route), line: null };
 
 		return {
 			game: loadGame(pieceSetup(target.mino), DEMO_HANDLING),
-			steps: routeScript(route),
 			locks: 1,
 			marks: targetMarks(target),
 			narration: slideTitles(routeRules(target, route)),
+			play: () => Promise.resolve(turn),
 		};
 	},
 };

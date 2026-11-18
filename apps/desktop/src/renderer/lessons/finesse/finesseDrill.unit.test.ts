@@ -76,6 +76,6 @@ describe("finesse drill", () => {
 		expect(reset.onMistake).toBe("restart");
 		expect(isFinessePassed(stateOf("reset", results(Mino.T, passes(40))))).toBe(true);
 		expect(isFinessePassed(stateOf("reset", results(Mino.T, `${passes(30)}-${passes(39)}`)))).toBe(false);
-		expect(FINESSE_DRILL.start(reset).results).toEqual([]);
+		expect(FINESSE_DRILL.start(reset, SEED).results).toEqual([]);
 	});
 });

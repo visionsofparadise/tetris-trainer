@@ -1,6 +1,16 @@
 import type { BoardMark } from "../../models/BoardMark";
 import type { BoardOverlay } from "../../models/BoardOverlay";
-import type { Block, Game, Handling, PlaceEvent, Placement, ScriptStep } from "@tetris-trainer/game";
+import type { SearchClient } from "../../search/SearchClient";
+import type {
+	Block,
+	Game,
+	Handling,
+	Piece,
+	PlaceEvent,
+	Placement,
+	ScriptStep,
+	SearchState,
+} from "@tetris-trainer/game";
 
 export interface Player {
 	readonly handling: Handling;
@@ -40,28 +50,54 @@ interface DrillDeal<S> {
 	readonly state: S;
 }
 
-export interface WatchRound {
-	readonly game: Game;
+export interface DrillLock {
+	readonly event: PlaceEvent;
+	readonly before: SearchState;
+	readonly after: SearchState;
+}
+
+export interface JudgeContext {
+	readonly player: Player;
+	readonly search: SearchClient;
+}
+
+export interface DrillJudgement<S> {
+	readonly verdict: DrillVerdict;
+	readonly next: S;
+}
+
+export interface DrillWords {
+	readonly next: string;
+	readonly why: string;
+}
+
+interface WatchTurn {
 	readonly steps: ReadonlyArray<ScriptStep>;
+	readonly line: string | null;
+}
+
+interface WatchRound {
+	readonly game: Game;
 	readonly locks: number;
 	readonly marks: ReadonlyArray<BoardMark>;
 	readonly narration: ReadonlyArray<string>;
+	readonly play: (spawn: SearchState) => Promise<WatchTurn>;
 }
 
 export interface Drill<S, T extends DrillStage = DrillStage> {
 	readonly stages: ReadonlyArray<T>;
-	readonly start: (stage: T) => S;
+	readonly words: DrillWords;
+	readonly start: (stage: T, seed: number) => S;
 	readonly deal: (state: S, player: Player, round: DrillRound) => DrillDeal<S>;
-	readonly judge: (
-		state: S,
-		event: PlaceEvent,
-		player: Player,
-	) => { readonly verdict: DrillVerdict; readonly next: S };
+	readonly judge: (state: S, lock: DrillLock, context: JudgeContext) => DrillJudgement<S> | Promise<DrillJudgement<S>>;
 	readonly isRoundOver: (state: S) => boolean;
 	readonly isPassed: (state: S) => boolean;
 	readonly progress: (state: S) => { readonly label: string; readonly value: string };
 	readonly marks: (state: S) => ReadonlyArray<BoardMark>;
 	readonly overlays: (state: S) => ReadonlyArray<BoardOverlay>;
 	readonly describe: (state: S, player: Player) => string;
-	readonly watch?: (player: Player) => WatchRound;
+	readonly owns?: (state: S, mino: Piece) => boolean;
+	readonly delegate?: (state: S, spawn: SearchState, context: JudgeContext) => Promise<ReadonlyArray<ScriptStep>>;
+	readonly onContinue: "next-round" | "resume";
+	readonly watch?: (player: Player, search: SearchClient, round: number) => WatchRound;
 }

@@ -26,7 +26,7 @@ import { IconButton, PrimaryIconButton } from "../UI/IconButton";
 import { ArrowIcon, CheckIcon, PreviousIcon, ReplayIcon } from "../UI/Icons";
 import { LabelRow } from "../UI/LabelRow";
 import { Segmented, type SegmentedOption } from "../UI/Segmented";
-import type { Drill, DrillStage } from "../../lessons/drill/Drill";
+import type { Drill, DrillStage, JudgeContext } from "../../lessons/drill/Drill";
 import type { AppContext } from "../../models/AppContext";
 import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { Lesson, LessonScreenProps } from "../../models/Lesson";
@@ -59,7 +59,7 @@ function PracticeView<S, T extends DrillStage>({
 	onNavigate,
 	context,
 }: PracticeViewProps<S, T>) {
-	const { game, state, stage, status, mistake, clears, passed } = session;
+	const { game, state, stage, status, mistake, clears, passed, owner } = session;
 	const { config } = context.settings;
 	const isMistake = status === "mistake";
 	const isRestart = stage.onMistake === "restart";
@@ -109,11 +109,11 @@ function PracticeView<S, T extends DrillStage>({
 		const { hardDrop } = config.controls.custom;
 
 		return [
-			...(isMistake && !isRestart ? [`${keyLabel(hardDrop[0])} for the next piece`] : []),
+			...(isMistake && !isRestart ? [`${keyLabel(hardDrop[0])} for the ${drill.words.next.toLowerCase()}`] : []),
 			...retryHints(config, retryLabel.toLowerCase(), isRestartMistake ? hardDrop.slice(0, 1) : []),
 			PAUSE_HINT,
 		];
-	}, [isMistake, isRestart, isRestartMistake, config, retryLabel]);
+	}, [isMistake, isRestart, isRestartMistake, config, retryLabel, drill]);
 
 	return (
 		<LessonShell
@@ -153,7 +153,7 @@ function PracticeView<S, T extends DrillStage>({
 									{isMistake ? <PreviousIcon size={22} /> : <ReplayIcon size={22} />}
 								</IconButton>
 								{isMistake && (
-									<PrimaryIconButton label="Next piece" onClick={handleContinue}>
+									<PrimaryIconButton label={drill.words.next} onClick={handleContinue}>
 										<ArrowIcon size={22} />
 									</PrimaryIconButton>
 								)}
@@ -165,7 +165,7 @@ function PracticeView<S, T extends DrillStage>({
 		>
 			<PlayArea
 				game={game}
-				control={isMistake ? "none" : "user"}
+				control={isMistake ? "none" : owner}
 				context={context}
 				marks={marks}
 				overlays={overlays}
@@ -195,32 +195,34 @@ export function DrillPractice<S, T extends DrillStage>({
 	onNavigate,
 	context,
 }: DrillPracticeProps<S, T>) {
-	const { settings } = context;
+	const { settings, search } = context;
+
+	const judgeContext = useCallback(
+		(): JudgeContext => ({ player: playerOf(settings.config), search }),
+		[settings, search],
+	);
 
 	const [session] = useState(() => {
 		const created = createMutableState<DrillSession<S, T>>(createDrillSession(drill));
 
-		dealDrill(created, drill, playerOf(settings.config));
+		dealDrill(created, drill, judgeContext());
 
 		return created;
 	});
 
-	const handleRetry = useCallback(
-		() => retryDrill(session, drill, playerOf(settings.config)),
-		[session, drill, settings],
-	);
+	const handleRetry = useCallback(() => retryDrill(session, drill, judgeContext()), [session, drill, judgeContext]);
 
 	const handleContinue = useCallback(() => {
-		if (session.status === "mistake") continueDrill(session, drill, playerOf(settings.config));
-	}, [session, drill, settings]);
+		if (session.status === "mistake") continueDrill(session, drill, judgeContext());
+	}, [session, drill, judgeContext]);
 
 	const handleStage = useCallback(
 		(id: string) => {
 			const stage = drill.stages.find((candidate) => candidate.id === id);
 
-			if (stage) setStage(session, drill, playerOf(settings.config), stage);
+			if (stage) setStage(session, drill, judgeContext(), stage);
 		},
-		[session, drill, settings],
+		[session, drill, judgeContext],
 	);
 
 	return (

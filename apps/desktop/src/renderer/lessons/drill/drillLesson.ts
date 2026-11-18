@@ -35,7 +35,13 @@ export const drillLesson = <S, T extends DrillStage, Slide extends DeckSlide>({
 		? [{ id: "learn", title: "Learn", render: (screen) => createElement(DrillSlides<Slide>, { ...screen, learn }) }]
 		: [];
 	const watchSections: Array<LessonSection> = watch
-		? [{ id: "watch", title: "Watch", render: (screen) => createElement(DrillWatch, { ...screen, watch, showNext }) }]
+		? [
+				{
+					id: "watch",
+					title: "Watch",
+					render: (screen) => createElement(DrillWatch, { ...screen, watch, words: drill.words, showNext }),
+				},
+			]
 		: [];
 
 	return {
