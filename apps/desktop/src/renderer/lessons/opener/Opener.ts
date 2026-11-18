@@ -1,4 +1,5 @@
 import type { NoteAnchor } from "../../models/BoardNote";
+import type { BoardOverlay } from "../../models/BoardOverlay";
 import type { BoardItem, Piece, Placement, ScriptStep } from "@tetris-trainer/game";
 
 interface Tuck {
@@ -29,6 +30,7 @@ export interface Slide {
 	readonly board: ReadonlyArray<BoardItem>;
 	readonly marks: ReadonlyArray<Placement>;
 	readonly queue?: ReadonlyArray<Piece>;
+	readonly overlays?: ReadonlyArray<BoardOverlay>;
 	readonly isLive?: boolean;
 }
 

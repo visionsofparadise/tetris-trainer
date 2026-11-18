@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEMO_HANDLING } from "../config";
 import { BAG, cellsKey, type Block, type Piece } from "../pieces";
 import { emptySimBoard, lockCells, type SimBoard } from "../sim/simBoard";
-import { isQuadReady, judgeDistance, readyGap, searchQuadReady } from "./quad";
+import { isQuadReady, judgeDistance, readyGap, rowsReady, searchQuadReady, windowFill } from "./quad";
 import type { Mover, MoveRules } from "./moves";
 import type { SearchBudget, SearchResult } from "./searchState";
 
@@ -211,6 +211,21 @@ describe("isQuadReady", () => {
 
 		expect(isQuadReady(lockCells(columnZero, zeroI, "none"), zeroI, GOAL)).toBe(false);
 		expect(isQuadReady(convert, WELL_I, { well: 6 })).toBe(false);
+	});
+});
+
+describe("rowsReady", () => {
+	it("counts complete rows up from the well floor and stops at the first gap", () => {
+		expect(rowsReady(boardOf(["####......", FULL, "#####.###.", FULL]), GOAL)).toBe(1);
+		expect(rowsReady(boardOf([FULL, FULL, FULL, FULL, FULL]), GOAL)).toBe(4);
+		expect(rowsReady(boardOf(["##########", FULL, FULL]), GOAL)).toBe(0);
+	});
+});
+
+describe("windowFill", () => {
+	it("counts the filled non-well cells in the four rows above the well floor", () => {
+		expect(windowFill(boardOf(["#####.....", "##########", FULL]), GOAL)).toBe(5);
+		expect(windowFill(boardOf(["####......", FULL, "#####.###."]), GOAL)).toBe(21);
 	});
 });
 

@@ -18,7 +18,13 @@ export function SlideBoard({ slide, notes, context }: SlideBoardProps) {
 	const marks = useMemo(() => slideMarks(slide), [slide]);
 
 	return (
-		<PlayArea game={game} context={context} marks={marks} display={slide.queue ? "play" : "board"}>
+		<PlayArea
+			game={game}
+			context={context}
+			marks={marks}
+			overlays={slide.overlays}
+			display={slide.queue ? "play" : "board"}
+		>
 			<BoardNotes key={slide.title} notes={notes} />
 		</PlayArea>
 	);

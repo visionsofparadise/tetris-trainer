@@ -47,12 +47,12 @@ const keyRows = ({ yours, minimal }: KeyComparison, config: TetrioConfig): Reado
 ];
 
 export const drillNotes = (
-	{ title, keys, placed, best }: DrillMistake,
+	{ title, detail, keys, placed, best }: DrillMistake,
 	config: TetrioConfig,
 ): ReadonlyArray<BoardNote> => {
 	const target = best === null ? null : placementCells(best);
 
-	return mistakeCard(title, undefined, misplaced(placed, target), target).map((note) =>
+	return mistakeCard(title, detail, misplaced(placed, target), target).map((note) =>
 		keys ? { ...note, keys: keyRows(keys, config) } : note,
 	);
 };

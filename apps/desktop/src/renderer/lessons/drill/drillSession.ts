@@ -6,6 +6,7 @@ import {
 	type PlaceEvent,
 	type ScriptStep,
 	type SearchState,
+	type SimBoard,
 } from "@tetris-trainer/game";
 import { ignore } from "opshot";
 import { searchStateOf } from "../../search/searchStateOf";
@@ -50,6 +51,7 @@ export interface DrillSession<S, T extends DrillStage = DrillStage> {
 	mistake: DrillMistake | null;
 	clears: number;
 	passed: ReadonlyArray<string>;
+	board: SimBoard;
 	pending: number;
 	owner: DrillOwner;
 	queue: JudgeQueue<S>;
@@ -79,6 +81,7 @@ export const createDrillSession = <S, T extends DrillStage>(drill: Drill<S, T>):
 	if (stage === undefined) throw new Error("A drill needs at least one stage");
 
 	const game = pausedGame();
+	const before = searchStateOf(game);
 
 	return {
 		game: ignore(game),
@@ -89,9 +92,10 @@ export const createDrillSession = <S, T extends DrillStage>(drill: Drill<S, T>):
 		mistake: null,
 		clears: 0,
 		passed: [],
+		board: ignore(before.board),
 		pending: 0,
 		owner: "user",
-		queue: ignore(queueOn(game, searchStateOf(game))),
+		queue: ignore(queueOn(game, before)),
 		recovery: null,
 	};
 };
@@ -181,6 +185,7 @@ const playFrom = <S, T extends DrillStage>(
 	session.mistake = null;
 	session.recovery = null;
 	session.pending = 0;
+	session.board = ignore(before.board);
 	session.queue = ignore(queueOn(game, before));
 	handBack(session);
 	game.resume();
@@ -257,6 +262,7 @@ const capture = <S, T extends DrillStage>(
 	};
 
 	queue.before = after;
+	session.board = ignore(after.board);
 	enqueue(queue, () => judgeLock(session, drill, context, queue, lock));
 	session.pending++;
 	claimTurn(session, drill, context);

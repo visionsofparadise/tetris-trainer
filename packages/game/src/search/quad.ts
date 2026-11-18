@@ -1,4 +1,5 @@
 import { Mino } from "@haelp/teto/engine";
+import { BOARD_COLUMNS } from "../engineOptions";
 import { BAG, type Block, type Piece } from "../pieces";
 import { BOARD_ROWS, FULL_ROW, lockCells, type SimBoard, type SimLock } from "../sim/simBoard";
 import { generateMoves, type Move, type Mover, type MoveRules } from "./moves";
@@ -107,6 +108,19 @@ export const readyGap = (board: SimBoard, goal: QuadGoal): number => {
 
 	return windowEmpty(board.rows, wellMask, wellFloor(board.rows, wellMask));
 };
+
+export const rowsReady = (board: SimBoard, goal: QuadGoal): number => {
+	const wellMask = 1 << goal.well;
+	const floor = wellFloor(board.rows, wellMask);
+	let ready = 0;
+
+	while (ready < WINDOW_ROWS && ((board.rows[floor + ready] ?? 0) | wellMask) === FULL_ROW) ready++;
+
+	return ready;
+};
+
+export const windowFill = (board: SimBoard, goal: QuadGoal): number =>
+	WINDOW_ROWS * (BOARD_COLUMNS - 1) - readyGap(board, goal);
 
 export const isQuadReady = (lock: SimLock, cells: ReadonlyArray<Block>, goal: QuadGoal): boolean =>
 	(lock.lines === QUAD_LINES && cells.some(([x]) => x === goal.well)) || readyGap(lock.added, goal) === 0;

@@ -108,6 +108,21 @@ describe("Game", () => {
 			expect(filledColumns(game, 1)).toEqual([]);
 		});
 
+		it("digs rows off the bottom and closes the cut pieces' bottom edges", () => {
+			const game = loaded({
+				board: [
+					{ mino: Mino.I, orientation: "right", column: 0, row: 0 },
+					{ mino: Mino.O, orientation: "spawn", column: 4, row: 0 },
+					{ dig: 2 },
+				],
+			});
+
+			expect(filledColumns(game, 0)).toEqual([0]);
+			expect(filledColumns(game, 1)).toEqual([0]);
+			expect(filledColumns(game, 2)).toEqual([]);
+			expect(game.tiles[0]?.[0]?.edges).toMatchObject({ bottom: true, top: false });
+		});
+
 		it("rejects a floating piece unless validation is off", () => {
 			const floating: GameSetup["board"] = [{ mino: Mino.I, orientation: "spawn", column: 0, row: 4 }];
 

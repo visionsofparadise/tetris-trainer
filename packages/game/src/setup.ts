@@ -1,4 +1,4 @@
-import { legal, Mino, type Board, type Tile } from "@haelp/teto/engine";
+import { BoardConnections, legal, Mino, type Board, type Tile } from "@haelp/teto/engine";
 import { bagRemainder, type DrawnPiece } from "./bag";
 import { placementCells, type Block, type Piece, type Placement } from "./pieces";
 import { SetupError } from "./SetupError";
@@ -13,7 +13,11 @@ export interface Hold {
 	readonly hold: Piece;
 }
 
-export type BoardItem = Placement | Garbage | Hold;
+export interface Dig {
+	readonly dig: number;
+}
+
+export type BoardItem = Placement | Garbage | Hold | Dig;
 
 export type QueueMode = "continue-bag" | "fresh-bag" | "any";
 
@@ -35,6 +39,8 @@ export interface BoardPlay {
 const isPlacement = (item: BoardItem): item is Placement => "mino" in item;
 
 const isHold = (item: BoardItem): item is Hold => "hold" in item;
+
+const isDig = (item: BoardItem): item is Dig => "dig" in item;
 
 const itemLabel = (index: number): string => `Board item ${index + 1}`;
 
@@ -77,9 +83,18 @@ const addPlacement = (board: Board, placement: Placement, validate: boolean, ind
 	board.clearLines();
 };
 
+const digRows = (board: Board, { dig }: Dig): void => {
+	board.state.splice(0, dig);
+
+	while (board.state.length < board.fullHeight) board.state.push(new Array<Tile>(board.width).fill(null));
+
+	for (const tile of board.state[0] ?? []) if (tile) tile.connections |= BoardConnections.BOTTOM;
+};
+
 export const buildBoard = (board: Board, { board: items, validate }: GameSetup): void => {
 	items.forEach((item, index) => {
 		if (isPlacement(item)) addPlacement(board, item, validate, index);
+		else if (isDig(item)) digRows(board, item);
 		else if (!isHold(item)) insertGarbage(board, item);
 	});
 };

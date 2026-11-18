@@ -59,7 +59,7 @@ function PracticeView<S, T extends DrillStage>({
 	onNavigate,
 	context,
 }: PracticeViewProps<S, T>) {
-	const { game, state, stage, status, mistake, clears, passed, owner } = session;
+	const { game, state, stage, status, mistake, clears, passed, owner, board } = session;
 	const { config } = context.settings;
 	const isMistake = status === "mistake";
 	const isRestart = stage.onMistake === "restart";
@@ -75,8 +75,8 @@ function PracticeView<S, T extends DrillStage>({
 	const notes = useMemo(() => (mistake ? drillNotes(mistake, config) : null), [mistake, config]);
 	const marks = useMemo(() => (mistake ? drillMarks(mistake) : drill.marks(state)), [mistake, drill, state]);
 	const overlays = useMemo(
-		() => (mistake ? (mistake.overlays ?? NO_OVERLAYS) : drill.overlays(state)),
-		[mistake, drill, state],
+		() => (mistake ? (mistake.overlays ?? NO_OVERLAYS) : drill.overlays(state, board)),
+		[mistake, drill, state, board],
 	);
 
 	const handleRetry = useCallback(() => {
@@ -138,7 +138,7 @@ function PracticeView<S, T extends DrillStage>({
 						{passed.includes(stage.id) && <LabelRow label="Stage passed" detail={<CheckIcon size={14} />} />}
 					</div>
 					{import.meta.env.DEV && (
-						<output data-drill hidden>
+						<output data-drill data-owner={owner} hidden>
 							{drill.describe(state, playerOf(config))}
 						</output>
 					)}

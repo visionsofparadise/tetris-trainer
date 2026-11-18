@@ -48,13 +48,21 @@ export {
 } from "./script";
 export { isDasPress, playerPresses, pressesToSteps, type KeyPress } from "./inputs";
 export { piecePreview, type PiecePreview } from "./piecePreview";
-export type { BoardItem, Garbage, GameSetup, Hold, QueueMode } from "./setup";
+export type { BoardItem, Dig, Garbage, GameSetup, Hold, QueueMode } from "./setup";
 export { SetupError } from "./SetupError";
 export type { BoardTile, TileEdges } from "./tiles";
 export { simBoardOf, lockCells, isHoleFree, type SimBoard, type SimLock } from "./sim/simBoard";
 export { generateMoves, type Move, type Mover, type MoveRules } from "./search/moves";
 export { cleanStack } from "./search/cleanStack";
 export type { RouteStep, SearchBudget, SearchResult, SearchState } from "./search/searchState";
-export { isQuadReady, judgeDistance, searchQuadReady, type Call, type QuadGoal } from "./search/quad";
+export {
+	isQuadReady,
+	judgeDistance,
+	rowsReady,
+	searchQuadReady,
+	windowFill,
+	type Call,
+	type QuadGoal,
+} from "./search/quad";
 export { fitAfter, homeless, type FitResult } from "./search/fit";
 export { LIVE_BUDGET } from "./search/budgets";

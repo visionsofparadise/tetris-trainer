@@ -1,9 +1,12 @@
+import { simBoardOf, type Game } from "@tetris-trainer/game";
 import { ignore } from "opshot";
 import { searchStateOf } from "../../search/searchStateOf";
 import { pausedGame } from "./pausedGame";
 import type { Drill, JudgeContext } from "./Drill";
 import type { BoardMark } from "../../models/BoardMark";
-import type { Game } from "@tetris-trainer/game";
+import type { BoardOverlay } from "../../models/BoardOverlay";
+
+const NO_OVERLAYS: ReadonlyArray<BoardOverlay> = [];
 
 export type DealWatch = NonNullable<Drill<unknown>["watch"]>;
 
@@ -11,6 +14,7 @@ export interface DrillWatchSession {
 	game: Game;
 	round: number;
 	marks: ReadonlyArray<BoardMark>;
+	overlays: ReadonlyArray<BoardOverlay>;
 	narration: ReadonlyArray<string>;
 	speed: number;
 	isDone: boolean;
@@ -20,12 +24,25 @@ export interface DrillWatchSession {
 export const createDrillWatch = (): DrillWatchSession => {
 	const game = pausedGame();
 
-	return { game: ignore(game), round: 0, marks: [], narration: [], speed: 1, isDone: false, clears: 0 };
+	return {
+		game: ignore(game),
+		round: 0,
+		marks: [],
+		overlays: NO_OVERLAYS,
+		narration: [],
+		speed: 1,
+		isDone: false,
+		clears: 0,
+	};
 };
 
 export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, context: JudgeContext): void => {
-	const { game, locks, marks, narration, play } = watch(context.player, context.search, session.round);
+	const { game, locks, marks, overlays, narration, play } = watch(context.player, context.search, session.round);
 	let placed = 0;
+
+	const showBoard = (): void => {
+		session.overlays = ignore(overlays ? overlays(simBoardOf(game.board)) : NO_OVERLAYS);
+	};
 
 	const isActive = (): boolean => session.game === game;
 
@@ -63,6 +80,7 @@ export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, con
 		if (!isActive()) return;
 
 		placed++;
+		showBoard();
 
 		if (placed < locks) return;
 
@@ -72,6 +90,7 @@ export const dealDrillWatch = (session: DrillWatchSession, watch: DealWatch, con
 
 	session.round++;
 	session.marks = ignore(marks);
+	showBoard();
 	session.narration = narration;
 	session.isDone = false;
 	session.game = ignore(game);

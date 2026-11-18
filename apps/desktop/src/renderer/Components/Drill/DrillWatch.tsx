@@ -44,7 +44,7 @@ interface WatchViewProps {
 
 const WatchView = scope<WatchViewProps>(
 	({ session, onDeal, onSpeed, words, showNext, lesson, view, onNavigate, context }) => {
-		const { game, round, marks, narration, isDone, clears } = session;
+		const { game, round, marks, overlays, narration, isDone, clears } = session;
 		const pause = usePause(context);
 		const { isPaused } = pause;
 
@@ -84,6 +84,7 @@ const WatchView = scope<WatchViewProps>(
 					control={isDone ? "none" : "demo"}
 					context={context}
 					marks={marks}
+					overlays={overlays}
 					display={isDone ? "board" : "play"}
 					pause={pause}
 					showNext={showNext}

@@ -10,6 +10,7 @@ import type {
 	Placement,
 	ScriptStep,
 	SearchState,
+	SimBoard,
 } from "@tetris-trainer/game";
 
 export interface Player {
@@ -29,6 +30,7 @@ export interface KeyComparison {
 export interface DrillMistake extends DrillHint {
 	readonly kind: string;
 	readonly title: string;
+	readonly detail?: string;
 	readonly keys?: KeyComparison;
 	readonly overlays?: ReadonlyArray<BoardOverlay>;
 	readonly placed: ReadonlyArray<Block> | null;
@@ -80,6 +82,7 @@ interface WatchRound {
 	readonly game: Game;
 	readonly locks: number;
 	readonly marks: ReadonlyArray<BoardMark>;
+	readonly overlays?: (board: SimBoard) => ReadonlyArray<BoardOverlay>;
 	readonly narration: ReadonlyArray<string>;
 	readonly play: (spawn: SearchState) => Promise<WatchTurn>;
 }
@@ -94,7 +97,7 @@ export interface Drill<S, T extends DrillStage = DrillStage> {
 	readonly isPassed: (state: S) => boolean;
 	readonly progress: (state: S) => { readonly label: string; readonly value: string };
 	readonly marks: (state: S) => ReadonlyArray<BoardMark>;
-	readonly overlays: (state: S) => ReadonlyArray<BoardOverlay>;
+	readonly overlays: (state: S, board: SimBoard) => ReadonlyArray<BoardOverlay>;
 	readonly describe: (state: S, player: Player) => string;
 	readonly owns?: (state: S, mino: Piece) => boolean;
 	readonly delegate?: (state: S, spawn: SearchState, context: JudgeContext) => Promise<ReadonlyArray<ScriptStep>>;
