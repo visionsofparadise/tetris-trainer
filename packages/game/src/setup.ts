@@ -17,7 +17,11 @@ export interface Dig {
 	readonly dig: number;
 }
 
-export type BoardItem = Placement | Garbage | Hold | Dig;
+export interface Rows {
+	readonly rows: ReadonlyArray<string>;
+}
+
+export type BoardItem = Placement | Garbage | Hold | Dig | Rows;
 
 export type QueueMode = "continue-bag" | "fresh-bag" | "any";
 
@@ -41,6 +45,12 @@ const isPlacement = (item: BoardItem): item is Placement => "mino" in item;
 const isHold = (item: BoardItem): item is Hold => "hold" in item;
 
 const isDig = (item: BoardItem): item is Dig => "dig" in item;
+
+const isRows = (item: BoardItem): item is Rows => "rows" in item;
+
+const FILLED = "X";
+
+const EMPTY = ".";
 
 const itemLabel = (index: number): string => `Board item ${index + 1}`;
 
@@ -91,10 +101,41 @@ const digRows = (board: Board, { dig }: Dig): void => {
 	for (const tile of board.state[0] ?? []) if (tile) tile.connections |= BoardConnections.BOTTOM;
 };
 
+const rowCells = ({ rows }: Rows, width: number, label = "Rows"): Array<Block> =>
+	rows.flatMap((text, index): Array<Block> => {
+		const row = rows.length - 1 - index;
+
+		if (text.length !== width) throw new SetupError(`${label} row ${row} is ${text.length} wide, not ${width}`);
+
+		return Array.from({ length: text.length }, (_, x) => text.charAt(x)).flatMap((character, x): Array<Block> => {
+			if (character === FILLED) return [[x, row]];
+
+			if (character === EMPTY) return [];
+
+			throw new SetupError(`${label} row ${row} holds "${character}", not ${FILLED} or ${EMPTY}`);
+		});
+	});
+
+const writeRows = (board: Board, item: Rows, index: number): void => {
+	const cells = rowCells(item, board.width, itemLabel(index));
+
+	if (item.rows.length > board.fullHeight) throw new SetupError(`${itemLabel(index)} is taller than the board`);
+
+	for (const row of board.state.slice(0, item.rows.length)) row.fill(null);
+
+	for (const cell of cells) {
+		const [x, y] = cell;
+		const row = board.state[y];
+
+		if (row) row[x] = { mino: Mino.GARBAGE, connections: pieceConnections(cells, cell) };
+	}
+};
+
 export const buildBoard = (board: Board, { board: items, validate }: GameSetup): void => {
 	items.forEach((item, index) => {
 		if (isPlacement(item)) addPlacement(board, item, validate, index);
 		else if (isDig(item)) digRows(board, item);
+		else if (isRows(item)) writeRows(board, item, index);
 		else if (!isHold(item)) insertGarbage(board, item);
 	});
 };

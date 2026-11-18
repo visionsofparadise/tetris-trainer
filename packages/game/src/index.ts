@@ -48,7 +48,7 @@ export {
 } from "./script";
 export { isDasPress, playerPresses, pressesToSteps, type KeyPress } from "./inputs";
 export { piecePreview, type PiecePreview } from "./piecePreview";
-export type { BoardItem, Dig, Garbage, GameSetup, Hold, QueueMode } from "./setup";
+export type { BoardItem, Dig, Garbage, GameSetup, Hold, QueueMode, Rows } from "./setup";
 export { SetupError } from "./SetupError";
 export type { BoardTile, TileEdges } from "./tiles";
 export { simBoardOf, lockCells, isHoleFree, type SimBoard, type SimLock } from "./sim/simBoard";

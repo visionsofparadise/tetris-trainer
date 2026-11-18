@@ -123,6 +123,34 @@ describe("Game", () => {
 			expect(game.tiles[0]?.[0]?.edges).toMatchObject({ bottom: true, top: false });
 		});
 
+		it("writes grey rows from the floor up, bottom row last, as one outlined block", () => {
+			const game = loaded({ board: [{ rows: ["X.......XX", "XX...XXXXX"] }] });
+
+			expect(filledColumns(game, 0)).toEqual([0, 1, 5, 6, 7, 8, 9]);
+			expect(filledColumns(game, 1)).toEqual([0, 8, 9]);
+			expect(game.tiles[0]?.[0]?.mino).toBe(Mino.GARBAGE);
+			expect(game.tiles[1]?.[0]?.edges).toEqual({ top: true, right: true, bottom: false, left: true });
+			expect(game.tiles[0]?.[1]?.edges).toEqual({ top: true, right: true, bottom: true, left: false });
+		});
+
+		it("replaces the rows it covers", () => {
+			const game = loaded({
+				board: [{ mino: Mino.I, orientation: "spawn", column: 0, row: 0 }, { rows: ["....XXXXXX"] }],
+				validate: false,
+			});
+
+			expect(filledColumns(game, 0)).toEqual([4, 5, 6, 7, 8, 9]);
+		});
+
+		it("rejects a row of the wrong width or with another character", () => {
+			expect(() => loaded({ board: [{ rows: ["XXXX"] }] })).toThrow(
+				new SetupError("Board item 1 row 0 is 4 wide, not 10"),
+			);
+			expect(() => loaded({ board: [{ rows: ["XXXXoXXXXX", "XXXXXXXXX."] }] })).toThrow(
+				new SetupError('Board item 1 row 1 holds "o", not X or .'),
+			);
+		});
+
 		it("rejects a floating piece unless validation is off", () => {
 			const floating: GameSetup["board"] = [{ mino: Mino.I, orientation: "spawn", column: 0, row: 4 }];
 
