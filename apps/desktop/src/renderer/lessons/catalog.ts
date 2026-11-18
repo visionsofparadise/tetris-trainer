@@ -6,6 +6,7 @@ import { openerLesson } from "./opener/openerLesson";
 import { PCO } from "./pco";
 import { PELICAN } from "./pelican";
 import { RELIABLE_TSD } from "./reliableTsd";
+import { SPINS } from "./spins/lesson";
 import { T_SPINS } from "./t-spins/lesson";
 import { TKI } from "./tki";
 import { TKI_MIRRORED } from "./tkiMirrored";
@@ -14,7 +15,7 @@ import type { LessonGroup } from "../models/Lesson";
 export const LESSON_GROUPS: ReadonlyArray<LessonGroup> = [
 	{ title: "Fundamentals", lessons: [FINESSE] },
 	{ title: "Quads", lessons: [COLUMN_WELLS] },
-	{ title: "Moves", lessons: [DROP_CHOICE, T_SPINS] },
+	{ title: "Moves", lessons: [DROP_CHOICE, T_SPINS, SPINS] },
 	{
 		title: "Openers",
 		lessons: [
