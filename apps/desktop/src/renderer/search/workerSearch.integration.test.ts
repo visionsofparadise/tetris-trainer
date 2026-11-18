@@ -14,6 +14,7 @@ const RULES: MoveRules = {
 	holeFreeOnly: true,
 	ceiling: null,
 	quadClearsOnly: true,
+	deadRows: 0,
 };
 
 const MOVER = { handling: DEFAULT_CONFIG.handling, gravity: 0 };

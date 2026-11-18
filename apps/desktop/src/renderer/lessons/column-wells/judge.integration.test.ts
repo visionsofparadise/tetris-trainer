@@ -4,8 +4,10 @@ import {
 	generateMoves,
 	Mino,
 	placementCells,
+	type BoardItem,
 	type PlaceEvent,
 	type Placement,
+	type ScriptStep,
 } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
 import { describe, expect, it } from "vitest";
@@ -25,9 +27,28 @@ import type { WellStage } from "./stages";
 
 const JUDGE: JudgeContext = { player: playerOf(DEFAULT_CONFIG), search: createLocalSearch() };
 
-const OPEN_RULES = { allow180: true, excluded: {}, holeFreeOnly: false, ceiling: null, quadClearsOnly: false };
+const OPEN_RULES = {
+	allow180: true,
+	excluded: {},
+	holeFreeOnly: false,
+	ceiling: null,
+	quadClearsOnly: false,
+	deadRows: 0,
+};
 
 const FRAME_LIMIT = 900;
+
+const HOLD: ReadonlyArray<ScriptStep> = [{ tap: "hold" }];
+
+const MISTAKE_BOARDS = [
+	"well-blocked",
+	"wrong-side",
+	"hole",
+	"homeless",
+	"slow-count",
+	"non-quad-clear",
+	"over-ceiling",
+] as const;
 
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -42,7 +63,7 @@ const judgeOpening = async (stageId: WellStageId, opening: WellsOpening, play: P
 	const events: Array<PlaceEvent> = [];
 
 	game.on("place", (event) => events.push(event));
-	playAsUser(game, move?.keys ?? [], player.handling);
+	playAsUser(game, [...(play.mino === before.current ? [] : HOLD), ...(move?.keys ?? [])], player.handling);
 
 	const [event] = events;
 
@@ -76,6 +97,46 @@ describe("Column wells judge", () => {
 		expect(mistake?.overlays?.some((overlay) => overlay.kind === "rowLine")).toBe(true);
 	});
 
+	it.each(MISTAKE_BOARDS)("shows a %s card's green placement that the judge passes", async (name) => {
+		const dev = DEV_BOARDS[name];
+		const best = mistakeOf(await judgeDev(name))?.best;
+
+		if (!best) throw new Error(`The ${name} card has no green placement`);
+
+		expect(await judgeOpening(dev.stage, devOpening(dev), best)).toMatchObject({ ok: true });
+	});
+
+	it("shows a green the judge passes for an S dropped in the well with a T next", async () => {
+		const opening: WellsOpening = { board: [], queue: [Mino.S, Mino.T, Mino.O, Mino.I, Mino.J, Mino.L], seed: 1 };
+		const best = mistakeOf(
+			await judgeOpening("nine-zero", opening, { mino: Mino.S, orientation: "right", column: 8, row: 0 }),
+		)?.best;
+
+		expect(best === null || best === undefined ? null : await judgeOpening("nine-zero", opening, best)).toMatchObject(
+			{
+				ok: true,
+			},
+		);
+	});
+
+	it("offers no hold to a player who already held, nor a hold that brings up an app piece", async () => {
+		const held = await judgeOpening(
+			"nine-zero",
+			{ board: [], queue: [Mino.O, Mino.S, Mino.T, Mino.I, Mino.J, Mino.L], seed: 1 },
+			{ mino: Mino.S, orientation: "spawn", column: 0, row: 0 },
+		);
+		const owned = mistakeOf(
+			await judgeOpening(
+				"six-side",
+				{ board: [], queue: [Mino.T, Mino.O, Mino.I, Mino.J, Mino.L, Mino.S], seed: 1 },
+				{ mino: Mino.T, orientation: "reverse", column: 0, row: 0 },
+			),
+		);
+
+		expect(held).toMatchObject({ ok: true });
+		expect(owned).toMatchObject({ kind: "hole", detail: undefined, best: { mino: Mino.T } });
+	});
+
 	it("explains a hole the hold piece avoids, a homeless set and a slow count", async () => {
 		expect(mistakeOf(await judgeDev("hole"))).toMatchObject({
 			detail: "Hold for the O: it has a clean spot.",
@@ -104,15 +165,36 @@ describe("Column wells judge", () => {
 		).toMatchObject({ ok: true });
 	});
 
-	it("blocks the well with an I that clears no quad", async () => {
-		const opening: WellsOpening = {
-			board: [{ column: 9, amount: 2 }],
-			queue: [Mino.I, Mino.O, Mino.T, Mino.J, Mino.L],
-			seed: 1,
-		};
+	it("blocks the well with an I that clears nothing", async () => {
+		const opening: WellsOpening = { board: [], queue: [Mino.I, Mino.O, Mino.T, Mino.J, Mino.L], seed: 1 };
 		const call = await judgeOpening("nine-zero", opening, { mino: Mino.I, orientation: "right", column: 9, row: 0 });
 
 		expect(mistakeOf(call)?.kind).toBe("well-blocked");
+	});
+
+	it("lets the well floor rise over a forced floor hole, then quads above it", async () => {
+		const forced: ReadonlyArray<BoardItem> = [{ mino: Mino.S, orientation: "spawn", column: 0, row: 0 }];
+		const raise: Placement = { mino: Mino.J, orientation: "spawn", column: 7, row: 0 };
+		const raised = await judgeOpening(
+			"nine-zero",
+			{ board: forced, queue: [Mino.J, Mino.O, Mino.T, Mino.I, Mino.L, Mino.Z], seed: 1 },
+			raise,
+		);
+		const quad = await judgeOpening(
+			"nine-zero",
+			{
+				board: [
+					{ column: 9, amount: 4 },
+					{ column: 2, amount: 1 },
+				],
+				queue: [Mino.I, Mino.O, Mino.T, Mino.J, Mino.L, Mino.Z],
+				seed: 1,
+			},
+			{ mino: Mino.I, orientation: "right", column: 9, row: 1 },
+		);
+
+		expect(raised).toMatchObject({ ok: true });
+		expect(quad).toMatchObject({ ok: true, ready: true });
 	});
 
 	it("leaves a delegated stage 2 piece to the app and passes it", async () => {

@@ -12,6 +12,7 @@ const stackRules = (heightCap: number, well: number | null): MoveRules => ({
 	holeFreeOnly: true,
 	ceiling: heightCap,
 	quadClearsOnly: false,
+	deadRows: 0,
 });
 
 export const cleanStack = (seed: number, deals: number, heightCap: number, well: number | null): Array<Placement> => {

@@ -9,7 +9,9 @@ import {
 	type BoardItem,
 	type GameSetup,
 	type Piece,
+	type SimBoard,
 } from "@tetris-trainer/game";
+import { stackHeight } from "./boardFacts";
 import { WELLS_GRAVITY } from "./rules";
 import { NINE_ZERO_WELL, type WellStage } from "./stages";
 
@@ -27,13 +29,16 @@ const CONVERT_DEALS = 40;
 
 const CONVERT_CAP = 10;
 
+const CONVERT_TOP = 6;
+
+const QUAD_LINES = 4;
+
 const OLD_WELL_ROW = 0b0111111111;
 
 const GARBAGE_ROWS = 8;
 
 export const CONVERT_SEEDS: ReadonlyArray<number> = [
-	104, 297, 577, 725, 1238, 1266, 1408, 1512, 1630, 1776, 2029, 2040, 2112, 2148, 2192, 2223, 2277, 2308, 2379, 2442,
-	2526, 2618, 2705, 2810,
+	2, 3, 4, 5, 6, 7, 9, 10, 11, 13, 14, 17, 19, 21, 24, 25, 26, 28, 29, 32, 33, 34, 35, 37,
 ];
 
 export const nextSeed = (seed: number): number => (seed * MULTIPLIER) % MODULUS;
@@ -55,13 +60,21 @@ export const openingGame = (opening: WellsOpening, handling = DEFAULT_CONFIG.han
 	return game;
 };
 
+const convertDig = (board: SimBoard): number => {
+	const ready = board.rows.findIndex((row) => row !== OLD_WELL_ROW);
+	const height = stackHeight(board);
+	const dig = Math.max(QUAD_LINES, Math.ceil((height - CONVERT_TOP) / QUAD_LINES) * QUAD_LINES);
+
+	return dig <= ready ? dig : 0;
+};
+
 export const convertStack = (stackSeed: number): ReadonlyArray<BoardItem> => {
 	const placements = cleanStack(stackSeed, CONVERT_DEALS, CONVERT_CAP, NINE_ZERO_WELL);
-	const { rows } = placements.reduce(
+	const board = placements.reduce(
 		(stack, placement) => lockCells(stack, placementCells(placement), "none").board,
 		simBoardOf([]),
 	);
-	const dig = rows.findIndex((row) => row !== OLD_WELL_ROW);
+	const dig = convertDig(board);
 
 	return dig > 0 ? [...placements, { dig }] : placements;
 };
@@ -90,8 +103,19 @@ export const cleanOpening = (board: ReadonlyArray<BoardItem>, seed: number): Wel
 	return opening;
 };
 
-const eternalOpening = (seed: number): WellsOpening =>
-	cleanOpening([{ column: NINE_ZERO_WELL, amount: GARBAGE_ROWS }], seed);
+const eternalGarbage = (seed: number): ReadonlyArray<BoardItem> => {
+	const columns: Array<number> = [];
+
+	for (let value = nextSeed(seed); columns.length < GARBAGE_ROWS; value = nextSeed(value)) {
+		const column = value % NINE_ZERO_WELL;
+
+		if (column !== columns.at(-1)) columns.push(column);
+	}
+
+	return columns.map((column) => ({ column, amount: 1 }));
+};
+
+const eternalOpening = (seed: number): WellsOpening => cleanOpening(eternalGarbage(seed), seed);
 
 export const emptyOpening = (seed: number): WellsOpening => cleanOpening([], seed);
 

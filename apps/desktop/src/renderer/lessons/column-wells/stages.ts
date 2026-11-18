@@ -53,7 +53,7 @@ export const WELL_STAGES: ReadonlyArray<WellStage> = [
 	{
 		id: "six-side",
 		title: "Six",
-		goal: "The app plays J, L, S, Z and O on the three-side. Place every T and I and clear 40 lines.",
+		goal: "The app plays J, L, S, Z and O, on the three-side when it fits. Place every T and I and clear 40 lines.",
 		onMistake: "pause",
 		well: SIX_THREE_WELL,
 		layout: "6-3",

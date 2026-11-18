@@ -21,6 +21,7 @@ const WELL_RULES: MoveRules = {
 	holeFreeOnly: true,
 	ceiling: null,
 	quadClearsOnly: true,
+	deadRows: 0,
 };
 
 const CLEAR_RULES: MoveRules = { ...WELL_RULES, quadClearsOnly: false };

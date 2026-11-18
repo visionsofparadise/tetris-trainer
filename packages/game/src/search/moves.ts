@@ -14,6 +14,7 @@ export interface MoveRules {
 	readonly holeFreeOnly: boolean;
 	readonly ceiling: number | null;
 	readonly quadClearsOnly: boolean;
+	readonly deadRows: number;
 }
 
 export interface Mover {
@@ -251,7 +252,7 @@ const allowedLines = (generation: Generation, shape: SimShape, x: number, landin
 
 	if (rules.quadClearsOnly && lines > 0 && lines < QUAD_LINES) return null;
 
-	return !rules.holeFreeOnly || isHoleFree(board, shapeCells(shape, x, landing)) ? lines : null;
+	return !rules.holeFreeOnly || isHoleFree(board, shapeCells(shape, x, landing), rules.deadRows) ? lines : null;
 };
 
 const recordLock = (generation: Generation, index: number, shape: SimShape, landing: number): void => {

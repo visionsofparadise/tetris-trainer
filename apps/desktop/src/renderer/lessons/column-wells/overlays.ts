@@ -14,7 +14,7 @@ export const fourCount = (board: SimBoard, stage: WellStage): BoardOverlay => {
 
 	return {
 		kind: "rowLine",
-		row: wellFloor(board, stage.well) + WINDOW_ROWS,
+		row: wellFloor(board, stage.well) + WINDOW_ROWS - 1,
 		tone: ready === WINDOW_ROWS ? "lime" : "muted",
 		label: ready === WINDOW_ROWS ? "Quad ready" : `${ready} / 4 rows ready`,
 	};
@@ -30,7 +30,7 @@ const sideTints = (stage: WellStage): ReadonlyArray<BoardOverlay> => [
 ];
 
 const ceilingLine = ({ ceiling }: WellStage): ReadonlyArray<BoardOverlay> =>
-	ceiling === null ? [] : [{ kind: "rowLine", row: ceiling, tone: "pink", label: "Ceiling" }];
+	ceiling === null ? [] : [{ kind: "rowLine", row: ceiling - 1, tone: "pink", label: "Ceiling" }];
 
 export const wellOverlays = (stage: WellStage, board: SimBoard): ReadonlyArray<BoardOverlay> => [
 	...sideTints(stage),

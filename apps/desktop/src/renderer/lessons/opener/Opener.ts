@@ -1,6 +1,6 @@
 import type { NoteAnchor } from "../../models/BoardNote";
 import type { BoardOverlay } from "../../models/BoardOverlay";
-import type { BoardItem, Piece, Placement, ScriptStep } from "@tetris-trainer/game";
+import type { Block, BoardItem, Piece, Placement, ScriptStep } from "@tetris-trainer/game";
 
 interface Tuck {
 	readonly under: ReadonlyArray<Piece>;
@@ -17,7 +17,7 @@ export interface Position {
 	readonly tuck?: Tuck;
 }
 
-type NoteAim = Placement | NoteAnchor;
+type NoteAim = Placement | NoteAnchor | ReadonlyArray<Block>;
 
 interface SlideNote {
 	readonly text: string;

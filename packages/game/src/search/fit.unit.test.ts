@@ -22,6 +22,7 @@ const RULES: MoveRules = {
 	holeFreeOnly: true,
 	ceiling: null,
 	quadClearsOnly: true,
+	deadRows: 0,
 };
 
 const boardOfHeights = (heights: ReadonlyArray<number>): SimBoard => {

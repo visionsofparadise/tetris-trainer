@@ -19,6 +19,7 @@ export const OPEN_RULES: MoveRules = {
 	holeFreeOnly: false,
 	ceiling: null,
 	quadClearsOnly: false,
+	deadRows: 0,
 };
 
 export const ZERO_GRAVITY: Mover = { handling: DEMO_HANDLING, gravity: 0 };

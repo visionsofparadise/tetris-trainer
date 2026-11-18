@@ -1,6 +1,5 @@
 import {
 	BAG,
-	cellsKey,
 	generateMoves,
 	homeless,
 	isHoleFree,
@@ -17,7 +16,7 @@ import {
 	type SearchState,
 } from "@tetris-trainer/game";
 import { wellOverlays } from "./overlays";
-import { candidatesFor, pickMove } from "./policy";
+import { isStrictSubset, judgedAlternatives, passingMoves, pickMove, turnOptions, type TurnOption } from "./policy";
 import { goalOf, isOverCeiling, isWellMove, isWrongSide, moverOf, wellsRules } from "./rules";
 import type { WellStage } from "./stages";
 import type { SearchClient } from "../../search/SearchClient";
@@ -39,11 +38,18 @@ interface Judging {
 	readonly stage: WellStage;
 	readonly goal: QuadGoal;
 	readonly rules: MoveRules;
+	readonly allow180: boolean;
 	readonly mover: Mover;
 	readonly search: SearchClient;
 	readonly lock: DrillLock;
 	readonly mino: Piece;
 	readonly known: Searched | null;
+	readonly options: ReadonlyArray<TurnOption>;
+}
+
+interface Green {
+	readonly move: Move;
+	readonly hold: boolean;
 }
 
 const TITLES: Record<WellsMistakeKind, string> = {
@@ -61,63 +67,69 @@ const QUAD_LINES = 4;
 const isAppLock = ({ event }: DrillLock): boolean => event.inputs.some(({ source }) => source === "script");
 
 const searchOf = async (judging: Judging, state: SearchState): Promise<SearchResult> => {
-	const { known, search, goal, rules, mover } = judging;
+	const { known, search, goal, stage, allow180, mover } = judging;
 
-	return known?.state === state ? known.result : search.quadReady(state, goal, rules, mover, LIVE_BUDGET);
+	return known?.state === state
+		? known.result
+		: search.quadReady(state, goal, wellsRules(stage, allow180, state.board), mover, LIVE_BUDGET);
 };
 
-const bestMove = (judging: Judging, before: SearchResult | null): Move | null => {
-	const { lock, mino, stage, goal, rules, mover } = judging;
-
-	if (before?.kind === "reached") {
-		const steps = before.firstSteps;
-		const step = steps.find(({ move }) => move.placement.mino === mino) ?? steps.find(({ kind }) => kind === "place");
-
-		if (step) return step.move;
-	}
-
+const greenOf = async (
+	judging: Judging,
+	before: SearchResult,
+	options: ReadonlyArray<TurnOption>,
+): Promise<Green | null> => {
+	const { lock, stage, goal, rules, mover, search } = judging;
 	const { board } = lock.before;
 
-	return pickMove(candidatesFor(board, mino, stage, rules, mover), board, goal, rules);
+	for (const { piece, hold } of options) {
+		const fits = await search.fitAfter(board, piece, BAG, rules, mover);
+		const move = pickMove(passingMoves(fits, before, piece, stage, board), board, goal, rules);
+
+		if (move) return { move, hold };
+	}
+
+	return null;
 };
 
-const mistakeOf = (judging: Judging, kind: WellsMistakeKind, best: Move | null, detail?: string): DrillMistake => ({
+const mistakeOf = (judging: Judging, kind: WellsMistakeKind, green: Green | null, detail?: string): DrillMistake => ({
 	kind,
 	title: TITLES[kind],
 	detail,
 	placed: judging.lock.event.cells,
-	best: best?.placement ?? null,
+	best: green?.move.placement ?? null,
 	overlays: wellOverlays(judging.stage, judging.lock.after.board),
 });
 
-const holdPieces = ({ hold, holdEnabled, holdLocked, queue }: SearchState): ReadonlyArray<Piece> => {
-	const held = hold ?? queue[0];
-
-	return holdEnabled && !holdLocked && held !== undefined ? [held] : [];
-};
+const greenMistake = async (
+	judging: Judging,
+	kind: WellsMistakeKind,
+	before: SearchResult,
+	detail?: string,
+): Promise<DrillMistake> => mistakeOf(judging, kind, await greenOf(judging, before, judging.options), detail);
 
 const cleanMoves = ({ lock, stage, rules, mover }: Judging, mino: Piece): Array<Move> =>
-	generateMoves(lock.before.board, mino, rules, mover).filter(({ cells, lines }) => !isWellMove(cells, lines, stage));
+	generateMoves(lock.before.board, mino, rules, mover).filter(
+		({ cells, lines }) => !isWellMove(mino, cells, lines, stage, lock.before.board),
+	);
 
-const holeMistake = (judging: Judging, before: SearchResult): DrillMistake | null => {
-	const { lock, mino, goal, rules } = judging;
+const holeMistake = async (judging: Judging, before: SearchResult): Promise<DrillMistake | null> => {
+	const { lock, mino, options } = judging;
+	const held = mino !== lock.before.current;
+	const alternatives = options.filter(({ piece }) => piece === mino || !held);
 
-	if (cleanMoves(judging, mino).length > 0) return mistakeOf(judging, "hole", bestMove(judging, before));
+	if (alternatives.every(({ piece }) => cleanMoves(judging, piece).length === 0)) return null;
 
-	const held = [lock.before.current, ...holdPieces(lock.before)].find((piece) => piece !== mino);
-	const moves = held === undefined ? [] : cleanMoves(judging, held);
+	const green = await greenOf(judging, before, alternatives);
+	const holdFor = green?.hold === true && green.move.placement.mino !== mino ? green.move.placement.mino : null;
 
-	if (held === undefined || moves.length === 0) return null;
-
-	const best = pickMove(moves, lock.before.board, goal, rules);
-
-	return mistakeOf(judging, "hole", best, `Hold for the ${held.toUpperCase()}: it has a clean spot.`);
+	return mistakeOf(
+		judging,
+		"hole",
+		green,
+		holdFor === null ? undefined : `Hold for the ${holdFor.toUpperCase()}: it has a clean spot.`,
+	);
 };
-
-const tiedMoves = (before: SearchResult, mino: Piece): ReadonlySet<string> | null =>
-	before.kind === "reached"
-		? new Set(before.firstSteps.flatMap(({ move }) => (move.placement.mino === mino ? [cellsKey(move.cells)] : [])))
-		: null;
 
 interface Housed {
 	readonly move: Move;
@@ -130,16 +142,10 @@ const housedAlternative = async (
 	left: ReadonlyArray<Piece>,
 ): Promise<Housed | null> => {
 	const { lock, mino, stage, rules, mover, search } = judging;
-	const tied = tiedMoves(before, mino);
-	const results = await search.fitAfter(lock.before.board, mino, BAG, rules, mover);
-	const [best] = results
-		.filter(
-			({ move, homeless: other }) =>
-				other.length < left.length &&
-				other.every((piece) => left.includes(piece)) &&
-				!isWellMove(move.cells, move.lines, stage) &&
-				(tied === null || tied.has(cellsKey(move.cells))),
-		)
+	const { board } = lock.before;
+	const fits = await search.fitAfter(board, mino, BAG, rules, mover);
+	const [best] = judgedAlternatives(fits, before, mino, stage, board)
+		.filter(({ homeless: other }) => isStrictSubset(other, left))
 		.sort((first, second) => first.homeless.length - second.homeless.length);
 
 	return best ? { move: best.move, kept: left.filter((piece) => !best.homeless.includes(piece)) } : null;
@@ -155,48 +161,61 @@ const distanceText = (before: SearchResult, after: SearchResult): string => {
 const pieceList = (pieces: ReadonlyArray<Piece>): string => pieces.map((mino) => mino.toUpperCase()).join(" ");
 
 const ruleMistake = async (judging: Judging, before: SearchResult): Promise<DrillMistake | null> => {
-	const { lock, stage, mino } = judging;
+	const { lock, stage, mino, rules } = judging;
 	const { cells, lines } = lock.event;
 
-	if (isWellMove(cells, lines, stage)) return mistakeOf(judging, "well-blocked", bestMove(judging, before));
+	if (isWellMove(mino, cells, lines, stage, lock.before.board)) return greenMistake(judging, "well-blocked", before);
 
-	if (isWrongSide(mino, cells, stage)) return mistakeOf(judging, "wrong-side", bestMove(judging, before));
+	if (isWrongSide(mino, cells, stage)) return greenMistake(judging, "wrong-side", before);
 
-	if (!isHoleFree(lock.before.board, cells)) {
-		const hole = holeMistake(judging, before);
+	if (!isHoleFree(lock.before.board, cells, rules.deadRows)) {
+		const hole = await holeMistake(judging, before);
 
 		if (hole) return hole;
 	}
 
 	if (lines === QUAD_LINES) return null;
 
-	const left = homeless(lock.after.board, BAG, judging.rules);
+	const left = homeless(lock.after.board, BAG, rules);
 
 	if (left.length === 0) return null;
 
 	const housed = await housedAlternative(judging, before, left);
 
 	return housed
-		? mistakeOf(judging, "homeless", housed.move, `No clean spot left for ${pieceList(housed.kept)}.`)
+		? mistakeOf(
+				judging,
+				"homeless",
+				{ move: housed.move, hold: false },
+				`No clean spot left for ${pieceList(housed.kept)}.`,
+			)
 		: null;
 };
 
-const countMistake = (
+const countMistake = async (
 	judging: Judging,
 	before: SearchResult,
 	after: SearchResult,
 	ready: boolean,
-): DrillMistake | null => {
+): Promise<DrillMistake | null> => {
 	const { lock, stage } = judging;
 	const { cells, lines } = lock.event;
 
 	if (judgeDistance(before, after, ready) === "fail")
-		return mistakeOf(judging, "slow-count", bestMove(judging, before), distanceText(before, after));
+		return greenMistake(judging, "slow-count", before, distanceText(before, after));
 
 	if (lines > 0 && lines < QUAD_LINES)
-		return mistakeOf(judging, "non-quad-clear", bestMove(judging, before), `Cleared ${lines} without a quad.`);
+		return greenMistake(judging, "non-quad-clear", before, `Cleared ${lines} without a quad.`);
 
-	return isOverCeiling(cells, stage) ? mistakeOf(judging, "over-ceiling", bestMove(judging, before)) : null;
+	return isOverCeiling(cells, stage) ? greenMistake(judging, "over-ceiling", before) : null;
+};
+
+const optionsFor = (lock: DrillLock, stage: WellStage): Array<TurnOption> => {
+	const { mino } = lock.event.placement;
+
+	return turnOptions(lock.before, true, stage.owned).sort(
+		(first, second) => Number(second.piece === mino) - Number(first.piece === mino),
+	);
 };
 
 export const callLock = async (
@@ -212,12 +231,14 @@ export const callLock = async (
 	const judging: Judging = {
 		stage,
 		goal,
-		rules: wellsRules(stage, player.allow180),
+		rules: wellsRules(stage, player.allow180, before.board),
+		allow180: player.allow180,
 		mover: moverOf(player),
 		search,
 		lock,
 		mino,
 		known,
+		options: optionsFor(lock, stage),
 	};
 	const ready = isQuadReady(lockCells(before.board, event.cells, event.spin), event.cells, goal);
 
@@ -230,7 +251,7 @@ export const callLock = async (
 
 	const afterSearch = await searchOf(judging, after);
 	const searched: Searched = { state: after, result: afterSearch };
-	const counted = countMistake(judging, beforeSearch, afterSearch, ready);
+	const counted = await countMistake(judging, beforeSearch, afterSearch, ready);
 
 	return counted ? { ok: false, mistake: counted, search: searched } : { ok: true, search: searched, ready };
 };

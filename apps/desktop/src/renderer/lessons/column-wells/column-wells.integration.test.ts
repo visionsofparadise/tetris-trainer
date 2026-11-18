@@ -1,10 +1,10 @@
 import { DEFAULT_CONFIG, LIVE_BUDGET, searchQuadReady } from "@tetris-trainer/game";
 import { createMutableState } from "opshot";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createLocalSearch } from "../../search/localSearch";
 import { searchStateOf } from "../../search/searchStateOf";
 import { continueDrill, createDrillSession, setStage, type DrillSession } from "../drill/drillSession";
-import { createDrillWatch, dealDrillWatch } from "../drill/drillWatch";
+import { createDrillWatch, dealDrillWatch, stopDrillWatch } from "../drill/drillWatch";
 import { playerOf } from "../drill/player";
 import { loadSlide } from "../opener/openerScript";
 import { DEV_BOARDS, devKeys, devOpening, type DevBoardName } from "./devBoards";
@@ -53,7 +53,7 @@ const devSession = (name: DevBoardName): WellsSession => {
 const policyLock = async (session: WellsSession): Promise<void> => {
 	const { stage } = session.state;
 	const spawn = searchStateOf(session.game);
-	const rules = wellsRules(stage, true);
+	const rules = wellsRules(stage, true, spawn.board);
 	const mover = moverOf(JUDGE.player);
 	const before = searchQuadReady(spawn, goalOf(stage), rules, mover, { ...LIVE_BUDGET, deadlineMs: null });
 
@@ -125,6 +125,22 @@ describe("Column wells lesson", () => {
 		expect(session.isDone).toBe(true);
 		expect(session.narration).toHaveLength(WATCH_LOCKS);
 		expect(session.narration.every((line) => /^(Stack|Beside the well|Quad): [IJLOSTZ]$/.test(line))).toBe(true);
+	});
+
+	it("stops a Watch round's thinking and search once the round is stopped", async () => {
+		const quadReady = vi.fn(JUDGE.search.quadReady);
+		const session = createDrillWatch();
+
+		dealDrillWatch(
+			session,
+			(player, _search, round) => wellsWatch(player, { ...JUDGE.search, quadReady }, round),
+			JUDGE,
+		);
+		stopDrillWatch(session);
+		await new Promise((resolve) => setTimeout(resolve, 400));
+
+		expect(quadReady).not.toHaveBeenCalled();
+		expect(session.narration).toEqual([]);
 	});
 
 	it.each(WELLS_SLIDES.map((slide) => [slide.title, slide] as const))("loads the %s slide", (_, slide) => {

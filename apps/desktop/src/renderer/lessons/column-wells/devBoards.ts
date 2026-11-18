@@ -30,6 +30,7 @@ const OPEN_RULES: MoveRules = {
 	holeFreeOnly: false,
 	ceiling: null,
 	quadClearsOnly: false,
+	deadRows: 0,
 };
 
 const BAG_TAIL: ReadonlyArray<Piece> = [Mino.T, Mino.I, Mino.J, Mino.Z, Mino.S];
@@ -101,7 +102,7 @@ export const DEV_BOARDS: Readonly<Record<DevBoardName, DevBoard>> = {
 	"over-ceiling": {
 		stage: "eternal",
 		board: [
-			{ column: 9, amount: 8 },
+			...[3, 5, 2, 7, 4, 6, 3, 5].map((column) => ({ column, amount: 1 })),
 			{ mino: Mino.I, orientation: "right", column: 0, row: 8 },
 			{ mino: Mino.J, orientation: "spawn", column: 1, row: 8 },
 		],

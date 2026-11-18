@@ -51,5 +51,10 @@ export const lockCells = (board: SimBoard, cells: ReadonlyArray<Block>, spin: Sp
 	return { added: { rows: added }, board: { rows }, lines, spin };
 };
 
-export const isHoleFree = (board: SimBoard, cells: ReadonlyArray<Block>): boolean =>
-	cells.every(([x, y]) => isFilled(board, x, y - 1) || cells.some(([cellX, cellY]) => cellX === x && cellY === y - 1));
+export const isHoleFree = (board: SimBoard, cells: ReadonlyArray<Block>, deadRows = 0): boolean =>
+	cells.every(
+		([x, y]) =>
+			y - 1 < deadRows ||
+			isFilled(board, x, y - 1) ||
+			cells.some(([cellX, cellY]) => cellX === x && cellY === y - 1),
+	);

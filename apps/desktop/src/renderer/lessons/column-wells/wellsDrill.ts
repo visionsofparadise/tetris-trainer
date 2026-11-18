@@ -69,7 +69,7 @@ const delegateKeys = async (
 	{ player, search }: JudgeContext,
 ): Promise<ReadonlyArray<ScriptStep>> => {
 	const { stage } = state;
-	const rules = wellsRules(stage, player.allow180);
+	const rules = wellsRules(stage, player.allow180, spawn.board);
 	const mover = moverOf(player);
 	const known = state.search?.state === spawn ? state.search.result : null;
 	const before = known ?? (await search.quadReady(spawn, goalOf(stage), rules, mover, LIVE_BUDGET));

@@ -11,7 +11,7 @@ import {
 } from "@tetris-trainer/game";
 import { describe, expect, it } from "vitest";
 import { searchStateOf } from "../../search/searchStateOf";
-import { openingGame } from "./boards";
+import { emptyOpening, openingGame } from "./boards";
 import { coveredCells } from "./boardFacts";
 import { DEV_BOARDS, devOpening } from "./devBoards";
 import { candidatesFor, chooseMove, choiceKeys, pickMove } from "./policy";
@@ -34,14 +34,13 @@ const boardOf = (rows: ReadonlyArray<string>): SimBoard =>
 
 const picked = (board: SimBoard, mino: Piece, stageId: WellStageId) => {
 	const stage = wellStage(stageId);
-	const rules = wellsRules(stage, true);
+	const rules = wellsRules(stage, true, board);
 
 	return pickMove(candidatesFor(board, mino, stage, rules, MOVER), board, goalOf(stage), rules);
 };
 
 const quadsIn = (stageId: WellStageId, seed: number): number => {
 	const stage = wellStage(stageId);
-	const rules = wellsRules(stage, true);
 	const game = watchGame(seed);
 	let quads = 0;
 
@@ -49,6 +48,7 @@ const quadsIn = (stageId: WellStageId, seed: number): number => {
 
 	for (let lock = 0; lock < PLAY_LOCKS && !game.isOver; lock++) {
 		const spawn = searchStateOf(game);
+		const rules = wellsRules(stage, true, spawn.board);
 		const before = searchQuadReady(spawn, goalOf(stage), rules, WATCH_MOVER, BUDGET);
 		const pieces = game.stats.pieces;
 
@@ -85,14 +85,45 @@ describe("pickMove", () => {
 	it("keeps the six-side for the app's three-side pieces when the three-side has room", () => {
 		const stage = wellStage("six-side");
 		const spawn = searchStateOf(openingGame({ board: [], queue: [Mino.L, Mino.O, Mino.T], seed: 1 }));
-		const choice = chooseMove(spawn, { kind: "beyond", nodes: 0 }, stage, wellsRules(stage, true), MOVER, false);
+		const rules = wellsRules(stage, true, spawn.board);
+		const choice = chooseMove(spawn, { kind: "beyond", nodes: 0 }, stage, rules, MOVER, false);
 
 		expect(choice?.move.cells.every(([x]) => x >= 7)).toBe(true);
-		expect(generateMoves(spawn.board, Mino.L, wellsRules(stage, true), MOVER).length).toBeGreaterThan(0);
+		expect(generateMoves(spawn.board, Mino.L, rules, MOVER).length).toBeGreaterThan(0);
 	});
 });
 
+const STAGE_LINES = 40;
+
+const STAGE_LOCKS = 200;
+
+const stageLines = (stageId: WellStageId, seed: number): number => {
+	const stage = wellStage(stageId);
+	const game = openingGame(emptyOpening(seed), DEFAULT_CONFIG.handling);
+	let lines = 0;
+
+	game.on("place", (event) => (lines += event.lines));
+
+	for (let lock = 0; lock < STAGE_LOCKS && !game.isOver && lines < STAGE_LINES; lock++) {
+		const spawn = searchStateOf(game);
+		const rules = wellsRules(stage, true, spawn.board);
+		const before = searchQuadReady(spawn, goalOf(stage), rules, MOVER, BUDGET);
+		const isApp = stage.owned.includes(spawn.current);
+		const pieces = game.stats.pieces;
+
+		game.input(choiceKeys(chooseMove(spawn, before, stage, rules, MOVER, !isApp)));
+
+		for (let frame = 0; frame < FRAME_LIMIT && game.stats.pieces === pieces; frame++) game.step();
+	}
+
+	return lines;
+};
+
 describe("policy play", () => {
+	it.each([1, 2, 3, 4])("clears 40 lines in stage 3 with the app's J, L, S, Z and O unheld (seed %i)", (seed) => {
+		expect(stageLines("six-side", seed)).toBeGreaterThanOrEqual(STAGE_LINES);
+	});
+
 	it.each([1, 2, 3, 4, 5])("completes a quad within 30 pieces in 9-0 and 6-3 (seed %i)", (seed) => {
 		expect(quadsIn("nine-zero", seed)).toBeGreaterThan(0);
 		expect(quadsIn("six-three", seed)).toBeGreaterThan(0);

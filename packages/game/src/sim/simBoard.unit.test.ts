@@ -132,6 +132,18 @@ describe("isHoleFree", () => {
 		).toBe(true);
 	});
 
+	it("accepts a cell over an empty cell in the dead rows", () => {
+		const cells: ReadonlyArray<Block> = [
+			[2, 2],
+			[3, 2],
+			[4, 2],
+			[3, 1],
+		];
+
+		expect(isHoleFree(board, cells, 1)).toBe(false);
+		expect(isHoleFree(board, cells, 2)).toBe(true);
+	});
+
 	it("rejects a cell over an empty cell outside the set", () => {
 		expect(
 			isHoleFree(board, [

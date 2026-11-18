@@ -50,7 +50,6 @@ export const watchGame = (seed: number): Game => openingGame(emptyOpening(seed),
 
 export const wellsWatch: DealWatch = (_player, search, round) => {
 	const stage = watchStage(round);
-	const rules = wellsRules(stage, true);
 	const goal = goalOf(stage);
 
 	return {
@@ -62,6 +61,7 @@ export const wellsWatch: DealWatch = (_player, search, round) => {
 		play: async (spawn, signal) => {
 			await thinking(signal);
 
+			const rules = wellsRules(stage, true, spawn.board);
 			const before = await search.quadReady(spawn, goal, rules, WATCH_MOVER, LIVE_BUDGET);
 			const choice = chooseMove(spawn, before, stage, rules, WATCH_MOVER, true);
 

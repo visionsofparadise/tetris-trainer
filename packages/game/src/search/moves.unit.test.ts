@@ -5,7 +5,14 @@ import { BAG, cellsKey, type Piece } from "../pieces";
 import { emptySimBoard, isHoleFree, lockCells, type SimBoard } from "../sim/simBoard";
 import { generateMoves, type Move, type Mover, type MoveRules } from "./moves";
 
-const RULES: MoveRules = { allow180: true, excluded: {}, holeFreeOnly: false, ceiling: null, quadClearsOnly: false };
+const RULES: MoveRules = {
+	allow180: true,
+	excluded: {},
+	holeFreeOnly: false,
+	ceiling: null,
+	quadClearsOnly: false,
+	deadRows: 0,
+};
 
 const MOVER: Mover = { handling: DEMO_HANDLING, gravity: 0 };
 
@@ -108,6 +115,15 @@ describe("generateMoves", () => {
 		expect(clean.every((move) => isHoleFree(board, move.cells))).toBe(true);
 		expect(clean.length).toBe(all.filter((move) => isHoleFree(board, move.cells)).length);
 		expect(clean.length).toBeLessThan(all.length);
+	});
+
+	it("keeps locks that cover an empty cell only in the dead rows", () => {
+		const board = boardOf(["##.#......"]);
+		const covers = (found: ReadonlyArray<Move>): boolean =>
+			found.some((move) => move.cells.some(([x, y]) => x === 2 && y === 1));
+
+		expect(covers(moves(board, Mino.O, { holeFreeOnly: true }))).toBe(false);
+		expect(covers(moves(board, Mino.O, { holeFreeOnly: true, deadRows: 1 }))).toBe(true);
 	});
 
 	it("drops locks with a cell at or above the ceiling", () => {
