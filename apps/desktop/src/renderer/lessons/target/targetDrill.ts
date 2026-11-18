@@ -135,10 +135,8 @@ export const targetDrill = ({ stages, watch }: TargetLesson): Drill<TargetState,
 	words: WORDS,
 	start: startTarget,
 	deal: (state, player, round) => {
-		const next =
-			round === "next"
-				? { ...state, seed: nextSeed(state.seed), round: roundOf(state.stage, nextSeed(state.seed)) }
-				: state;
+		const seed = nextSeed(state.round.seed);
+		const next = round === "next" ? { ...state, seed, round: roundOf(state.stage, seed) } : state;
 
 		return { game: roundGame(next.round, player.handling), state: next };
 	},

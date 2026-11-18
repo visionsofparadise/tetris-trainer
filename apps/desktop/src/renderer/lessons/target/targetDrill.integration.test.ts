@@ -87,6 +87,18 @@ describe("target drill", () => {
 		},
 	);
 
+	it("deals a different board each round, also after a seed the generator skips", () => {
+		let state = DRILL.start(SLIDE, 12345);
+		const seen = [state.round.rows.join("/")];
+
+		for (let round = 0; round < 40; round++) {
+			state = DRILL.deal(state, PLAYER, "next").state;
+			seen.push(state.round.rows.join("/"));
+		}
+
+		expect(seen.filter((rows, index) => rows === seen[index - 1])).toEqual([]);
+	});
+
 	it("shows a mistake card for a missed goal, and a retry deals the same board from its spawn", async () => {
 		const session = started(SPIN);
 		const { round } = session.state;
